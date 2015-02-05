@@ -1,0 +1,13 @@
+#! /usr/bin/env bash
+
+
+set -e
+
+obj_dir=objs
+total_cpu_cores=$(cat /proc/cpuinfo | grep processor | wc -l)
+
+if [[ ! -x ${obj_dir} ]]; then
+    mkdir -p ${obj_dir}
+fi
+
+cd ${obj_dir} && cmake .. && make -j${total_cpu_cores}
