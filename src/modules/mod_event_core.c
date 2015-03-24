@@ -126,7 +126,7 @@ static void lts_accept(lts_socket_t *s)
         cs->on_writable = &handle_output;
         cs->do_write = &lts_send;
 
-        if (LTS_E_OK != (*lts_event_itfc->event_add)(cs)) {
+        if (0 != (*lts_event_itfc->event_add)(cs)) {
             lts_close_conn(cmnct_fd, cpool, TRUE);
             lts_free_socket(cs);
             continue;
@@ -147,7 +147,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
     lts_socket_t *sock_cache;
     struct addrinfo hint, *records, *iter;
 
-    rslt = LTS_E_OK;
+    rslt = 0;
 
     // 获取本地地址
     memset(&hint, 0, sizeof(hint));
@@ -193,7 +193,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
         );
         ls = lts_alloc_socket();
         if ((NULL == a) || (NULL == ls)) {
-            rslt = LTS_E_NO_MEM;
+            rslt = ENOMEM;
             break;
         }
 
@@ -233,25 +233,25 @@ static int init_event_core_master(lts_module_t *mod)
     int rslt, ipv6_only, reuseaddr;
     lts_pool_t *pool;
 
-    rslt = LTS_E_OK;
+    rslt = 0;
 
     // 创建内存池
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {
         // log
-        return LTS_E_NO_MEM;
+        return ENOMEM;
     }
     mod->pool = pool;
 
     // 创建accept共享内存锁
     rslt = lts_shm_alloc(&lts_accept_lock);
-    if (LTS_E_OK != rslt) {
+    if (0 != rslt) {
         return rslt;
     }
 
     // 创建监听套接字
     rslt = alloc_listen_sockets(pool);
-    if (LTS_E_OK != rslt) {
+    if (0 != rslt) {
         return rslt;
     }
 

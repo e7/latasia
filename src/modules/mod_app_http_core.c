@@ -9,10 +9,10 @@ static int init_http_core_module(lts_module_t *module)
 {
     module->pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == module->pool) {
-        return LTS_E_NO_MEM;
+        return ENOMEM;
     }
 
-    return LTS_E_OK;
+    return 0;
 }
 
 
@@ -51,7 +51,7 @@ static int http_core_iobuf(lts_socket_t *s)
     rb = s->conn->rbuf;
     sb = s->conn->sbuf;
     if (rb->last == rb->start) {
-        return LTS_E_OK;
+        return 0;
     }
 
     assert((uintptr_t)(sb->end - sb->last) > sizeof(rsp_buf));
@@ -59,7 +59,7 @@ static int http_core_iobuf(lts_socket_t *s)
     rb->last = rb->start;
     sb->last += sizeof(rsp_buf);
 
-    return LTS_E_OK;
+    return 0;
 }
 
 

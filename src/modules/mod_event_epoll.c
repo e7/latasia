@@ -22,7 +22,7 @@ static int epoll_event_add(lts_socket_t *s)
         return LTS_E_SYS;
     }
 
-    return LTS_E_OK;
+    return 0;
 }
 
 
@@ -35,7 +35,7 @@ static int epoll_event_del(lts_socket_t *s)
         return LTS_E_SYS;
     }
 
-    return LTS_E_OK;
+    return 0;
 }
 
 
@@ -53,7 +53,7 @@ static int epoll_process_events(void)
         tmp_err = errno;
 
         if (EINTR == tmp_err) { // 信号中断
-            return LTS_E_OK;
+            return 0;
         } else {
             return LTS_E_SYS;
         }
@@ -61,7 +61,7 @@ static int epoll_process_events(void)
 
     if ((0 != timeout) && (0 == nevents)) {
         fprintf(stderr, "timeout\n");
-        return LTS_E_OK;
+        return 0;
     }
 
     for (i = 0; i < nevents; ++i) {
@@ -90,7 +90,7 @@ static int epoll_process_events(void)
         }
     }
 
-    return LTS_E_OK;
+    return 0;
 }
 
 
@@ -102,7 +102,7 @@ static int init_event_epoll_module(lts_module_t *mod)
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {
         // log
-        return LTS_E_NO_MEM;
+        return ENOMEM;
     }
     mod->pool = pool;
 
@@ -117,11 +117,11 @@ static int init_event_epoll_module(lts_module_t *mod)
         lts_palloc(pool, MAX_CONNECTIONS * sizeof(struct epoll_event))
     );
     if (NULL == buf_epevs) {
-        return LTS_E_NO_MEM;
+        return ENOMEM;
     }
     nbuf_epevs = MAX_CONNECTIONS;
 
-    return LTS_E_OK;
+    return 0;
 }
 
 

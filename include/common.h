@@ -47,12 +47,7 @@ typedef volatile sig_atomic_t lts_atomic_t;
 
 
 enum {
-    LTS_E_OK = 0,
-
-    LTS_E_SYS = -1023, // 系统错误
-    LTS_E_NO_MEM, // 内存耗尽
-
-    LTS_E_EXISTS = -10000, // 资源已存在
+    LTS_E_SYS = 65536, // 系统错误
     LTS_E_PKG_BROKEN, // 损坏的报文
 };
 

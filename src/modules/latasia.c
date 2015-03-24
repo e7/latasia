@@ -75,7 +75,7 @@ int enable_accept_events(void)
 {
     int rslt;
 
-    rslt = LTS_E_OK;
+    rslt = 0;
     if (lts_accept_lock_hold) {
         return rslt;
     }
@@ -85,7 +85,7 @@ int enable_accept_events(void)
         lts_socket_t *ls;
 
         ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-        if (LTS_E_OK != (*lts_event_itfc->event_add)(ls)) {
+        if (0 != (*lts_event_itfc->event_add)(ls)) {
             rslt = LTS_E_SYS;
             break;
         }
@@ -99,7 +99,7 @@ int disable_accept_events(void)
 {
     int rslt;
 
-    rslt = LTS_E_OK;
+    rslt = 0;
     if (!lts_accept_lock_hold) {
         return rslt;
     }
@@ -109,7 +109,7 @@ int disable_accept_events(void)
         lts_socket_t *ls;
 
         ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-        if (LTS_E_OK != (*lts_event_itfc->event_del)(ls)) {
+        if (0 != (*lts_event_itfc->event_del)(ls)) {
             rslt = LTS_E_SYS;
             break;
         }
@@ -156,7 +156,7 @@ void process_post_sock_list(void)
                 continue;
             }
 
-            if (LTS_E_OK != (*app_itfc->process_iobuf)(cs)) {
+            if (0 != (*app_itfc->process_iobuf)(cs)) {
                 break;
             }
         }
@@ -215,7 +215,7 @@ int event_loop_single(void)
                     lts_socket_t *ls;
 
                     ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-                    if (LTS_E_OK != (*lts_event_itfc->event_add)(ls)) {
+                    if (0 != (*lts_event_itfc->event_add)(ls)) {
                         // log
                     }
                 }
@@ -228,7 +228,7 @@ int event_loop_single(void)
                     lts_socket_t *ls;
 
                     ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-                    if (LTS_E_OK != (*lts_event_itfc->event_del)(ls)) {
+                    if (0 != (*lts_event_itfc->event_del)(ls)) {
                         // log
                     }
                 }
@@ -239,14 +239,14 @@ int event_loop_single(void)
 
         rslt = (*lts_event_itfc->process_events)();
 
-        if (LTS_E_OK != rslt) {
+        if (0 != rslt) {
             break;
         }
 
         process_post_sock_list();
     }
 
-    if (LTS_E_OK != rslt) {
+    if (0 != rslt) {
         return -1;
     }
 
@@ -275,16 +275,16 @@ int event_loop_multi(void)
         if (lts_accept_disabled < 0) {
             if (lts_shmtx_trylock((lts_atomic_t *)lts_accept_lock.addr)) {
                 // 抢锁成功
-                if (LTS_E_OK != enable_accept_events()) {
+                if (0 != enable_accept_events()) {
                     continue;
                 }
             } else {
-                if (LTS_E_OK != disable_accept_events()) {
+                if (0 != disable_accept_events()) {
                     continue;
                 }
             }
         } else {
-            if (LTS_E_OK != disable_accept_events()) {
+            if (0 != disable_accept_events()) {
                 continue;
             }
         }
@@ -293,14 +293,14 @@ int event_loop_multi(void)
         if (lts_accept_lock_hold) {
             lts_shmtx_unlock((lts_atomic_t *)lts_accept_lock.addr);
         }
-        if (LTS_E_OK != rslt) {
+        if (0 != rslt) {
             break;
         }
 
         process_post_sock_list();
     }
 
-    if (LTS_E_OK != rslt) {
+    if (0 != rslt) {
         return -1;
     }
 
@@ -482,7 +482,7 @@ int master_main(void)
         lts_signals_mask &= ~LTS_MASK_SIGSTOP;
     }
 
-    return LTS_E_OK;
+    return 0;
 }
 
 
@@ -524,7 +524,7 @@ static int do_init_worker(int type)
             continue;
         }
 
-        if (LTS_E_OK != (*module->init_worker)(module)) {
+        if (0 != (*module->init_worker)(module)) {
             break;
         }
     }
@@ -607,14 +607,14 @@ int main(int argc, char *argv[], char *env[])
             continue;
         }
 
-        if (LTS_E_OK != (*module->init_master)(module)) {
+        if (0 != (*module->init_master)(module)) {
             break;
         }
     }
 
     if (NULL == lts_modules[i]) {
         lts_module_count = i;
-        rslt = (LTS_E_OK == master_main()) ? EXIT_SUCCESS : EXIT_FAILURE;
+        rslt = (0 == master_main()) ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 
     // 析构核心模块
