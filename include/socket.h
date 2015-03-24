@@ -88,6 +88,7 @@ lts_socket_t *lts_alloc_socket(void)
 
     if (dlist_empty(&lts_sock_list)) {
         assert(0 == lts_sock_cache_n);
+        errno = ENOMEM;
         return NULL;
     }
 

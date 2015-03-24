@@ -9,7 +9,7 @@ static int init_http_core_module(lts_module_t *module)
 {
     module->pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == module->pool) {
-        return ENOMEM;
+        return -1;
     }
 
     return 0;

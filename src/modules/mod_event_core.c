@@ -193,7 +193,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
         );
         ls = lts_alloc_socket();
         if ((NULL == a) || (NULL == ls)) {
-            rslt = ENOMEM;
+            rslt = -1;
             break;
         }
 
@@ -239,7 +239,7 @@ static int init_event_core_master(lts_module_t *mod)
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {
         // log
-        return ENOMEM;
+        return -1;
     }
     mod->pool = pool;
 

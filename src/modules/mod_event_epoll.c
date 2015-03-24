@@ -102,7 +102,7 @@ static int init_event_epoll_module(lts_module_t *mod)
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {
         // log
-        return ENOMEM;
+        return -1;
     }
     mod->pool = pool;
 
@@ -117,7 +117,7 @@ static int init_event_epoll_module(lts_module_t *mod)
         lts_palloc(pool, MAX_CONNECTIONS * sizeof(struct epoll_event))
     );
     if (NULL == buf_epevs) {
-        return ENOMEM;
+        return -1;
     }
     nbuf_epevs = MAX_CONNECTIONS;
 
