@@ -71,7 +71,7 @@ static void cb_servers_match(lts_conf_t *conf, lts_pool_t *pool,
     lts_str_t prefix = lts_string("--SERVER=");
 
     if ((',' == v->data[0]) || (',' == v->data[v->len - 1])) {
-        (void)lts_write_logger(&lts_stderr_logger, LTS_ERROR,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
                                "invalid cache server configuration\n");
         return;
     }
@@ -174,14 +174,14 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     if (-1 == lts_file_open(file, O_RDONLY, S_IWUSR | S_IRUSR,
                             &lts_stderr_logger))
     {
-        (void)lts_write_logger(&lts_stderr_logger, LTS_ERROR,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
                                "open configuration file failed\n");
         return -1;
     }
 
     if (-1 == fstat(file->fd, &st)) {
         lts_file_close(file);
-        (void)lts_write_logger(&lts_stderr_logger, LTS_ERROR,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
                                "fstat configuration file failed: %s\n",
                                strerror(errno));
         return -1;
@@ -190,7 +190,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     // 配置文件size检查
     if (st.st_size > ((~0u) >> 1)) {
         lts_file_close(file);
-        (void)lts_write_logger(&lts_stderr_logger, LTS_ERROR,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
                                "too large configuration file\n");
         return -1;
     }
@@ -200,7 +200,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
                             PROT_READ | PROT_WRITE, MAP_PRIVATE, file->fd, 0);
     if (MAP_FAILED == *addr) {
         lts_file_close(file);
-        (void)lts_write_logger(&lts_stderr_logger, LTS_ERROR,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
                                "mmap configuration file failed: %s\n",
                                strerror(errno));
         return -1;
@@ -212,7 +212,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
 static void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz)
 {
     if (-1 == munmap(addr, sz)) {
-        (void)lts_write_logger(&lts_stderr_logger, LTS_ERROR,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
                                "munmap configure file failed(%d)\n", errno);
     }
     lts_file_close(file);
@@ -252,7 +252,7 @@ static int parse_conf(lts_conf_t *conf, lts_pool_t *pool,
                     kv[kv_len] = 0;
 
                     (void)lts_write_logger(
-                        &lts_stderr_logger, LTS_ERROR,
+                        &lts_stderr_logger, LTS_LOG_EMERGE,
                         "invalid configration near '%s'\n", kv
                     );
 
@@ -268,7 +268,7 @@ static int parse_conf(lts_conf_t *conf, lts_pool_t *pool,
                 kv[kv_len] = 0;
 
                 (void)lts_write_logger(
-                    &lts_stderr_logger, LTS_ERROR,
+                    &lts_stderr_logger, LTS_LOG_EMERGE,
                     "invalid configration near '%s'\n", kv
                 );
 
@@ -282,7 +282,7 @@ static int parse_conf(lts_conf_t *conf, lts_pool_t *pool,
                 for (seprator = 0; ('=' != kv[seprator]); ++seprator) {
                     if (0 == kv[seprator]) { // 无效配置
                         (void)lts_write_logger(
-                            &lts_stderr_logger, LTS_ERROR,
+                            &lts_stderr_logger, LTS_LOG_EMERGE,
                             "invalid configration near '%s'\n", kv
                         );
 

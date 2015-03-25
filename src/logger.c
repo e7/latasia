@@ -1,13 +1,16 @@
-#include <stdarg.h>
 #include "file.h"
 #include "logger.h"
 
 
+lts_str_t LTS_LOG_PREFIXES[LTS_LOG_MAX];
+
 lts_logger_t lts_stderr_logger = {
     &lts_stderr_file,
+    LTS_LOG_EMERGE,
 };
 lts_logger_t lts_file_logger = {
     &lts_log_file,
+    LTS_LOG_ERROR,
 };
 
 
@@ -20,12 +23,47 @@ ssize_t lts_write_logger_fd(lts_logger_t *log, void const *buf, size_t n)
 ssize_t lts_write_logger(lts_logger_t *log,
                          int level, char const *fmt, ...)
 {
-    // todo: 该函数io次数过多
+    va_list args;
+    int len, total;
+    char buf[4096];
+
+    if (level < log->level) {
+        return 0;
+    }
+
+    total = len = snprintf(
+        buf, sizeof(buf), "[%s] ", LTS_LOG_PREFIXES[level].data
+    );
+    va_start(args, fmt);
+    len = vsnprintf(buf + len, sizeof(buf) - len, fmt, args);
+    va_end(args);
+
+    if (len > 0) {
+        total += len;
+        return lts_write_logger_fd(log, buf, total);
+    } else {
+        return -1;
+    }
+}
+
+/*
+ssize_t lts_write_logger(lts_logger_t *log,
+                         int level, char const *fmt, ...)
+{
     va_list args;
     char const *p, *last;
     char const *arg;
+    lts_str_t const *prefix;
     ssize_t total_size, tmp_size;
+    char delimiter = 0x20;
 
+    if (level < log->level) {
+        return 0;
+    }
+
+    prefix = LTS_LOG_PREFIXES + level;
+    (void)lts_write_logger_fd(log, prefix->data, prefix->len);
+    (void)lts_write_logger_fd(log, &delimiter, 1);
     va_start(args, fmt);
     total_size = 0;
     p = fmt;
@@ -80,3 +118,4 @@ ssize_t lts_write_logger(lts_logger_t *log,
 
     return total_size;
 }
+*/

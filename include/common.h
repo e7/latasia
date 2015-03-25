@@ -10,9 +10,10 @@
 #include <signal.h>
 #include <sysexits.h>
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 

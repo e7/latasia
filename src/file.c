@@ -25,7 +25,7 @@ int lts_file_open(lts_file_t *file, int flags,
     file->fd = open(buf, flags, mode);
     if (-1 == file->fd) {
         (void)lts_write_logger(
-            (lts_logger_t *)logger, LTS_ERROR,
+            (lts_logger_t *)logger, LTS_LOG_ERROR,
             "open %s failed: %s\n", buf, strerror(errno)
         );
         return -1;
@@ -37,12 +37,10 @@ int lts_file_open(lts_file_t *file, int flags,
 
 ssize_t lts_file_read(lts_file_t *file, void *buf, size_t sz, off_t ofst)
 {
-    int tmp_err;
     ssize_t rslt;
 
     rslt = pread(file->fd, buf, sz, ofst);
-    tmp_err = errno;
-    if ((-1 == rslt) && (ESPIPE == tmp_err)) {
+    if ((-1 == rslt) && (ESPIPE == errno)) {
         rslt = read(file->fd, buf, sz);
     }
 

@@ -60,7 +60,6 @@ static int epoll_process_events(void)
     }
 
     if ((0 != timeout) && (0 == nevents)) {
-        fprintf(stderr, "timeout\n");
         return 0;
     }
 
@@ -128,7 +127,7 @@ static int init_event_epoll_module(lts_module_t *mod)
 static void exit_event_epoll_module(lts_module_t *mod)
 {
     if (-1 == close(epfd)) {
-        (void)lts_write_logger(&lts_file_logger, LTS_ERROR, "close failed");
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR, "close failed");
     }
     lts_destroy_pool(mod->pool);
 

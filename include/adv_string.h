@@ -12,7 +12,7 @@ typedef struct {
 
 
 #define lts_string(str) {\
-    (uint8_t *)str, sizeof(str) - 1,\
+    (uint8_t *)(str), sizeof(str) - 1,\
 }
 #define lts_null_string {\
     NULL, 0,\

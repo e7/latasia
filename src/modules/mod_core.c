@@ -39,7 +39,7 @@ int init_event_core_module(lts_module_t *module)
     // 读取配置
     if (-1 == lts_load_config(&lts_conf, module->pool)) {
         (void)lts_write_logger(&lts_stderr_logger,
-                               LTS_ERROR, "load configure failed\n");
+                               LTS_LOG_EMERGE, "load configure failed\n");
         return -1;
     }
 
@@ -51,14 +51,14 @@ int init_event_core_module(lts_module_t *module)
                             &lts_stderr_logger))
     {
         (void)lts_write_logger(&lts_stderr_logger,
-                               LTS_ERROR, "open log file failed\n");
+                               LTS_LOG_EMERGE, "open log file failed\n");
         return -1;
     }
 
     // 初始化信号处理
     if (-1 == lts_init_sigactions()) {
         (void)lts_write_logger(&lts_stderr_logger,
-                               LTS_ERROR, "init sigactions failed\n");
+                               LTS_LOG_EMERGE, "init sigactions failed\n");
         return -1;
     }
 

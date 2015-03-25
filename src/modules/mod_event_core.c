@@ -20,7 +20,7 @@ void lts_close_conn(int fd, lts_pool_t *c, int reset)
     }
 
     if (-1 == close(fd)) {
-        (void)lts_write_logger(&lts_file_logger, LTS_ERROR, "close failed\n");
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR, "close failed\n");
     }
 
     if (NULL != c) {
@@ -89,8 +89,8 @@ static void lts_accept(lts_socket_t *s)
             lts_listen_sock_list_add(s);
             if ((EAGAIN != errno) && (EWOULDBLOCK != errno)) {
                 (void)lts_write_logger(
-                    &lts_file_logger, LTS_ERROR,
-                    "altset4() failed: %d\n", errno
+                    &lts_file_logger, LTS_LOG_ERROR,
+                    "accept4() failed: %d\n", errno
                 );
             }
 
@@ -306,7 +306,7 @@ static int init_event_core_master(lts_module_t *mod)
 
         rslt = bind(fd, ls->local_addr, ls->addr_len);
         if (-1 == rslt) {
-            (void)lts_write_logger(&lts_stderr_logger, LTS_ERROR,
+            (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
                                    "bind failed: %s\n", strerror(errno));
             if (-1 == close(fd)) {
                 // log
@@ -418,7 +418,7 @@ void lts_recv(lts_socket_t *cs)
             } else {
                 // 异常关闭
                 (void)lts_write_logger(
-                    &lts_file_logger, LTS_ERROR,
+                    &lts_file_logger, LTS_LOG_ERROR,
                     "recv failed(%d), reset connection\n", errno
                 );
                 cs->closing = ((1 << 0) | (1 << 1));
@@ -429,7 +429,7 @@ void lts_recv(lts_socket_t *cs)
         if (0 == recv_sz) {
             // 正常关闭连接
             (void)lts_write_logger(
-                &lts_file_logger, LTS_ERROR,
+                &lts_file_logger, LTS_LOG_ERROR,
                 "connection closed by peer\n", errno
             );
             cs->readable = 0;
@@ -463,7 +463,7 @@ void lts_send(lts_socket_t *cs)
                 lts_sock_list_add(cs);
             } else {
                 (void)lts_write_logger(
-                    &lts_file_logger, LTS_ERROR,
+                    &lts_file_logger, LTS_LOG_ERROR,
                     "send failed(%d), reset connection\n", errno
                 );
                 cs->closing = ((1 << 0) | (1 << 1));

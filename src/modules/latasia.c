@@ -201,7 +201,7 @@ int event_loop_single(void)
             lts_accept_disabled = 1;
             if (dlist_empty(&lts_post_list)) {
                 // 已处理完所有连接
-                (void)lts_write_logger(&lts_file_logger, LTS_ERROR,
+                (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                                        "worker will exit\n");
                 break;
             }
@@ -264,7 +264,7 @@ int event_loop_multi(void)
             lts_accept_disabled = 1;
             if (dlist_empty(&lts_post_list)) {
                 // 已处理完所有连接
-                (void)lts_write_logger(&lts_file_logger, LTS_ERROR,
+                (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                                        "worker will exit\n");
                 break;
             }
@@ -343,14 +343,14 @@ pid_t wait_children(void)
     }
     if (WIFSIGNALED(status)) {
         (void)lts_write_logger(
-            &lts_file_logger, LTS_ERROR,
+            &lts_file_logger, LTS_LOG_WARN,
             "child process %d terminated by %d\n",
             (long)child, WTERMSIG(status)
         );
     }
     if (WIFEXITED(status)) {
         (void)lts_write_logger(
-            &lts_file_logger, LTS_ERROR,
+            &lts_file_logger, LTS_LOG_INFO,
             "child process %d exit with code %d\n",
             (long)child, WEXITSTATUS(status)
         );
@@ -375,7 +375,7 @@ int master_main(void)
                              0, lts_processes[slot].channel))
         {
             (void)lts_write_logger(
-                &lts_file_logger, LTS_ERROR, "socketpair failed\n"
+                &lts_file_logger, LTS_LOG_ERROR, "socketpair failed\n"
             );
             break;
         }
@@ -426,7 +426,7 @@ int master_main(void)
 
                 if (-1 == p) {
                     (void)lts_write_logger(
-                        &lts_file_logger, LTS_ERROR, "fork failed\n"
+                        &lts_file_logger, LTS_LOG_ERROR, "fork failed\n"
                     );
                     break;
                 }
@@ -454,12 +454,10 @@ int master_main(void)
             if (lts_signals_mask & LTS_MASK_SIGSTOP) {
                 for (int i = 0; i < lts_conf.workers; ++i) {
                     if (-1 == lts_processes[i].pid) {
-                        fprintf(stderr, "bad pid: %d\n", i);
                         continue;
                     }
                     if (-1 == kill(lts_processes[i].pid, SIGINT)) {
-                        fprintf(stderr, "kill %d failed: %d\n",
-                                lts_processes[i].pid, errno);
+                        // log
                     }
                 }
             }
@@ -468,7 +466,7 @@ int master_main(void)
             child = wait_children();
             if (-1 == child) {
                 assert(ECHILD == errno);
-                (void)lts_write_logger(&lts_file_logger, LTS_ERROR,
+                (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                                        "no more children to wait\n");
             }
             --workers;
@@ -568,7 +566,7 @@ int worker_main(void)
     }
 
     // 事件循环
-    (void)lts_write_logger(&lts_file_logger, LTS_ERROR,
+    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                            "start successfully\n");
     // (*lts_event_itfc->event_add)(lts_channel);
     if (lts_use_accept_lock) {
@@ -594,6 +592,9 @@ int main(int argc, char *argv[], char *env[])
 {
     int i, rslt;
     lts_module_t *module;
+
+    // 全局初始化
+    lts_init_log_prefixes();
 
     // 初始化核心模块
     for (i = 0; lts_modules[i]; ++i) {
