@@ -158,7 +158,7 @@ size_t lts_str_filter(lts_str_t *src, uint8_t c)
 }
 
 
-size_t long_width(long x)
+static size_t long_width(long x)
 {
     size_t rslt = ((x < 0) ? 1 : 0);
 

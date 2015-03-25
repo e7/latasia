@@ -32,7 +32,7 @@ static void cb_port_match(lts_conf_t *conf, lts_pool_t *pool,
     // 检查端口合法性
     nport = atoi((char const *)port_buf);
     if ((nport < 1024) || (nport > 65535)) {
-        nport = 22122;
+        nport = 6742;
     }
 
     // 更新配置
@@ -160,12 +160,11 @@ static conf_item_t conf_items[] = {
     {lts_string("servers"), &cb_servers_match},
     {lts_string("keepalive"), &cb_keepalive_match},
 };
-
-lts_conf_t lts_conf = {
-    1, lts_string("22122"),
-    lts_string("tm_lts.log"),
-    lts_string("--SERVER=127.0.0.1"), 60,
-};
+static struct {
+    lts_str_t k;
+    lts_str_t v;
+} conf_kvs[ARRAY_COUNT(conf_items)];
+static int conf_kvs_count;
 
 static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
 {
@@ -218,6 +217,26 @@ static void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz)
     lts_file_close(file);
 
     return;
+}
+
+static int parse_conf2(lts_conf_t *conf,
+                       lts_pool_t *pool,
+                       uint8_t *addr,
+                       off_t sz)
+{
+    off_t iter = 0;
+
+    while (iter < sz) {
+        if ('#' == addr[iter]) {
+            while (0x0A != addr[iter++]);
+            continue;
+        }
+
+        if ((addr[iter] < 'a') || (addr[iter] > 'z')) {
+        }
+    }
+
+    return 0;
 }
 
 static int parse_conf(lts_conf_t *conf, lts_pool_t *pool,
@@ -324,13 +343,20 @@ static int parse_conf(lts_conf_t *conf, lts_pool_t *pool,
     return 0;
 }
 
+// default configuration
+lts_conf_t lts_conf = {
+    1, lts_string("6742"),
+    lts_string("latasia.log"),
+    lts_string("--SERVER=127.0.0.1"), 60,
+};
+
 int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
 {
     off_t sz;
     uint8_t *addr;
+    int rslt;
     lts_file_t lts_conf_file = {
-        -1,
-        {
+        -1, {
             (uint8_t *)CONF_FILE, sizeof(CONF_FILE) - 1,
         },
     };
@@ -338,14 +364,8 @@ int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
     if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
         return -1;
     }
-
-    // 解析配置
-    if (-1 == parse_conf(conf, pool, addr, sz)) {
-        close_conf_file(&lts_conf_file, addr, sz);
-        return -1;
-    }
-
+    rslt = parse_conf(conf, pool, addr, sz);
     close_conf_file(&lts_conf_file, addr, sz);
 
-    return 0;
+    return rslt;
 }

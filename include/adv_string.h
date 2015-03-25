@@ -25,7 +25,6 @@ void lts_str_init(lts_str_t *str, uint8_t *data, size_t len)
 }
 
 
-extern size_t long_width(long x);
 extern void lts_str_reverse(lts_str_t *src);
 extern size_t lts_str_filter(lts_str_t *src, uint8_t c);
 extern int lts_str_compare(lts_str_t const *a, lts_str_t const *b);

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2015 e7,jackzxty@126.com
+ * */
+
+
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
