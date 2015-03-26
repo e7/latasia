@@ -11,14 +11,58 @@
 
 typedef struct {
     lts_str_t name;
-    void (*match_handler)(lts_conf_t *conf, lts_pool_t *pool,
-                          lts_str_t const *, lts_str_t const *);
+    void (*match_handler)(lts_conf_t *,
+                          lts_str_t *,
+                          lts_str_t *,
+                          lts_pool_t *);
 } conf_item_t;
 
 
+static lts_str_t *split_str(lts_str_t *text, char delemiter, lts_pool_t *pool)
+{
+    int dlm_count;
+    lts_str_t *rslt;
+
+    // counting delemiter
+    dlm_count = 0;
+    for (int i = 0; i < text->len; ++i) {
+        if (delemiter == text->data[i]) {
+            ++dlm_count;
+        }
+    }
+
+    // alloc memory
+    rslt = (lts_str_t *)lts_palloc(
+        pool, sizeof(lts_str_t) * (dlm_count + 1 + 1)
+    );
+    for (int i = 0; i < dlm_count + 1; ++i) {
+        rslt[i] = (lts_str_t)lts_null_string;
+    }
+
+    // split
+    dlm_count = 0;
+    for (int i = 0; i < text->len; ++i) {
+        if (delemiter == text->data[i]) {
+            continue;
+        }
+
+        for (int j = i; j < text->len; ++j) {
+            if (delemiter == text->data[j]) {
+                rslt[dlm_count].data = text->data + i;
+                rslt[dlm_count].len = j - i;
+                i = j;
+                ++dlm_count;
+                break;
+            }
+        }
+    }
+
+    return rslt;
+}
+
 // 端口配置
-static void cb_port_match(lts_conf_t *conf, lts_pool_t *pool,
-                          lts_str_t const *k, lts_str_t const *v)
+static void
+cb_port_match(lts_conf_t *conf, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
 {
     int nport;
     uint8_t *port_buf;
@@ -42,8 +86,10 @@ static void cb_port_match(lts_conf_t *conf, lts_pool_t *pool,
     return;
 }
 
-static void cb_log_file_match(lts_conf_t *conf, lts_pool_t *pool,
-                              lts_str_t const *k, lts_str_t const *v)
+static void cb_log_file_match(lts_conf_t *conf,
+                              lts_str_t *k,
+                              lts_str_t *v,
+                              lts_pool_t *pool)
 {
     uint8_t *log_file_buf;
     size_t log_file_buf_size = MAX(v->len, 8) + 1;
@@ -61,8 +107,10 @@ static void cb_log_file_match(lts_conf_t *conf, lts_pool_t *pool,
 
 
 // 缓存配置
-static void cb_servers_match(lts_conf_t *conf, lts_pool_t *pool,
-                             lts_str_t const *k, lts_str_t const *v)
+static void cb_servers_match(lts_conf_t *conf,
+                             lts_str_t *k,
+                             lts_str_t *v,
+                             lts_pool_t *pool)
 {
     int cache_count = 1;
     size_t last = 0;
@@ -106,8 +154,10 @@ static void cb_servers_match(lts_conf_t *conf, lts_pool_t *pool,
 
 
 // 工作进程配置
-static void cb_workers_match(lts_conf_t *conf, lts_pool_t *pool,
-                             lts_str_t const *k, lts_str_t const *v)
+static void cb_workers_match(lts_conf_t *conf,
+                             lts_str_t *k,
+                             lts_str_t *v,
+                             lts_pool_t *pool)
 {
     int nworkers;
     uint8_t *port_buf;
@@ -130,8 +180,10 @@ static void cb_workers_match(lts_conf_t *conf, lts_pool_t *pool,
 
 
 // 连接超时配置
-static void cb_keepalive_match(lts_conf_t *conf, lts_pool_t *pool,
-                               lts_str_t const *k, lts_str_t const *v)
+static void cb_keepalive_match(lts_conf_t *conf,
+                               lts_str_t *k,
+                               lts_str_t *v,
+                               lts_pool_t *pool)
 {
     int nkeepalive;
     uint8_t *port_buf;
@@ -187,7 +239,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     }
 
     // 配置文件size检查
-    if (st.st_size > ((~0u) >> 1)) {
+    if (st.st_size > MAX_CONF_SIZE) {
         lts_file_close(file);
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
                                "too large configuration file\n");
@@ -219,28 +271,13 @@ static void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz)
     return;
 }
 
-static int parse_conf2(lts_conf_t *conf,
-                       lts_pool_t *pool,
-                       uint8_t *addr,
-                       off_t sz)
+static int parse_conf2(lts_conf_t *conf, lts_str_t *text, lts_pool_t *pool)
 {
-    off_t iter = 0;
-
-    while (iter < sz) {
-        if ('#' == addr[iter]) {
-            while (0x0A != addr[iter++]);
-            continue;
-        }
-
-        if ((addr[iter] < 'a') || (addr[iter] > 'z')) {
-        }
-    }
-
     return 0;
 }
 
-static int parse_conf(lts_conf_t *conf, lts_pool_t *pool,
-                      uint8_t *addr, off_t sz)
+static int
+parse_conf(lts_conf_t *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
 {
     uint8_t *start, *end;
 
@@ -332,7 +369,7 @@ static int parse_conf(lts_conf_t *conf, lts_pool_t *pool,
                         break;
                     }
 
-                    conf_items[i].match_handler(conf, pool, &k_str, &v_str);
+                    conf_items[i].match_handler(conf, &k_str, &v_str, pool);
                 }
                 start = end + 1;
                 break;
@@ -360,11 +397,20 @@ int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
             (uint8_t *)CONF_FILE, sizeof(CONF_FILE) - 1,
         },
     };
+    lts_str_t conf_text;
+    lts_str_t *iter = split_str(&conf_text, ';', pool);
 
     if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
         return -1;
     }
-    rslt = parse_conf(conf, pool, addr, sz);
+    conf_text.data = addr;
+    conf_text.len = sz;
+    iter = split_str(&conf_text, ';', pool);
+    for (;!lts_str_is_empty(iter); ++iter)
+    {
+        write(2, iter->data, iter->len);
+    }
+    rslt = parse_conf(conf, addr, sz, pool);
     close_conf_file(&lts_conf_file, addr, sz);
 
     return rslt;

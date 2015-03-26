@@ -15,7 +15,7 @@ static void reverse_region(uint8_t *data, int i, int j)
     }
 }
 
-static void kmp_next(lts_str_t const *str, int *next, size_t sz)
+static void kmp_next(lts_str_t *str, int *next, size_t sz)
 {
     int i = 0;
     int j = 1;
@@ -40,7 +40,7 @@ static void kmp_next(lts_str_t const *str, int *next, size_t sz)
 }
 
 
-int lts_str_find(lts_str_t const *text, lts_str_t const *pattern)
+int lts_str_find(lts_str_t *text, lts_str_t *pattern)
 {
     int rslt;
     size_t next_sz = pattern->len * sizeof(int);
@@ -72,7 +72,7 @@ int lts_str_find(lts_str_t const *text, lts_str_t const *pattern)
 }
 
 
-int lts_str_compare(lts_str_t const *a, lts_str_t const *b)
+int lts_str_compare(lts_str_t *a, lts_str_t *b)
 {
     int rslt = 0;
     size_t i, cmp_len = MIN(a->len, b->len);

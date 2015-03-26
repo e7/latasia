@@ -5,6 +5,8 @@
 #include "adv_string.h"
 #include "mem_pool.h"
 
+#define MAX_CONF_SIZE       65535
+
 
 typedef struct lts_conf_s lts_conf_t;
 

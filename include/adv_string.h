@@ -23,11 +23,16 @@ void lts_str_init(lts_str_t *str, uint8_t *data, size_t len)
     str->data = data;
     str->len = len;
 }
+static inline
+int lts_str_is_empty(lts_str_t *str)
+{
+    return ((NULL == str->data) || (0 == str->len));
+}
 
 
 extern void lts_str_reverse(lts_str_t *src);
 extern size_t lts_str_filter(lts_str_t *src, uint8_t c);
-extern int lts_str_compare(lts_str_t const *a, lts_str_t const *b);
-extern int lts_str_find(lts_str_t const *text, lts_str_t const *pattern);
+extern int lts_str_compare(lts_str_t *a, lts_str_t *b);
+extern int lts_str_find(lts_str_t *text, lts_str_t *pattern);
 extern int lts_l2str(lts_str_t *str, long x);
 #endif // __EVIEO__ADV_STRING_H__
