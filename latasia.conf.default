@@ -1,14 +1,10 @@
 # listen port
-port = 6742;
-
+port = 6742
 # cache servers
-servers = 127.0.0.1;
-
+servers = 127.0.0.1
 # log file
-log_file = latasia.log;
-
+log_file = latasia.log
 # workers
-workers = 2;
-
+workers = 2
 # keepalive
-keepalive = 30;
+keepalive = 30

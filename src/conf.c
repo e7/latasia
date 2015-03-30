@@ -20,38 +20,36 @@ typedef struct {
 
 static lts_str_t *split_str(lts_str_t *text, char delemiter, lts_pool_t *pool)
 {
-    int dlm_count;
+    int dlm_count, dlm_total;
     lts_str_t *rslt;
 
     // counting delemiter
-    dlm_count = 0;
+    dlm_total = 0;
     for (int i = 0; i < text->len; ++i) {
         if (delemiter == text->data[i]) {
-            ++dlm_count;
+            ++dlm_total;
         }
     }
 
     // alloc memory
     rslt = (lts_str_t *)lts_palloc(
-        pool, sizeof(lts_str_t) * (dlm_count + 1 + 1)
+        pool, sizeof(lts_str_t) * (dlm_total + 1 + 1)
     );
-    for (int i = 0; i < dlm_count + 1; ++i) {
+    rslt[0].data = text->data;
+    rslt[0].len = text->len;
+    for (int i = 1; i < dlm_total + 1; ++i) {
         rslt[i] = (lts_str_t)lts_null_string;
     }
 
     // split
     dlm_count = 0;
     for (int i = 0; i < text->len; ++i) {
-        if (delemiter == text->data[i]) {
-            continue;
-        }
-
         for (int j = i; j < text->len; ++j) {
             if (delemiter == text->data[j]) {
-                rslt[dlm_count].data = text->data + i;
-                rslt[dlm_count].len = j - i;
+                rslt[dlm_count++].len = j - i;
+                rslt[dlm_count].data = text->data + j + 1;
+                rslt[dlm_count].len = text->len - j - 1;
                 i = j;
-                ++dlm_count;
                 break;
             }
         }
@@ -60,7 +58,7 @@ static lts_str_t *split_str(lts_str_t *text, char delemiter, lts_pool_t *pool)
     return rslt;
 }
 
-// 端口配置
+// match of port
 static void
 cb_port_match(lts_conf_t *conf, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
 {
@@ -282,11 +280,15 @@ static int parse_conf2(lts_conf_t *conf,
 
     rslt = 0;
     iter = split_str(&conf_text, 0x0A, pool);
-    for (int i = 0; lts_str_not_empty(&iter[i]); ++i) {
+    for (int i = 0; iter[i].data; ++i) {
         lts_str_t *kv;
 
+        if (0 == iter[i].len) {
+            continue;
+        }
+
         kv = split_str(&iter[i], '=', pool);
-        if (lts_str_is_empty(&kv[1])) {
+        if (0 == kv[1].len) {
             char *tmp;
 
             tmp = (char *)lts_palloc(pool, kv[0].len + 1);

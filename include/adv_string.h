@@ -14,6 +14,9 @@ typedef struct {
 #define lts_string(str) {\
     (uint8_t *)(str), sizeof(str) - 1,\
 }
+#define lts_empty_string {\
+    "", 0,\
+};
 #define lts_null_string {\
     NULL, 0,\
 };
@@ -22,16 +25,6 @@ void lts_str_init(lts_str_t *str, uint8_t *data, size_t len)
 {
     str->data = data;
     str->len = len;
-}
-static inline
-int lts_str_is_empty(lts_str_t *str)
-{
-    return ((NULL == str->data) || (0 == str->len));
-}
-static inline
-int lts_str_not_empty(lts_str_t *str)
-{
-    return !lts_str_is_empty(str);
 }
 
 
