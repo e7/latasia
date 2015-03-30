@@ -271,9 +271,37 @@ static void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz)
     return;
 }
 
-static int parse_conf2(lts_conf_t *conf, lts_str_t *text, lts_pool_t *pool)
+static int parse_conf2(lts_conf_t *conf,
+                       uint8_t *addr,
+                       off_t sz,
+                       lts_pool_t *pool)
 {
-    return 0;
+    int rslt;
+    lts_str_t *iter;
+    lts_str_t conf_text = {addr, sz};
+
+    rslt = 0;
+    iter = split_str(&conf_text, 0x0A, pool);
+    for (int i = 0; lts_str_not_empty(&iter[i]); ++i) {
+        lts_str_t *kv;
+
+        kv = split_str(&iter[i], '=', pool);
+        if (lts_str_is_empty(&kv[1])) {
+            char *tmp;
+
+            tmp = (char *)lts_palloc(pool, kv[0].len + 1);
+            (void)memmove(tmp, kv[0].data, kv[0].len);
+            tmp[kv[0].len] = '\0';
+            (void)lts_write_logger(
+                &lts_stderr_logger, LTS_LOG_EMERGE,
+                "invalid conf '%s'\n", tmp
+            );
+            rslt = -1;
+            break;
+        }
+    }
+
+    return rslt;
 }
 
 static int
@@ -397,20 +425,12 @@ int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
             (uint8_t *)CONF_FILE, sizeof(CONF_FILE) - 1,
         },
     };
-    lts_str_t conf_text;
-    lts_str_t *iter = split_str(&conf_text, ';', pool);
 
     if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
         return -1;
     }
-    conf_text.data = addr;
-    conf_text.len = sz;
-    iter = split_str(&conf_text, ';', pool);
-    for (;!lts_str_is_empty(iter); ++iter)
-    {
-        write(2, iter->data, iter->len);
-    }
-    rslt = parse_conf(conf, addr, sz, pool);
+    rslt = parse_conf2(conf, addr, sz, pool);
+    // rslt = parse_conf(conf, addr, sz, pool);
     close_conf_file(&lts_conf_file, addr, sz);
 
     return rslt;

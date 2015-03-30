@@ -28,6 +28,11 @@ int lts_str_is_empty(lts_str_t *str)
 {
     return ((NULL == str->data) || (0 == str->len));
 }
+static inline
+int lts_str_not_empty(lts_str_t *str)
+{
+    return !lts_str_is_empty(str);
+}
 
 
 extern void lts_str_reverse(lts_str_t *src);

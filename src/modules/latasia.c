@@ -619,10 +619,10 @@ int main(int argc, char *argv[], char *env[])
         }
     }
 
-    if (NULL == lts_modules[i]) {
+    /*if (NULL == lts_modules[i]) {
         lts_module_count = i;
         rslt = (0 == master_main()) ? EXIT_SUCCESS : EXIT_FAILURE;
-    }
+    }*/
 
     // 析构核心模块
     while (i > 0) {
