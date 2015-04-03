@@ -210,11 +210,6 @@ static conf_item_t conf_items[] = {
     {lts_string("servers"), &cb_servers_match},
     {lts_string("keepalive"), &cb_keepalive_match},
 };
-static struct {
-    lts_str_t k;
-    lts_str_t v;
-} conf_kvs[ARRAY_COUNT(conf_items)];
-static int conf_kvs_count;
 
 static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
 {
@@ -269,17 +264,32 @@ static void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz)
     return;
 }
 
-static int parse_conf2(lts_conf_t *conf,
-                       uint8_t *addr,
-                       off_t sz,
-                       lts_pool_t *pool)
+static void log_invalid_conf(lts_str_t *item, lts_pool_t *pool)
+{
+    char *tmp;
+
+    tmp = (char *)lts_palloc(pool, item->len + 1);
+    (void)memmove(tmp, item->data, item->len);
+    tmp[item->len] = '\0';
+    (void)lts_write_logger(
+        &lts_stderr_logger, LTS_LOG_EMERGE,
+        "invalid conf '%s'\n", tmp
+    );
+
+    return;
+}
+
+static int parse_conf(lts_conf_t *conf,
+                      uint8_t *addr,
+                      off_t sz,
+                      lts_pool_t *pool)
 {
     lts_str_t *iter;
     lts_str_t conf_text = {addr, sz};
 
     iter = split_str(&conf_text, '\n', pool); // 换行分割
     for (int i = 0; iter[i].data; ++i) {
-        int iter_len;
+        int iter_len, valid_item;
         lts_str_t *kv;
 
         // 过滤注释
@@ -293,26 +303,40 @@ static int parse_conf2(lts_conf_t *conf,
             ++iter[i].len;
         }
 
-        // 过滤前后空白
-        lts_str_trim(&iter[i]);
-
         // 空项
         if (0 == iter[i].len) {
             continue;
         }
 
+        kv = split_str(&iter[i], '=', pool); // 等号分割
 
-        kv = split_str(&iter[i], '=', pool);
-        if (0 == kv[1].len) {
-            char *tmp;
+        // 过滤前后空白
+        lts_str_trim(&kv[0]);
+        lts_str_trim(&kv[1]);
 
-            tmp = (char *)lts_palloc(pool, kv[0].len + 1);
-            (void)memmove(tmp, kv[0].data, kv[0].len);
-            tmp[kv[0].len] = '\0';
-            (void)lts_write_logger(
-                &lts_stderr_logger, LTS_LOG_EMERGE,
-                "invalid conf '%s'\n", tmp
-            );
+        // 无效键值
+        if ((0 == kv[1].len) || (0 == kv[1].len)) {
+            log_invalid_conf(&iter[i], pool);
+
+            return -1;
+        }
+
+        // 处理配置项
+        valid_item = 0;
+        for (int j = 0; j < (int)ARRAY_COUNT(conf_items); ++j) {
+            if (0 == lts_str_compare(&conf_items[j].name, &kv[0])) {
+                if (NULL == conf_items[j].match_handler) {
+                    abort();
+                }
+                conf_items[j].match_handler(conf, &kv[0], &kv[1], pool);
+                valid_item = 1;
+                break;
+            }
+        }
+
+        if (! valid_item) {
+            log_invalid_conf(&iter[i], pool);
+
             return -1;
         }
     }
@@ -320,6 +344,8 @@ static int parse_conf2(lts_conf_t *conf,
     return 0;
 }
 
+/*
+ * 配置解析早期实现
 static int
 parse_conf(lts_conf_t *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
 {
@@ -423,6 +449,7 @@ parse_conf(lts_conf_t *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
 
     return 0;
 }
+*/
 
 // default configuration
 lts_conf_t lts_conf = {
@@ -445,7 +472,7 @@ int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
     if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
         return -1;
     }
-    rslt = parse_conf2(conf, addr, sz, pool);
+    rslt = parse_conf(conf, addr, sz, pool);
     // rslt = parse_conf(conf, addr, sz, pool);
     close_conf_file(&lts_conf_file, addr, sz);
 
