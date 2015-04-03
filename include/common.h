@@ -22,6 +22,9 @@
 #define FALSE           0
 #define TRUE            (!FALSE)
 
+#define LTS_CPU_PAUSE()         __asm__ ("pause")
+#define LTS_MEMORY_FENCE()      __asm__ __volatile__( "" : : : "memory" )
+
 // 平台字长
 #define LTS_ALIGNMENT               sizeof(unsigned long)
 #define LTS_ALIGN(d, a) (\

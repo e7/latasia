@@ -20,6 +20,7 @@ typedef struct {
 #define lts_null_string {\
     NULL, 0,\
 };
+
 static inline
 void lts_str_init(lts_str_t *str, uint8_t *data, size_t len)
 {
@@ -28,6 +29,7 @@ void lts_str_init(lts_str_t *str, uint8_t *data, size_t len)
 }
 
 
+extern void lts_str_trim(lts_str_t *str);
 extern void lts_str_reverse(lts_str_t *src);
 extern size_t lts_str_filter(lts_str_t *src, uint8_t c);
 extern int lts_str_compare(lts_str_t *a, lts_str_t *b);

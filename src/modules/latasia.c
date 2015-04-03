@@ -48,6 +48,26 @@ static int worker_main(void);
 static int master_main(void);
 
 
+// gcc spinlock {{
+int lts_spin_trylock(sig_atomic_t *v)
+{
+    return  (0 == __sync_lock_test_and_set(v, 1));
+}
+
+void lts_spin_lock(sig_atomic_t *v)
+{
+    while(! lts_spin_trylock(v)) {
+        LTS_CPU_PAUSE();
+    }
+}
+
+void lts_spin_unlock(sig_atomic_t *v)
+{
+    __sync_lock_release(v);
+    return;
+}
+// }} gcc spinlock
+
 int lts_shmtx_trylock(lts_atomic_t *lock)
 {
     sig_atomic_t val;

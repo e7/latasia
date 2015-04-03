@@ -1,10 +1,14 @@
 # listen port
 port = 6742
+
 # cache servers
-servers = 127.0.0.1
+servers = 127.0.0.1 # localhost only by default
+
 # log file
 log_file = latasia.log
+
 # workers
 workers = 2
+
 # keepalive
 keepalive = 30

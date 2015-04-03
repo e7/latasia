@@ -40,6 +40,33 @@ static void kmp_next(lts_str_t *str, int *next, size_t sz)
 }
 
 
+void lts_str_trim(lts_str_t *str)
+{
+    // head
+    while (str->len) {
+        uint8_t c = *(str->data);
+
+        if ((' ' != c) && ('\t' != c) && ('\r' != c)) {
+            break;
+        }
+        ++(str->data);
+        --(str->len);
+    }
+
+    // tail
+    while (str->len) {
+        uint8_t c = str->data[str->len - 1];
+
+        if ((' ' != c) && ('\t' != c) && ('\r' != c)) {
+            break;
+        }
+        --(str->len);
+    }
+
+    return;
+}
+
+
 int lts_str_find(lts_str_t *text, lts_str_t *pattern)
 {
     int rslt;

@@ -274,18 +274,33 @@ static int parse_conf2(lts_conf_t *conf,
                        off_t sz,
                        lts_pool_t *pool)
 {
-    int rslt;
     lts_str_t *iter;
     lts_str_t conf_text = {addr, sz};
 
-    rslt = 0;
-    iter = split_str(&conf_text, 0x0A, pool);
+    iter = split_str(&conf_text, '\n', pool); // 换行分割
     for (int i = 0; iter[i].data; ++i) {
+        int iter_len;
         lts_str_t *kv;
 
+        // 过滤注释
+        iter_len = iter[i].len;
+        iter[i].len = 0;
+        for (int j = 0; j < iter_len; ++j) {
+            if ('#' == iter[i].data[j]) {
+                break;
+            }
+
+            ++iter[i].len;
+        }
+
+        // 过滤前后空白
+        lts_str_trim(&iter[i]);
+
+        // 空项
         if (0 == iter[i].len) {
             continue;
         }
+
 
         kv = split_str(&iter[i], '=', pool);
         if (0 == kv[1].len) {
@@ -298,12 +313,11 @@ static int parse_conf2(lts_conf_t *conf,
                 &lts_stderr_logger, LTS_LOG_EMERGE,
                 "invalid conf '%s'\n", tmp
             );
-            rslt = -1;
-            break;
+            return -1;
         }
     }
 
-    return rslt;
+    return 0;
 }
 
 static int
