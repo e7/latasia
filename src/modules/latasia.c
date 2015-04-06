@@ -623,6 +623,7 @@ int main(int argc, char *argv[], char *env[])
     lts_init_log_prefixes();
 
     // 初始化核心模块
+    rslt = 0;
     for (i = 0; lts_modules[i]; ++i) {
         module = lts_modules[i];
 
@@ -635,11 +636,12 @@ int main(int argc, char *argv[], char *env[])
         }
 
         if (0 != (*module->init_master)(module)) {
+            rslt = -1;
             break;
         }
     }
 
-    if (NULL == lts_modules[i]) {
+    if (0 == rslt) {
         lts_module_count = i;
         rslt = (0 == master_main()) ? EXIT_SUCCESS : EXIT_FAILURE;
     }
@@ -659,5 +661,5 @@ int main(int argc, char *argv[], char *env[])
         (*module->exit_master)(module);
     }
 
-    return rslt;
+    return rslt ? EXIT_FAILURE : EXIT_SUCCESS;
 }

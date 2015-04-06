@@ -73,7 +73,7 @@ cb_port_match(lts_conf_t *conf, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
 
     // 检查端口合法性
     nport = atoi((char const *)port_buf);
-    if ((nport < 1024) || (nport > 65535)) {
+    if ((nport < 1) || (nport > 65535)) {
         nport = 6742;
     }
 

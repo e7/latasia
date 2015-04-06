@@ -306,7 +306,7 @@ static int init_event_core_master(lts_module_t *mod)
 
         rslt = bind(fd, ls->local_addr, ls->addr_len);
         if (-1 == rslt) {
-            (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
+            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                    "bind failed: %s\n", strerror(errno));
             if (-1 == close(fd)) {
                 // log

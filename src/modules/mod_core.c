@@ -4,8 +4,8 @@
 #include "latasia.h"
 
 
-static int init_event_core_module(lts_module_t *module);
-static void exit_event_core_module(lts_module_t *module);
+static int init_core_master(lts_module_t *module);
+static void exit_core_master(lts_module_t *module);
 
 
 lts_module_t lts_core_module = {
@@ -15,14 +15,14 @@ lts_module_t lts_core_module = {
     NULL,
     NULL,
     // interfaces
-    &init_event_core_module,
+    &init_core_master,
     NULL,
     NULL,
-    &exit_event_core_module,
+    &exit_core_master,
 };
 
 
-int init_event_core_module(lts_module_t *module)
+int init_core_master(lts_module_t *module)
 {
     lts_pool_t *pool;
 
@@ -65,7 +65,7 @@ int init_event_core_module(lts_module_t *module)
     return 0;
 }
 
-void exit_event_core_module(lts_module_t *module)
+void exit_core_master(lts_module_t *module)
 {
     // 关闭日志
     lts_file_close(&lts_log_file);
