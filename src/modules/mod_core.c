@@ -26,8 +26,6 @@ int init_core_master(lts_module_t *module)
 {
     lts_pool_t *pool;
 
-    lts_sys_pagesize = sysconf(_SC_PAGESIZE);
-
     // 创建内存池
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {

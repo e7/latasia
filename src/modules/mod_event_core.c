@@ -1,5 +1,6 @@
 #include <netdb.h>
 #include <sys/epoll.h>
+#include <sys/time.h>
 
 #include "latasia.h"
 #include "socket.h"
@@ -20,7 +21,9 @@ void lts_close_conn(int fd, lts_pool_t *c, int reset)
     }
 
     if (-1 == close(fd)) {
-        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR, "close failed\n");
+        (void)lts_write_logger(
+            &lts_file_logger, LTS_LOG_ERROR, "close failed\n"
+        );
     }
 
     if (NULL != c) {
@@ -133,6 +136,9 @@ static void lts_accept(lts_socket_t *s)
         }
 
         lts_sock_list_add(cs);
+        (void)lts_write_logger(
+            &lts_file_logger, LTS_LOG_INFO, "connection established\n"
+        );
     }
 
     return;
@@ -307,7 +313,7 @@ static int init_event_core_master(lts_module_t *mod)
         rslt = bind(fd, ls->local_addr, ls->addr_len);
         if (-1 == rslt) {
             (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                   "bind failed: %s\n", strerror(errno));
+                                   "bind() failed: %s\n", strerror(errno));
             if (-1 == close(fd)) {
                 // log
             }
@@ -334,10 +340,20 @@ static int init_event_core_master(lts_module_t *mod)
 
 static int init_event_core_worker(lts_module_t *mod)
 {
-    int i;
+    struct itimerval timer_resolution = {
+        {0, 1000 * 100},
+        {0, 1000 * 100},
+    };
+
+    // 工作进程晶振
+    if (-1 == setitimer(ITIMER_REAL, &timer_resolution, NULL)) {
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "setitimer() failed %s\n", strerror(errno));
+        return -1;
+    }
 
     // 关闭
-    for (i = 0; i < lts_conf.workers; ++i) {
+    for (int i = 0; i < lts_conf.workers; ++i) {
     }
 
     // 初始化master-worker通信管道

@@ -1,8 +1,11 @@
 #include <sys/epoll.h>
+#include <sys/time.h>
+
 #include <stdio.h>
 
 #include "latasia.h"
 #include "logger.h"
+#include "vsignal.h"
 
 
 static int epfd;
@@ -41,7 +44,7 @@ static int epoll_event_del(lts_socket_t *s)
 
 static int epoll_process_events(void)
 {
-    int i, tmp_err, nevents, timeout;
+    int i, nevents, timeout;
     lts_socket_t *s;
     uintptr_t instance;
     uint32_t revents;
@@ -50,9 +53,12 @@ static int epoll_process_events(void)
     nevents = epoll_wait(epfd, buf_epevs, nbuf_epevs, timeout);
 
     if (-1 == nevents) {
-        tmp_err = errno;
+        if (EINTR == errno) { // 信号中断
+            if (lts_signals_mask & LTS_MASK_SIGALRM) {
+                lts_signals_mask &= ~LTS_MASK_SIGALRM;
+                (void)gettimeofday(&lts_current_time, NULL);
+            }
 
-        if (EINTR == tmp_err) { // 信号中断
             return 0;
         } else {
             return LTS_E_SYS;
@@ -93,7 +99,7 @@ static int epoll_process_events(void)
 }
 
 
-static int init_event_epoll_module(lts_module_t *mod)
+static int init_event_epoll_worker(lts_module_t *mod)
 {
     lts_pool_t *pool;
 
@@ -124,7 +130,7 @@ static int init_event_epoll_module(lts_module_t *mod)
 }
 
 
-static void exit_event_epoll_module(lts_module_t *mod)
+static void exit_event_epoll_worker(lts_module_t *mod)
 {
     if (-1 == close(epfd)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR, "close failed");
@@ -150,7 +156,7 @@ lts_module_t lts_event_epoll_module = {
     NULL,
     // interfaces
     NULL,
-    &init_event_epoll_module,
-    &exit_event_epoll_module,
+    &init_event_epoll_worker,
+    &exit_event_epoll_worker,
     NULL,
 };

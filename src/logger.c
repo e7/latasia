@@ -1,3 +1,4 @@
+#include <time.h>
 #include "file.h"
 #include "logger.h"
 
@@ -10,7 +11,7 @@ lts_logger_t lts_stderr_logger = {
 };
 lts_logger_t lts_file_logger = {
     &lts_log_file,
-    LTS_LOG_ERROR,
+    LTS_LOG_INFO,
 };
 
 
@@ -26,13 +27,24 @@ ssize_t lts_write_logger(lts_logger_t *log,
     va_list args;
     int len, total;
     char buf[4096];
+    struct tm tmp_tm;
+    time_t current_time;
+    extern pid_t lts_pid;
+    extern struct timeval lts_current_time;
 
     if (level < log->level) {
         return 0;
     }
 
+    // 时间转换
+    current_time = lts_current_time.tv_sec;
+    current_time += lts_current_time.tv_usec / 1000 / 1000;
+    (void)gmtime_r(&current_time, &tmp_tm);
     total = len = snprintf(
-        buf, sizeof(buf), "[%s] ", LTS_LOG_PREFIXES[level].data
+        buf, sizeof(buf), "%d.%02d.%02d %02d:%02d:%02d [%d] [%s] ",
+        1900 + tmp_tm.tm_year, 1 + tmp_tm.tm_mon, tmp_tm.tm_mday,
+        tmp_tm.tm_hour, tmp_tm.tm_min, tmp_tm.tm_sec,
+        lts_pid, LTS_LOG_PREFIXES[level].data
     );
     va_start(args, fmt);
     len = vsnprintf(buf + len, sizeof(buf) - len, fmt, args);

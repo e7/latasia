@@ -6,6 +6,7 @@ enum {
     LTS_MASK_SIGSTOP = (1L << 0),
     LTS_MASK_SIGCHLD = (1L << 1),
     LTS_MASK_SIGPIPE = (1L << 2),
+    LTS_MASK_SIGALRM = (1L << 3),
 };
 
 typedef struct {

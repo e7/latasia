@@ -2,10 +2,40 @@
 #include "vsignal.h"
 
 
-static void sig_int_handler(int s);
-static void sig_term_handler(int s);
-static void sig_chld_handler(int s);
-static void sig_pipe_handler(int s);
+static void sig_int_handler(int s)
+{
+    lts_signals_mask |= LTS_MASK_SIGSTOP;
+
+    return;
+}
+
+static void sig_term_handler(int s)
+{
+    lts_signals_mask |= LTS_MASK_SIGSTOP;
+
+    return;
+}
+
+static void sig_chld_handler(int s)
+{
+    lts_signals_mask |= LTS_MASK_SIGCHLD;
+
+    return;
+}
+
+static void sig_pipe_handler(int s)
+{
+    lts_signals_mask |= LTS_MASK_SIGPIPE;
+
+    return;
+}
+
+static void sig_alrm_handler(int s)
+{
+    lts_signals_mask |= LTS_MASK_SIGALRM;
+
+    return;
+}
 
 
 static lts_signal_t lts_signals[] = {
@@ -13,40 +43,9 @@ static lts_signal_t lts_signals[] = {
     {SIGTERM, "SIGTERM", &sig_term_handler},
     {SIGCHLD, "SIGCHLD", &sig_chld_handler},
     {SIGPIPE, "SIGPIPE", &sig_pipe_handler},
+    {SIGALRM, "SIGALRM", &sig_alrm_handler},
     {0, NULL, NULL},
 };
-
-
-void sig_int_handler(int s)
-{
-    lts_signals_mask |= LTS_MASK_SIGSTOP;
-
-    return;
-}
-
-
-void sig_term_handler(int s)
-{
-    lts_signals_mask |= LTS_MASK_SIGSTOP;
-
-    return;
-}
-
-
-void sig_chld_handler(int s)
-{
-    lts_signals_mask |= LTS_MASK_SIGCHLD;
-
-    return;
-}
-
-
-void sig_pipe_handler(int s)
-{
-    lts_signals_mask |= LTS_MASK_SIGPIPE;
-
-    return;
-}
 
 
 int lts_init_sigactions(void)

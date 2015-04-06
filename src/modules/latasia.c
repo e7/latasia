@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include "latasia.h"
 #include "logger.h"
 #include "conf.h"
@@ -35,6 +36,7 @@ lts_module_t *lts_modules[] = {
     &lts_app_http_core_module,
     NULL,
 };
+struct timeval lts_current_time; // 当前时间
 
 
 static int lts_shmtx_trylock(lts_atomic_t *lock);
@@ -621,6 +623,8 @@ int main(int argc, char *argv[], char *env[])
 
     // 全局初始化
     lts_init_log_prefixes();
+    (void)gettimeofday(&lts_current_time, NULL);
+    lts_sys_pagesize = sysconf(_SC_PAGESIZE);
 
     // 初始化核心模块
     rslt = 0;
