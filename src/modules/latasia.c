@@ -53,7 +53,12 @@ static int master_main(void);
 // gcc spinlock {{
 int lts_spin_trylock(sig_atomic_t *v)
 {
-    return  (0 == __sync_lock_test_and_set(v, 1));
+    int rslt;
+
+    rslt = (0 == __sync_lock_test_and_set(v, 1));
+    LTS_MEMORY_FENCE();
+
+    return rslt;
 }
 
 void lts_spin_lock(sig_atomic_t *v)
@@ -65,6 +70,7 @@ void lts_spin_lock(sig_atomic_t *v)
 
 void lts_spin_unlock(sig_atomic_t *v)
 {
+    LTS_MEMORY_FENCE();
     __sync_lock_release(v);
     return;
 }
@@ -72,12 +78,18 @@ void lts_spin_unlock(sig_atomic_t *v)
 
 int lts_shmtx_trylock(lts_atomic_t *lock)
 {
+    int rslt;
     sig_atomic_t val;
 
     val = *lock;
 
-    return (((val & 0x80000000) == 0)
-                && lts_atomic_cmp_set(lock, val, val | 0x80000000));
+    rslt = (
+        ((val & 0x80000000) == 0)
+            && lts_atomic_cmp_set(lock, val, val | 0x80000000)
+    );
+    LTS_MEMORY_FENCE();
+
+    return rslt;
 }
 
 
@@ -85,6 +97,7 @@ void lts_shmtx_unlock(lts_atomic_t *lock)
 {
     sig_atomic_t val, old, wait;
 
+    LTS_MEMORY_FENCE();
     while (TRUE) {
         old = *lock;
         wait = old & 0x7fffffff;
