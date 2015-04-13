@@ -32,6 +32,7 @@ struct lts_socket_s {
     socklen_t addr_len;
     uint32_t ev_mask;
 
+    unsigned short_lived: 1;
     unsigned readable: 1;
     unsigned writable: 1;
     unsigned closing: 2;
@@ -67,6 +68,7 @@ void lts_init_socket(lts_socket_t *s)
 {
     s->fd = -1;
     s->ev_mask = 0;
+    s->short_lived = 0;
     s->readable = 0;
     s->writable = 0;
     s->closing = 0;

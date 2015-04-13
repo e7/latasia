@@ -34,9 +34,9 @@ static int http_core_iobuf(lts_socket_t *s)
     uint8_t rsp_buf[] = {
         "HTTP/1.1 200 OK\r\n"
         "Server: hixo\r\n"
-        "Content-Length: 180\r\n"
+        "Content-Length: 169\r\n"
         "Content-Type: text/html\r\n"
-        "Connection: keep-alive\r\n\r\n"
+        "Connection: close\r\n\r\n"
         "<!DOCTYPE html>\r\n"
         "<html>\r\n"
         "<head>\r\n"
@@ -58,6 +58,7 @@ static int http_core_iobuf(lts_socket_t *s)
     (void)memcpy(sb->start, rsp_buf, sizeof(rsp_buf));
     rb->last = rb->start;
     sb->last += sizeof(rsp_buf);
+    s->short_lived = 1;
 
     return 0;
 }

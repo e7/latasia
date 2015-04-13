@@ -5,6 +5,7 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_definitions(-Wall)
+# add_definitions(-Wall -Wextra)
 add_definitions(-std=gnu99)
 add_definitions(-D_GNU_SOURCE)
 

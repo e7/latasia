@@ -489,6 +489,9 @@ void lts_send(lts_socket_t *cs)
         buf->seek = (uint8_t *)((uintptr_t)buf->seek + (uintptr_t)sent_sz);
         if (buf->seek == buf->last) {
             // 数据已发完
+            if (cs->short_lived) {
+                cs->closing = 1;
+            }
             buf->seek = buf->start;
             buf->last = buf->start;
         }
