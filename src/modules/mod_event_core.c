@@ -136,9 +136,6 @@ static void lts_accept(lts_socket_t *s)
         }
 
         lts_sock_list_add(cs);
-        (void)lts_write_logger(
-            &lts_file_logger, LTS_LOG_INFO, "connection established\n"
-        );
     }
 
     return;
@@ -444,10 +441,6 @@ void lts_recv(lts_socket_t *cs)
 
         if (0 == recv_sz) {
             // 正常关闭连接
-            (void)lts_write_logger(
-                &lts_file_logger, LTS_LOG_ERROR,
-                "connection closed by peer\n", errno
-            );
             cs->readable = 0;
             cs->closing = (1 << 0);
             break;

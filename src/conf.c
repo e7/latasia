@@ -20,35 +20,36 @@ typedef struct {
 
 static lts_str_t *split_str(lts_str_t *text, char delemiter, lts_pool_t *pool)
 {
-    int dlm_count, dlm_total;
+    int dlm_count, nitems;
     lts_str_t *rslt;
 
     // counting delemiter
-    dlm_total = 0;
+    dlm_count = 0;
     for (int i = 0; i < text->len; ++i) {
         if (delemiter == text->data[i]) {
-            ++dlm_total;
+            ++dlm_count;
         }
     }
 
     // alloc memory
+    nitems = dlm_count + 1 + 1;
     rslt = (lts_str_t *)lts_palloc(
-        pool, sizeof(lts_str_t) * (dlm_total + 1 + 1)
+        pool, sizeof(lts_str_t) * (nitems)
     );
     rslt[0].data = text->data;
     rslt[0].len = text->len;
-    for (int i = 1; i < dlm_total + 1; ++i) {
+    for (int i = 1; i < nitems; ++i) {
         rslt[i] = (lts_str_t)lts_null_string;
     }
 
     // split
-    dlm_count = 0;
+    nitems = 0;
     for (int i = 0; i < text->len; ++i) {
         for (int j = i; j < text->len; ++j) {
             if (delemiter == text->data[j]) {
-                rslt[dlm_count++].len = j - i;
-                rslt[dlm_count].data = text->data + j + 1;
-                rslt[dlm_count].len = text->len - j - 1;
+                rslt[nitems++].len = j - i;
+                rslt[nitems].data = text->data + j + 1;
+                rslt[nitems].len = text->len - j - 1;
                 i = j;
                 break;
             }
@@ -310,16 +311,16 @@ static int parse_conf(lts_conf_t *conf,
 
         kv = split_str(&iter[i], '=', pool); // 等号分割
 
-        // 过滤前后空白
-        lts_str_trim(&kv[0]);
-        lts_str_trim(&kv[1]);
-
         // 无效键值
         if ((0 == kv[1].len) || (0 == kv[1].len)) {
             log_invalid_conf(&iter[i], pool);
 
             return -1;
         }
+
+        // 过滤前后空白
+        lts_str_trim(&kv[0]);
+        lts_str_trim(&kv[1]);
 
         // 处理配置项
         valid_item = 0;
