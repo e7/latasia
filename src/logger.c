@@ -1,3 +1,9 @@
+/**
+ * latasia
+ * Copyright (c) 2015 e7 <jackzxty@126.com>
+ * */
+
+
 #include <time.h>
 #include "file.h"
 #include "logger.h"

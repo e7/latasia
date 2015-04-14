@@ -1,3 +1,9 @@
+/**
+ * latasia
+ * Copyright (c) 2015 e7 <jackzxty@126.com>
+ * */
+
+
 #include "latasia.h"
 #include "vsignal.h"
 
@@ -53,6 +59,10 @@ int lts_init_sigactions(void)
     struct sigaction sa;
 
     sa.sa_flags = 0;
+    // 信号处理过程中屏蔽所有信号
+    if (-1 == sigfillset(&sa.sa_mask)) {
+        return -1;
+    }
     for (int i = 0; lts_signals[i].signo; ++i) {
         sa.sa_handler = lts_signals[i].handler;
         if (-1 == sigaction(lts_signals[i].signo, &sa, NULL)) {

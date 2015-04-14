@@ -1,3 +1,9 @@
+/**
+ * latasia
+ * Copyright (c) 2015 e7 <jackzxty@126.com>
+ * */
+
+
 #ifndef __EVIEO__LOGGER_H__
 #define __EVIEO__LOGGER_H__
 

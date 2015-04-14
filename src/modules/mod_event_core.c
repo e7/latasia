@@ -385,7 +385,8 @@ static void exit_event_core_master(lts_module_t *mod)
 
         s = CONTAINER_OF(pos_node, lts_socket_t, dlnode);
         if (-1 == close(s->fd)) {
-            // log
+            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                   "close() failed: %s\n", strerror(errno));
         }
         dlist_del(&s->dlnode);
     }

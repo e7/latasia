@@ -84,12 +84,11 @@ lts_pool_t *lts_create_pool(size_t size)
     uint8_t *p;
     lts_pool_t *pool;
 
+    if (MIN_POOL_SIZE < sizeof(lts_pool_t) * 2) {
+        abort();
+    }
     if (size < MIN_POOL_SIZE) {
         size = MIN_POOL_SIZE;
-    }
-
-    if (size < sizeof(lts_pool_t)) {
-        return NULL;
     }
 
     p = (uint8_t *)lts_memalign(LTS_ALIGNMENT, size);
