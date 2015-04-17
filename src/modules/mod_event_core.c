@@ -224,7 +224,8 @@ static void free_listen_sockets(void)
 
         ls = CONTAINER_OF(pos_node, lts_socket_t, dlnode);
         if (-1 == close(ls->fd)) {
-            // log
+            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                   "close() failed: %s\n", strerror(errno));
         }
         dlist_del(&ls->dlnode);
     }
@@ -379,18 +380,6 @@ static void exit_event_core_worker(lts_module_t *mod)
 
 static void exit_event_core_master(lts_module_t *mod)
 {
-    // 关闭连接
-    dlist_for_each_f_safe(pos_node, cur_next, &lts_sock_list) {
-        lts_socket_t *s;
-
-        s = CONTAINER_OF(pos_node, lts_socket_t, dlnode);
-        if (-1 == close(s->fd)) {
-            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                   "close() failed: %s\n", strerror(errno));
-        }
-        dlist_del(&s->dlnode);
-    }
-
     // 释放accept锁
     lts_shm_free(&lts_accept_lock);
 

@@ -258,6 +258,10 @@ int event_loop_single(void)
                     ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
                     if (0 != (*lts_event_itfc->event_add)(ls)) {
                         // log
+                        (void)lts_write_logger(
+                            &lts_file_logger, LTS_LOG_INFO,
+                            "listen socket add failed: %d\n", errno
+                        );
                     }
                 }
 
