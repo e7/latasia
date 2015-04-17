@@ -59,14 +59,14 @@ extern dlist_t lts_sock_list; // socket缓存列表
 extern size_t lts_sock_cache_n; // socket缓存余量
 extern size_t lts_sock_inuse_n; // socket缓存使用量
 extern dlist_t lts_listen_sock_list; // 监听socket列表
+extern dlist_t lts_conn_list; // 连接列表
 extern dlist_t lts_post_list; // post链表，事件延迟处理
 #define lts_sock_list_add(s)    dlist_add_tail(&lts_sock_list, &s->dlnode)
-#define lts_sock_list_del(s)    dlist_del(&s->dlnode)
-#define lts_post_list_add(s)    dlist_add_tail(&lts_post_list, &s->dlnode)
-#define lts_post_list_del(s)    dlist_del(&s->dlnode)
 #define lts_listen_sock_list_add(s)     \
         dlist_add_tail(&lts_listen_sock_list, &s->dlnode)
-#define lts_listen_sock_list_del(s)     dlist_del(&s->dlnode)
+#define lts_conn_list_add(s)    dlist_add_tail(&lts_conn_list, &s->dlnode)
+#define lts_post_list_add(s)    dlist_add_tail(&lts_post_list, &s->dlnode)
+#define lts_list_del(s)         dlist_del(&s->dlnode)
 
 
 static inline
@@ -114,9 +114,9 @@ lts_socket_t *lts_alloc_socket(void)
 static inline
 void lts_free_socket(lts_socket_t *s)
 {
-    dlist_add_tail(&lts_sock_list, &s->dlnode);
     ++lts_sock_cache_n;
     --lts_sock_inuse_n;
+    lts_sock_list_add(s);
 
     return;
 }

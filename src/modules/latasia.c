@@ -174,17 +174,18 @@ void process_post_sock_list(void)
             (*cs->do_read)(cs);
         }
 
-        if (NULL == cs->conn) { // 非连接套接字
+        if (NULL == cs->conn) { // 监听套接字
             continue;
         }
 
         if (cs->closing) {
             lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-            lts_post_list_del(cs);
+            lts_list_del(cs);
             lts_free_socket(cs);
             continue;
         }
 
+        // 将数据交给app模块处理
         for (i = 0; lts_modules[i]; ++i) {
             module = lts_modules[i];
 
@@ -204,7 +205,7 @@ void process_post_sock_list(void)
 
         if (cs->closing) {
             lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-            lts_post_list_del(cs);
+            lts_list_del(cs);
             lts_free_socket(cs);
             continue;
         }
@@ -215,14 +216,14 @@ void process_post_sock_list(void)
 
         if (cs->closing) {
             lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-            lts_post_list_del(cs);
+            lts_list_del(cs);
             lts_free_socket(cs);
             continue;
         }
 
         if (0 == (cs->writable | cs->readable)) {
-            lts_post_list_del(cs);
-            lts_sock_list_add(cs);
+            lts_list_del(cs);
+            lts_conn_list_add(cs);
         }
     }
 

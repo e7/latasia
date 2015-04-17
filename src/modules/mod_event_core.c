@@ -22,7 +22,7 @@ void lts_close_conn(int fd, lts_pool_t *c, int reset)
 
     if (-1 == close(fd)) {
         (void)lts_write_logger(
-            &lts_file_logger, LTS_LOG_ERROR, "close failed\n"
+            &lts_file_logger, LTS_LOG_ERROR, "close() failed: %d\n", errno
         );
     }
 
@@ -36,11 +36,7 @@ void lts_close_conn(int fd, lts_pool_t *c, int reset)
 
 static void handle_input(lts_socket_t *s)
 {
-    if (s->conn) {
-        lts_sock_list_del(s);
-    } else {
-        lts_listen_sock_list_del(s);
-    }
+    lts_list_del(s);
     lts_post_list_add(s);
     s->readable = 1;
 
@@ -50,11 +46,7 @@ static void handle_input(lts_socket_t *s)
 
 static void handle_output(lts_socket_t *s)
 {
-    if (s->conn) {
-        lts_sock_list_del(s);
-    } else {
-        lts_listen_sock_list_del(s);
-    }
+    lts_list_del(s);
     lts_post_list_add(s);
     s->writable = 1;
 
@@ -88,7 +80,7 @@ static void lts_accept(lts_socket_t *s)
                 continue;
             }
 
-            lts_post_list_del(s);
+            lts_list_del(s);
             lts_listen_sock_list_add(s);
             if ((EAGAIN != errno) && (EWOULDBLOCK != errno)) {
                 (void)lts_write_logger(
@@ -112,9 +104,10 @@ static void lts_accept(lts_socket_t *s)
             lts_close_conn(cmnct_fd, cpool, TRUE);
             continue;
         }
-        c->pool = cpool;
+        c->pool = cpool; // 新连接的内存池
         c->rbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE);
         c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE);
+        assert(c->rbuf != c->sbuf);
         if ((NULL == c->rbuf) || (NULL == c->sbuf)) {
             lts_close_conn(cmnct_fd, cpool, TRUE);
             continue;
@@ -135,7 +128,7 @@ static void lts_accept(lts_socket_t *s)
             continue;
         }
 
-        lts_sock_list_add(cs);
+        lts_conn_list_add(cs);
     }
 
     return;
@@ -171,6 +164,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
 
     // 建立socket缓存
     dlist_init(&lts_sock_list);
+    dlist_init(&lts_conn_list);
     dlist_init(&lts_post_list);
     sock_cache = (lts_socket_t *)(
         lts_palloc(pool, lts_sock_cache_n * sizeof(lts_socket_t))
@@ -201,7 +195,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
         }
 
         (void)memcpy(a, iter->ai_addr, iter->ai_addrlen);
-        ls->fd = -1;
+        lts_init_socket(ls);
         ls->family = iter->ai_family;
         ls->local_addr = a;
         ls->addr_len = iter->ai_addrlen;
@@ -416,8 +410,8 @@ void lts_recv(lts_socket_t *cs)
         if (-1 == recv_sz) {
             cs->readable = 0;
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                lts_post_list_del(cs);
-                lts_sock_list_add(cs);
+                lts_list_del(cs);
+                lts_conn_list_add(cs);
             } else {
                 // 异常关闭
                 (void)lts_write_logger(
@@ -458,8 +452,8 @@ void lts_send(lts_socket_t *cs)
         // sent_sz won't be 0
         if (-1 == sent_sz) {
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                lts_post_list_del(cs);
-                lts_sock_list_add(cs);
+                lts_list_del(cs);
+                lts_conn_list_add(cs);
             } else {
                 (void)lts_write_logger(
                     &lts_file_logger, LTS_LOG_ERROR,
