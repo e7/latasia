@@ -81,7 +81,7 @@ extern void lts_send(lts_socket_t *cs);
 extern void lts_close_conn(int fd, lts_pool_t *c, int reset);
 
 
-extern long lts_sys_pagesize; // 系统内存页
+extern size_t lts_sys_pagesize; // 系统内存页
 extern long lts_signals_mask; // 信号掩码
 
 extern int lts_module_count; // 模块计数

@@ -14,7 +14,7 @@
 #include "vsignal.h"
 
 
-long lts_sys_pagesize;
+size_t lts_sys_pagesize;
 long lts_signals_mask; // 信号掩码
 
 int lts_module_count; // 模块计数
@@ -637,7 +637,7 @@ int main(int argc, char *argv[], char *env[])
     // 全局初始化
     lts_init_log_prefixes();
     (void)gettimeofday(&lts_current_time, NULL);
-    lts_sys_pagesize = sysconf(_SC_PAGESIZE);
+    lts_sys_pagesize = (size_t)sysconf(_SC_PAGESIZE);
 
     // 初始化核心模块
     rslt = 0;
@@ -658,10 +658,10 @@ int main(int argc, char *argv[], char *env[])
         }
     }
 
-    /*if (0 == rslt) {
+    if (0 == rslt) {
         lts_module_count = i;
         rslt = (0 == master_main()) ? EXIT_SUCCESS : EXIT_FAILURE;
-    }*/
+    }
 
     // 析构核心模块
     while (i > 0) {

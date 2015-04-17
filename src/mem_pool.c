@@ -5,6 +5,9 @@
 #define MIN_POOL_SIZE       4096
 
 
+extern size_t lts_sys_pagesize;
+
+
 struct lts_pool_data_s {
     uint8_t *last;
     uint8_t *end;
@@ -41,9 +44,9 @@ static void *lts_palloc_block(lts_pool_t *pool, size_t size)
     size_t psize;
     lts_pool_data_t *new_block, *iter;
 
-    psize = (size_t)LTS_ALIGN(sizeof(lts_pool_data_t), LTS_ALIGNMENT);
+    psize = (size_t)LTS_ALIGN(sizeof(lts_pool_data_t), lts_sys_pagesize);
     psize += pool->max_size;
-    p = (uint8_t *)lts_memalign(LTS_ALIGNMENT, psize);
+    p = (uint8_t *)lts_memalign(lts_sys_pagesize, psize);
     if (NULL == p) {
         // log
         return NULL;
@@ -52,7 +55,7 @@ static void *lts_palloc_block(lts_pool_t *pool, size_t size)
     // 初始化新块
     new_block = (lts_pool_data_t *)p;
     new_block->last = p + sizeof(lts_pool_t);
-    new_block->last = (uint8_t *)LTS_ALIGN(new_block->last, LTS_ALIGNMENT);
+    new_block->last = (uint8_t *)LTS_ALIGN(new_block->last, lts_sys_pagesize);
     new_block->end = p + psize;
     new_block->failed = 0;
     new_block->next = NULL;
@@ -60,7 +63,7 @@ static void *lts_palloc_block(lts_pool_t *pool, size_t size)
     // 分配内存
     m = new_block->last;
     new_block->last += size;
-    new_block->last = (uint8_t *)LTS_ALIGN(new_block->last, LTS_ALIGNMENT);
+    new_block->last = (uint8_t *)LTS_ALIGN(new_block->last, lts_sys_pagesize);
 
     // 挂载内存块
     for (iter = pool->current; NULL != iter->next; iter = iter->next) {
@@ -91,7 +94,7 @@ lts_pool_t *lts_create_pool(size_t size)
         size = MIN_POOL_SIZE;
     }
 
-    p = (uint8_t *)lts_memalign(LTS_ALIGNMENT, size);
+    p = (uint8_t *)lts_memalign(lts_sys_pagesize, size);
     if (NULL == p) {
         // log
         return NULL;
@@ -101,7 +104,7 @@ lts_pool_t *lts_create_pool(size_t size)
     pool = (lts_pool_t *)p;
     pool->current = &pool->data;
     pool->data.last = p + sizeof(lts_pool_t);
-    pool->data.last = (uint8_t *)LTS_ALIGN(pool->data.last, LTS_ALIGNMENT);
+    pool->data.last = (uint8_t *)LTS_ALIGN(pool->data.last, lts_sys_pagesize);
     pool->data.end = p + size;
     pool->max_size = pool->data.end - pool->data.last;
     pool->data.failed = 0;
@@ -129,7 +132,7 @@ void *lts_palloc(lts_pool_t *pool, size_t size)
             m = p->last;
             p->last += size;
             pool->data.last = (uint8_t *)(
-                LTS_ALIGN(pool->data.last, LTS_ALIGNMENT)
+                LTS_ALIGN(pool->data.last, lts_sys_pagesize)
             );
 
             return m;

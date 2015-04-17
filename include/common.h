@@ -32,7 +32,7 @@
 #define LTS_MEMORY_FENCE()      __asm__ __volatile__( "" : : : "memory" )
 
 // 平台字长
-#define LTS_ALIGNMENT               sizeof(unsigned long)
+#define LTS_WORD                sizeof(unsigned long)
 #define LTS_ALIGN(d, a) (\
     ((uintptr_t)(d) + ((uintptr_t)a - 1)) & (~((uintptr_t)a - 1))\
 )
@@ -58,7 +58,6 @@ typedef volatile sig_atomic_t lts_atomic_t;
 
 enum {
     LTS_E_SYS = 65536, // 系统错误
-    LTS_E_PKG_BROKEN, // 损坏的报文
 };
 
 
