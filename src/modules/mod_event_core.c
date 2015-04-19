@@ -1,6 +1,7 @@
 #include <netdb.h>
 #include <sys/epoll.h>
 #include <sys/time.h>
+#include <netinet/tcp.h>
 
 #include "latasia.h"
 #include "socket.h"
@@ -64,6 +65,8 @@ static void lts_accept(lts_socket_t *s)
     lts_pool_t *cpool;
 
     while (TRUE) {
+        int nodelay = 1;
+
         clt_len = sizeof(clt);
 
         if (0 == lts_sock_cache_n) {
@@ -90,6 +93,13 @@ static void lts_accept(lts_socket_t *s)
             }
 
             break;
+        }
+        if (-1 == setsockopt(cmnct_fd, IPPROTO_TCP,
+                             TCP_NODELAY, &nodelay, sizeof(nodelay))) {
+            (void)lts_write_logger(
+                &lts_file_logger, LTS_LOG_ERROR,
+                "setsockopt() TCP_NODELAY failed: %d\n", errno
+            );
         }
 
         // 新连接初始化
