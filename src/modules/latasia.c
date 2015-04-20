@@ -453,6 +453,10 @@ int master_main(void)
         lts_use_accept_lock = FALSE;
     }
 
+    if (lts_conf.daemon && (-1 == daemon(FALSE, FALSE))) {
+        return -1;
+    }
+
     workers = 0; // 当前工作进程数
     while (TRUE) {
         if (0 == (lts_signals_mask & LTS_MASK_SIGSTOP)) {

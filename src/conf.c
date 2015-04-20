@@ -458,9 +458,9 @@ parse_conf(lts_conf_t *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
 }
 */
 
-// default configuration
+// 默认配置
 lts_conf_t lts_conf = {
-    1, lts_string("6742"),
+    FALSE, lts_string("6742"), 1,
     lts_string("latasia.log"),
     lts_string("--SERVER=127.0.0.1"), 60,
 };

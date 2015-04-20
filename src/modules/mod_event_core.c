@@ -342,6 +342,7 @@ static int init_event_core_master(lts_module_t *mod)
 
 static int init_event_core_worker(lts_module_t *mod)
 {
+    // 晶振间隔0.1s
     struct itimerval timer_resolution = {
         {0, 1000 * 100},
         {0, 1000 * 100},

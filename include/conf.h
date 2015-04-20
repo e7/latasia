@@ -18,8 +18,9 @@ typedef struct lts_conf_s lts_conf_t;
 
 
 struct lts_conf_s {
-    int workers; // 工作进程数
+    int daemon; // 守护进程
     lts_str_t port; // 监听端口
+    int workers; // 工作进程数
     lts_str_t log_file; // 日志
     lts_str_t backends; // 后台服务器
     int keepalive; // 连接超时时间

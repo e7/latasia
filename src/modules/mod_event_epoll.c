@@ -44,29 +44,27 @@ static int epoll_event_del(lts_socket_t *s)
 
 static int epoll_process_events(void)
 {
-    int i, nevents, timeout;
+    int i, nevents, timeout, tmp_err;
     lts_socket_t *s;
     uintptr_t instance;
     uint32_t revents;
 
     timeout = dlist_empty(&lts_post_list) ? -1 : 0;
     nevents = epoll_wait(epfd, buf_epevs, nbuf_epevs, timeout);
+    tmp_err = (-1 == nevents) ? errno : 0;
 
-    if (-1 == nevents) {
-        if (EINTR == errno) { // 信号中断
-            if (lts_signals_mask & LTS_MASK_SIGALRM) {
-                lts_signals_mask &= ~LTS_MASK_SIGALRM;
-                (void)gettimeofday(&lts_current_time, NULL);
-            }
+    // 更新时间
+    if (lts_signals_mask & LTS_MASK_SIGALRM) {
+        lts_signals_mask &= ~LTS_MASK_SIGALRM;
+        (void)gettimeofday(&lts_current_time, NULL);
+    }
 
+    if (tmp_err) {
+        if (EINTR == tmp_err) { // 信号中断
             return 0;
         } else {
             return LTS_E_SYS;
         }
-    }
-
-    if ((0 != timeout) && (0 == nevents)) {
-        return 0;
     }
 
     for (i = 0; i < nevents; ++i) {
