@@ -4,8 +4,8 @@
  * */
 
 
-#ifndef __EVIEO__SOCKET_H__
-#define __EVIEO__SOCKET_H__
+#ifndef __LATASIA__SOCKET_H__
+#define __LATASIA__SOCKET_H__
 
 
 #include <sys/socket.h>
@@ -120,4 +120,4 @@ void lts_free_socket(lts_socket_t *s)
 
     return;
 }
-#endif // __EVIEO__SOCKET_H__
+#endif // __LATASIA__SOCKET_H__

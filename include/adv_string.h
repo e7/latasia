@@ -4,8 +4,8 @@
  * */
 
 
-#ifndef __EVIEO__ADV_STRING_H__
-#define __EVIEO__ADV_STRING_H__
+#ifndef __LATASIA__ADV_STRING_H__
+#define __LATASIA__ADV_STRING_H__
 
 
 #include "common.h"
@@ -41,4 +41,4 @@ extern size_t lts_str_filter(lts_str_t *src, uint8_t c);
 extern int lts_str_compare(lts_str_t *a, lts_str_t *b);
 extern int lts_str_find(lts_str_t *text, lts_str_t *pattern);
 extern int lts_l2str(lts_str_t *str, long x);
-#endif // __EVIEO__ADV_STRING_H__
+#endif // __LATASIA__ADV_STRING_H__

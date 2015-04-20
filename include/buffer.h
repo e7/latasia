@@ -4,8 +4,8 @@
  * */
 
 
-#ifndef __EVIEO__BUFFER_H__
-#define __EVIEO__BUFFER_H__
+#ifndef __LATASIA__BUFFER_H__
+#define __LATASIA__BUFFER_H__
 
 
 #include "mem_pool.h"
@@ -23,4 +23,4 @@ struct lts_buffer_s {
 
 
 extern lts_buffer_t *lts_create_buffer(lts_pool_t *pool, size_t size);
-#endif // __EVIEO__BUFFER_H__
+#endif // __LATASIA__BUFFER_H__

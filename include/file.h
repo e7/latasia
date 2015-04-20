@@ -4,8 +4,8 @@
  * */
 
 
-#ifndef __EVIEO__FILE_H__
-#define __EVIEO__FILE_H__
+#ifndef __LATASIA__FILE_H__
+#define __LATASIA__FILE_H__
 
 
 #include "adv_string.h"
@@ -28,4 +28,4 @@ extern ssize_t lts_file_read(lts_file_t *file,
 extern ssize_t lts_file_write(lts_file_t *file,
                              void const *buf, size_t sz, off_t ofst);
 extern void lts_file_close(lts_file_t *file);
-#endif // __EVIEO__FILE_H__
+#endif // __LATASIA__FILE_H__

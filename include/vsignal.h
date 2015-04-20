@@ -4,8 +4,8 @@
  * */
 
 
-#ifndef __EVIEO__VSIGNAL_H__
-#define __EVIEO__VSIGNAL_H__
+#ifndef __LATASIA__VSIGNAL_H__
+#define __LATASIA__VSIGNAL_H__
 
 
 enum {
@@ -23,4 +23,4 @@ typedef struct {
 
 
 extern int lts_init_sigactions(void);
-#endif // __EVIEO__VSIGNAL_H__
+#endif // __LATASIA__VSIGNAL_H__

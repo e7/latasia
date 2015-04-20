@@ -4,8 +4,8 @@
  * */
 
 
-#ifndef __EVIEO__LOGGER_H__
-#define __EVIEO__LOGGER_H__
+#ifndef __LATASIA__LOGGER_H__
+#define __LATASIA__LOGGER_H__
 
 
 #include "adv_string.h"
@@ -50,4 +50,4 @@ extern ssize_t lts_write_logger_fd(lts_logger_t *log,
                                    void const *buf, size_t n);
 extern ssize_t lts_write_logger(lts_logger_t *log,
                                 int level, char const *fmt, ...);
-#endif // __EVIEO__LOGGER_H__
+#endif // __LATASIA__LOGGER_H__

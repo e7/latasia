@@ -4,8 +4,8 @@
  * */
 
 
-#ifndef __EVIEO__CONF_H__
-#define __EVIEO__CONF_H__
+#ifndef __LATASIA__CONF_H__
+#define __LATASIA__CONF_H__
 
 
 #include "adv_string.h"
@@ -28,4 +28,4 @@ struct lts_conf_s {
 
 extern lts_conf_t lts_conf;
 extern int lts_load_config(lts_conf_t *conf, lts_pool_t *pool);
-#endif // __EVIEO__CONF_H__
+#endif // __LATASIA__CONF_H__

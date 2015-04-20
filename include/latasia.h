@@ -4,8 +4,8 @@
  * */
 
 
-#ifndef __EVIEO__LTS_H__
-#define __EVIEO__LTS_H__
+#ifndef __LATASIA__LTS_H__
+#define __LATASIA__LTS_H__
 
 
 #include "adv_string.h"
@@ -101,4 +101,4 @@ extern int lts_use_accept_lock;
 extern pid_t lts_pid; // 进程id
 extern int lts_process_role; // 进程角色
 extern struct timeval lts_current_time; // 当前时间
-#endif // __EVIEO__LTS_H__
+#endif // __LATASIA__LTS_H__

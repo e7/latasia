@@ -4,8 +4,8 @@
  * */
 
 
-#ifndef __EVIEO__COMMON_H__
-#define __EVIEO__COMMON_H__
+#ifndef __LATASIA__COMMON_H__
+#define __LATASIA__COMMON_H__
 
 
 #include <unistd.h>
@@ -77,4 +77,4 @@ lts_atomic_t lts_atomic_cmp_set(lts_atomic_t *lock,
 
     return res;
 }
-#endif // __EVIEO__COMMON_H__
+#endif // __LATASIA__COMMON_H__
