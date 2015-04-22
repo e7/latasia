@@ -12,6 +12,7 @@
 #include "logger.h"
 #include "conf.h"
 #include "vsignal.h"
+#include "rbt_timer.h"
 
 
 size_t lts_sys_pagesize;
@@ -36,7 +37,6 @@ lts_module_t *lts_modules[] = {
     &lts_app_http_core_module,
     NULL,
 };
-struct timeval lts_current_time; // 当前时间
 
 
 static int lts_shmtx_trylock(lts_atomic_t *lock);

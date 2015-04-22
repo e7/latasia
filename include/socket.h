@@ -52,15 +52,12 @@ struct lts_socket_s {
     lts_handle_event_pt on_writable;
     lts_handle_event_pt do_write;
 
-    // 如果abs(timout - last_active) < lifetime则继续存活
     uintptr_t timeout; // 超时时间
-    uintptr_t last_active; // 最后活动时间
-    struct rb_node rbnode;
+    lts_rb_node_t rbnode;
 };
 
 
 extern int lts_accept_disabled;
-extern struct rb_root lts_timer_heap; // 时间堆
 extern dlist_t lts_sock_list; // socket缓存列表
 extern size_t lts_sock_cache_n; // socket缓存余量
 extern size_t lts_sock_inuse_n; // socket缓存使用量

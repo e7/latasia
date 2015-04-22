@@ -91,14 +91,18 @@ static inline struct page * rb_insert_page_cache(struct inode * inode,
 -----------------------------------------------------------------------
 */
 
-#ifndef    _LINUX_RBTREE_H
-#define    _LINUX_RBTREE_H
+#ifndef    __LATASIA_RBTREE_H__
+#define    __LATASIA_RBTREE_H__
 
 #include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct rb_node lts_rb_node_t; // latasia
+typedef struct rb_root lts_rb_root_t; // latasia
+
 struct rb_node
 {
     unsigned long  rb_parent_color;
@@ -118,12 +122,12 @@ struct rb_root
 #endif
 
 
-#define rb_parent(r)   ((struct rb_node *)((r)->rb_parent_color & ~3))
-#define rb_color(r)   ((r)->rb_parent_color & 1)
-#define rb_is_red(r)   (!rb_color(r))
-#define rb_is_black(r) rb_color(r)
-#define rb_set_red(r)  do { (r)->rb_parent_color &= ~1; } while (0)
-#define rb_set_black(r)  do { (r)->rb_parent_color |= 1; } while (0)
+#define rb_parent(r)    ((struct rb_node *)((r)->rb_parent_color & ~3))
+#define rb_color(r)     ((r)->rb_parent_color & 1)
+#define rb_is_red(r)    (!rb_color(r))
+#define rb_is_black(r)  rb_color(r)
+#define rb_set_red(r)   do { (r)->rb_parent_color &= ~1; } while (0)
+#define rb_set_black(r) do { (r)->rb_parent_color |= 1; } while (0)
 
 static inline void rb_set_parent(struct rb_node *rb, struct rb_node *p)
 {
@@ -174,4 +178,4 @@ static inline void rb_link_node(struct rb_node * node,
     *rb_link = node;
 }
 
-#endif    /* _LINUX_RBTREE_H */
+#endif // __LATASIA_RBTREE_H__

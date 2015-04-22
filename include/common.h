@@ -54,6 +54,7 @@
 
 
 typedef volatile sig_atomic_t lts_atomic_t;
+typedef struct timeval lts_timeval_t;
 
 
 enum {
