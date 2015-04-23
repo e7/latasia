@@ -3,6 +3,7 @@
 #include "latasia.h"
 #include "rbtree.h"
 #include "logger.h"
+#include "conf.h"
 
 
 static int init_http_core_module(lts_module_t *module)

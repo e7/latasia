@@ -4,37 +4,54 @@
  * */
 
 
+#include <sys/time.h>
+
 #include "rbt_timer.h"
 
 
-/*
-static inline struct page * rb_search_page_cache(struct inode * inode,
-                         unsigned long offset)
+static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
+                                             lts_socket_t *sock,
+                                             int link)
 {
-    struct rb_node * n = inode->i_rb_page_cache.rb_node;
-    struct page * page;
+    lts_socket_t *s;
+    lts_rb_node_t *parent, **iter;
 
-    while (n)
-    {
-        page = rb_entry(n, struct page, rb_page_cache);
+    iter = &root->rb_node;
+    while (*iter) {
+        parent = *iter;
+        s = rb_entry(parent, lts_socket_t, rbnode);
 
-        if (offset < page->offset)
-            n = n->rb_left;
-        else if (offset > page->offset)
-            n = n->rb_right;
-        else
-            return page;
+        if (sock->timeout < s->timeout) {
+            iter = &(parent->rb_left);
+        } else if (sock->timeout > s->timeout) {
+            iter = &(parent->rb_right);
+        } else {
+            return s;
+        }
     }
-    return NULL;
-}*/
+
+    if (link) {
+        rb_link_node(&sock->rbnode, parent, iter);
+        rb_insert_color(&sock->rbnode, root);
+    }
+
+    return sock;
+}
+
 int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
 {
+    if (s != __lts_timer_heap_search(root, s, TRUE)) {
+        return -1;
+    }
+
     return 0;
 }
 
-int lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
+void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
 {
-    return 0;
+    rb_erase(&s->rbnode, root);
+
+    return;
 }
 
 lts_socket_t *lts_timer_heap_pop_min(lts_rb_root_t *root)
@@ -54,6 +71,14 @@ lts_socket_t *lts_timer_heap_pop_min(lts_rb_root_t *root)
     }
 
     return s;
+}
+
+
+void lts_update_time(void)
+{
+    (void)gettimeofday(&lts_current_time, NULL);
+
+    return;
 }
 
 

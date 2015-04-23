@@ -13,14 +13,6 @@
 #include "shmem.h"
 
 
-// configuration {{
-#define ENABLE_IPV6             TRUE
-#define MODULE_POOL_SIZE        524288
-#define CONN_POOL_SIZE          40960
-#define CONN_BUFFER_SIZE        4096
-#define MAX_CONNECTIONS         1024
-// }} configuration
-
 #define LTS_MAX_PROCESSES       1024
 
 

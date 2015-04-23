@@ -11,7 +11,15 @@
 #include "adv_string.h"
 #include "mem_pool.h"
 
-#define MAX_CONF_SIZE       65535
+// configuration {{
+#define MAX_CONF_SIZE           65535
+#define ENABLE_IPV6             TRUE
+#define MODULE_POOL_SIZE        524288
+#define CONN_POOL_SIZE          40960
+#define CONN_BUFFER_SIZE        4096
+#define MAX_CONNECTIONS         1024
+// }} configuration
+
 
 
 typedef struct lts_conf_s lts_conf_t;
@@ -21,6 +29,7 @@ struct lts_conf_s {
     int daemon; // 守护进程
     lts_str_t port; // 监听端口
     int workers; // 工作进程数
+    int max_connections; // 单进程最大连接数
     lts_str_t log_file; // 日志
     lts_str_t backends; // 后台服务器
     int keepalive; // 连接超时时间

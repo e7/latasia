@@ -8,6 +8,7 @@
 #include "buffer.h"
 #include "conf.h"
 #include "logger.h"
+#include "rbt_timer.h"
 
 
 void lts_close_conn(int fd, lts_pool_t *c, int reset)
@@ -57,16 +58,15 @@ static void handle_output(lts_socket_t *s)
 
 static void lts_accept(lts_socket_t *s)
 {
-    int cmnct_fd;
+    int cmnct_fd, nodelay, count;
     uint8_t clt[LTS_SOCKADDRLEN];
     socklen_t clt_len;
     lts_socket_t *cs;
     lts_conn_t *c;
     lts_pool_t *cpool;
 
-    while (TRUE) {
-        int nodelay = 1;
-
+    nodelay = 1;
+    for (count = 0; count < lts_conf.max_connections; ++count) {
         clt_len = sizeof(clt);
 
         if (0 == lts_sock_cache_n) {
@@ -131,6 +131,9 @@ static void lts_accept(lts_socket_t *s)
         cs->do_read = &lts_recv;
         cs->on_writable = &handle_output;
         cs->do_write = &lts_send;
+        cs->timeout = lts_current_time.tv_sec / 10;
+        cs->timeout += lts_current_time.tv_usec / 1000 / 100;
+        cs->timeout += count + 1;
 
         if (0 != (*lts_event_itfc->event_add)(cs)) {
             lts_close_conn(cmnct_fd, cpool, TRUE);
@@ -167,7 +170,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
     }
 
     // 统计监听套接字数目
-    lts_sock_cache_n = MAX_CONNECTIONS;
+    lts_sock_cache_n = lts_conf.max_connections;
     for (iter = records; NULL != iter; iter = iter->ai_next) {
         ++lts_sock_cache_n;
     }

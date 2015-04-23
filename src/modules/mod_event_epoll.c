@@ -1,8 +1,8 @@
 #include <sys/epoll.h>
-#include <sys/time.h>
 
 #include <stdio.h>
 
+#include "conf.h"
 #include "latasia.h"
 #include "logger.h"
 #include "vsignal.h"
@@ -57,7 +57,7 @@ static int epoll_process_events(void)
     // 更新时间
     if (lts_signals_mask & LTS_MASK_SIGALRM) {
         lts_signals_mask &= ~LTS_MASK_SIGALRM;
-        (void)gettimeofday(&lts_current_time, NULL);
+        lts_update_time();
     }
 
     if (tmp_err) {
@@ -100,6 +100,7 @@ static int epoll_process_events(void)
 
 static int init_event_epoll_worker(lts_module_t *mod)
 {
+    int max_conns;
     lts_pool_t *pool;
 
     // 创建内存池
@@ -117,13 +118,14 @@ static int init_event_epoll_worker(lts_module_t *mod)
     }
 
     // 创建epoll_event缓存
+    max_conns = lts_conf.max_connections;
     buf_epevs = (struct epoll_event *)(
-        lts_palloc(pool, MAX_CONNECTIONS * sizeof(struct epoll_event))
+        lts_palloc(pool, max_conns * sizeof(struct epoll_event))
     );
     if (NULL == buf_epevs) {
         return -1;
     }
-    nbuf_epevs = MAX_CONNECTIONS;
+    nbuf_epevs = max_conns;
 
     return 0;
 }

@@ -7,7 +7,6 @@
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include <sys/time.h>
 #include "latasia.h"
 #include "logger.h"
 #include "conf.h"
@@ -645,7 +644,7 @@ int main(int argc, char *argv[], char *env[])
 
     // 全局初始化
     lts_init_log_prefixes();
-    (void)gettimeofday(&lts_current_time, NULL);
+    lts_update_time();
     lts_sys_pagesize = (size_t)sysconf(_SC_PAGESIZE);
 
     // 初始化核心模块
