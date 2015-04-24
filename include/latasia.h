@@ -36,6 +36,7 @@ typedef struct lts_process_s lts_process_t;
 
 // 进程类型
 struct lts_process_s {
+    pid_t ppid; // 父进程id
     pid_t pid; // 工作进程id
     int channel[2];
 };

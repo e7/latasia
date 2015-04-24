@@ -237,6 +237,15 @@ int event_loop_single(void)
     // 事件循环
     hold = FALSE;
     while (TRUE) {
+        // 检查父进程状态
+        if (-1 == kill(lts_processes[lts_ps_slot].ppid, 0)) {
+            (void)lts_write_logger(
+                &lts_file_logger, LTS_LOG_ERROR,
+                "I am gona die cause my parent has been dead\n"
+            );
+            break;
+        }
+
         // 更新进程负载
         if (lts_signals_mask & LTS_MASK_SIGSTOP) {
             lts_accept_disabled = 1;
@@ -304,6 +313,15 @@ int event_loop_multi(void)
 
     // 事件循环
     while (TRUE) {
+        // 检查父进程状态
+        if (-1 == kill(lts_processes[lts_ps_slot].ppid, 0)) {
+            (void)lts_write_logger(
+                &lts_file_logger, LTS_LOG_ERROR,
+                "I am gona die cause my parent has been dead\n"
+            );
+            break;
+        }
+
         // 更新进程负载
         if (lts_signals_mask & LTS_MASK_SIGSTOP) {
             lts_accept_disabled = 1;
@@ -411,10 +429,13 @@ int master_main(void)
     int workers, slot;
     sigset_t tmp_mask;
 
-    // 初始化lts_processes
+    // 初始化全局变量
+    lts_pid = getpid();
+    lts_process_role = LTS_MASTER;
     for (slot = 0; slot < lts_conf.workers; ++slot) {
         int fd;
 
+        lts_processes[slot].ppid = lts_pid;
         lts_processes[slot].pid = -1;
         if (-1 == socketpair(AF_UNIX, SOCK_STREAM,
                              0, lts_processes[slot].channel))
@@ -443,20 +464,18 @@ int master_main(void)
         return -1;
     }
 
-    // 初始化全局变量
-    lts_pid = getpid();
-    lts_process_role = LTS_MASTER;
+    // 守护进程
+    if (lts_conf.daemon && (-1 == daemon(FALSE, FALSE))) {
+        return -1;
+    }
+
+    // 事件循环
+    workers = 0; // 当前工作进程数
     if (lts_conf.workers > 1) {
         lts_use_accept_lock = TRUE;
     } else {
         lts_use_accept_lock = FALSE;
     }
-
-    if (lts_conf.daemon && (-1 == daemon(FALSE, FALSE))) {
-        return -1;
-    }
-
-    workers = 0; // 当前工作进程数
     while (TRUE) {
         if (0 == (lts_signals_mask & LTS_MASK_SIGSTOP)) {
             // 重启工作进程
