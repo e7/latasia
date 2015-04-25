@@ -247,7 +247,7 @@ int event_loop_single(void)
         }
 
         // 更新进程负载
-        if (lts_signals_mask & LTS_MASK_SIGSTOP) {
+        if (lts_signals_mask & LTS_MASK_SIGEXIT) {
             lts_accept_disabled = 1;
             if (dlist_empty(&lts_post_list)) {
                 // 已处理完所有连接
@@ -323,7 +323,7 @@ int event_loop_multi(void)
         }
 
         // 更新进程负载
-        if (lts_signals_mask & LTS_MASK_SIGSTOP) {
+        if (lts_signals_mask & LTS_MASK_SIGEXIT) {
             lts_accept_disabled = 1;
             if (dlist_empty(&lts_post_list)) {
                 // 已处理完所有连接
@@ -399,7 +399,8 @@ pid_t wait_children(void)
         if (child == lts_processes[slot].pid) {
             lts_processes[slot].pid = -1;
             if (-1 == close(lts_processes[slot].channel[0])) {
-                // log
+                (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                       "close channel failed\n");
             }
             break;
         }
@@ -430,7 +431,6 @@ int master_main(void)
     sigset_t tmp_mask;
 
     // 初始化全局变量
-    lts_pid = getpid();
     lts_process_role = LTS_MASTER;
     for (slot = 0; slot < lts_conf.workers; ++slot) {
         int fd;
@@ -477,7 +477,7 @@ int master_main(void)
         lts_use_accept_lock = FALSE;
     }
     while (TRUE) {
-        if (0 == (lts_signals_mask & LTS_MASK_SIGSTOP)) {
+        if (0 == (lts_signals_mask & LTS_MASK_SIGEXIT)) {
             // 重启工作进程
             while (workers  < lts_conf.workers) {
                 pid_t p;
@@ -518,18 +518,22 @@ int master_main(void)
         sigemptyset(&tmp_mask);
         (void)sigsuspend(&tmp_mask);
 
-        if (lts_signals_mask & (LTS_MASK_SIGSTOP | LTS_MASK_SIGCHLD)) {
-            if (lts_signals_mask & LTS_MASK_SIGSTOP) {
-                for (int i = 0; i < lts_conf.workers; ++i) {
-                    if (-1 == lts_processes[i].pid) {
-                        continue;
-                    }
-                    if (-1 == kill(lts_processes[i].pid, SIGINT)) {
-                        // log
-                    }
+        if (lts_signals_mask & LTS_MASK_SIGEXIT) {
+            for (int i = 0; i < lts_conf.workers; ++i) {
+                if (-1 == lts_processes[i].pid) {
+                    continue;
                 }
-            }
 
+                // 通知子进程退出
+                if (-1 == kill(lts_processes[i].pid, SIGINT)) {
+                    (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                           "kill() failed: %d\n", errno);
+                }
+                (void)raise(SIGCHLD);
+            }
+        }
+
+        if (lts_signals_mask & LTS_MASK_SIGCHLD) {
             // 等待子进程退出
             child = wait_children();
             if (-1 == child) {
@@ -537,15 +541,15 @@ int master_main(void)
                 (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                                        "no more children to wait\n");
             }
-            --workers;
+            if (child > 0) {
+                --workers;
+            }
 
-            if (lts_signals_mask & LTS_MASK_SIGSTOP) {
+            if (lts_signals_mask & LTS_MASK_SIGEXIT) {
+                lts_signals_mask &= ~LTS_MASK_SIGEXIT;
                 break;
             }
         }
-
-        //清除信号标识
-        lts_signals_mask &= ~LTS_MASK_SIGSTOP;
     }
 
     return 0;

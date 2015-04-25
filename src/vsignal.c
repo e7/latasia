@@ -10,14 +10,14 @@
 
 static void sig_int_handler(int s)
 {
-    lts_signals_mask |= LTS_MASK_SIGSTOP;
+    lts_signals_mask |= LTS_MASK_SIGEXIT;
 
     return;
 }
 
 static void sig_term_handler(int s)
 {
-    lts_signals_mask |= LTS_MASK_SIGSTOP;
+    lts_signals_mask |= LTS_MASK_SIGEXIT;
 
     return;
 }

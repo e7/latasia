@@ -60,6 +60,9 @@ int init_core_master(lts_module_t *module)
         return -1;
     }
 
+    // 初始化进程号
+    lts_pid = getpid();
+
     return 0;
 }
 
