@@ -60,8 +60,13 @@ int init_core_master(lts_module_t *module)
         return -1;
     }
 
-    // 初始化进程号
-    lts_pid = getpid();
+    // 全局初始化
+    lts_pid = getpid(); // 初始化进程号
+    lts_process_role = LTS_MASTER; // 进程角色
+    for (int i = 0; i < ARRAY_COUNT(lts_processes); ++i) {
+        lts_processes[i].ppid = -1;
+        lts_processes[i].pid = -1;
+    }
 
     return 0;
 }

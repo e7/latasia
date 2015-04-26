@@ -28,11 +28,17 @@ enum {
 };
 
 
+typedef struct lts_status_machine_s lts_sm_t;
 typedef struct lts_module_s lts_module_t;
 typedef struct lts_event_module_itfc_s lts_event_module_itfc_t;
 typedef struct lts_app_module_itfc_s lts_app_module_itfc_t;
 typedef struct lts_process_s lts_process_t;
 
+
+// 全局状态机
+struct lts_status_machine_s {
+    int unix_domain_enabled[LTS_MAX_PROCESSES];
+};
 
 // 进程类型
 struct lts_process_s {
@@ -74,17 +80,17 @@ extern void lts_send(lts_socket_t *cs);
 extern void lts_close_conn(int fd, lts_pool_t *c, int reset);
 
 
+extern lts_sm_t lts_global_sm; // 全局状态机
 extern size_t lts_sys_pagesize; // 系统内存页
-extern long lts_signals_mask; // 信号掩码
+extern lts_atomic_t lts_signals_mask; // 信号掩码
 
 extern int lts_module_count; // 模块计数
 extern lts_module_t lts_core_module; // 核心模块
 extern lts_module_t lts_event_core_module; // 事件核心模块
 extern lts_module_t lts_event_epoll_module; // epoll事件模块
-extern lts_module_t lts_app_pb_parse_module; // protobuf消息解析模块
 extern lts_module_t lts_app_http_core_module; // http core模块
 
-extern lts_socket_t *lts_channel;
+extern lts_socket_t *lts_channels[LTS_MAX_PROCESSES];
 extern int lts_ps_slot;
 extern lts_process_t lts_processes[LTS_MAX_PROCESSES]; // 进程组
 extern lts_event_module_itfc_t *lts_event_itfc; // 事件模块接口

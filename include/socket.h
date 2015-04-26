@@ -19,6 +19,9 @@
 #define EVENT_READ              (1 << 1)
 #define EVENT_WRITE             (1 << 2)
 
+#define lts_set_nonblock(fd)    \
+        fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
+
 
 typedef struct lts_socket_s lts_socket_t;
 typedef struct lts_conn_s lts_conn_t;

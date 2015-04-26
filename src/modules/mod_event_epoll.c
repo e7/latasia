@@ -127,12 +127,20 @@ static int init_event_epoll_worker(lts_module_t *mod)
     }
     nbuf_epevs = max_conns;
 
+    // 添加channel事件监视
+    epoll_event_add(lts_channels[lts_ps_slot]);
+
+    lts_event_itfc = (lts_event_module_itfc_t *)mod->itfc;
+
     return 0;
 }
 
 
 static void exit_event_epoll_worker(lts_module_t *mod)
 {
+    // 删除channel事件监视
+    epoll_event_del(lts_channels[lts_ps_slot]);
+
     if (-1 == close(epfd)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR, "close failed");
     }

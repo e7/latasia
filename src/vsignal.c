@@ -43,6 +43,12 @@ static void sig_alrm_handler(int s)
     return;
 }
 
+static void sig_segv_handler(int s)
+{
+    abort();
+    return;
+}
+
 
 static lts_signal_t lts_signals[] = {
     {SIGINT, "SIGINT", &sig_int_handler},
@@ -50,6 +56,7 @@ static lts_signal_t lts_signals[] = {
     {SIGCHLD, "SIGCHLD", &sig_chld_handler},
     {SIGPIPE, "SIGPIPE", &sig_pipe_handler},
     {SIGALRM, "SIGALRM", &sig_alrm_handler},
+    {SIGSEGV, "SIGSEGV", &sig_segv_handler},
     {0, NULL, NULL},
 };
 

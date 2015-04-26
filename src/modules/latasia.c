@@ -14,11 +14,12 @@
 #include "rbt_timer.h"
 
 
+lts_sm_t lts_global_sm; // 全局状态机
 size_t lts_sys_pagesize;
-long lts_signals_mask; // 信号掩码
+lts_atomic_t lts_signals_mask; // 信号掩码
 
 int lts_module_count; // 模块计数
-lts_socket_t *lts_channel;
+lts_socket_t *lts_channels[LTS_MAX_PROCESSES];
 int lts_ps_slot;
 lts_process_t lts_processes[LTS_MAX_PROCESSES]; // 进程组
 lts_shm_t lts_accept_lock = {
@@ -372,18 +373,6 @@ int event_loop_multi(void)
 
 
 static
-void close_socketpair(int channel[2])
-{
-    if (-1 == close(channel[0])) {
-    }
-    if (-1 == close(channel[1])) {
-    }
-
-    return;
-}
-
-
-static
 pid_t wait_children(void)
 {
     pid_t child;
@@ -430,40 +419,6 @@ int master_main(void)
     int workers, slot;
     sigset_t tmp_mask;
 
-    // 初始化全局变量
-    lts_process_role = LTS_MASTER;
-    for (slot = 0; slot < lts_conf.workers; ++slot) {
-        int fd;
-
-        lts_processes[slot].ppid = lts_pid;
-        lts_processes[slot].pid = -1;
-        if (-1 == socketpair(AF_UNIX, SOCK_STREAM,
-                             0, lts_processes[slot].channel))
-        {
-            (void)lts_write_logger(
-                &lts_file_logger, LTS_LOG_ERROR, "socketpair failed\n"
-            );
-            break;
-        }
-
-        fd = lts_processes[slot].channel[0];
-        if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)) {
-            close_socketpair(lts_processes[slot].channel);
-            break;
-        }
-        fd = lts_processes[slot].channel[1];
-        if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)) {
-            close_socketpair(lts_processes[slot].channel);
-            break;
-        }
-    }
-    if (slot< lts_conf.workers) {
-        while (slot-- > 0) {
-            close_socketpair(lts_processes[slot].channel);
-        }
-        return -1;
-    }
-
     // 守护进程
     if (lts_conf.daemon && (-1 == daemon(FALSE, FALSE))) {
         return -1;
@@ -481,6 +436,7 @@ int master_main(void)
             // 重启工作进程
             while (workers  < lts_conf.workers) {
                 pid_t p;
+                int domain_fd;
 
                 // 寻找空闲槽
                 for (slot = 0; slot < lts_conf.workers; ++slot) {
@@ -488,7 +444,31 @@ int master_main(void)
                         break;
                     }
                 }
-                assert(slot < lts_conf.workers);
+                if (slot >= lts_conf.workers) { // bug defence
+                    abort();
+                }
+
+                // 创建ipc域套接字
+                lts_global_sm.unix_domain_enabled[slot] = TRUE;
+                if (-1 == socketpair(AF_UNIX, SOCK_STREAM,
+                                     0, lts_processes[slot].channel)) {
+                    lts_global_sm.unix_domain_enabled[slot] = FALSE;
+                    (void)lts_write_logger(&lts_file_logger,
+                                           LTS_LOG_ERROR,
+                                           "socketpair() failed: %d\n",
+                                           errno);
+                }
+                domain_fd = -1;
+                if (lts_global_sm.unix_domain_enabled[slot]) {
+                    domain_fd = lts_processes[slot].channel[1];
+                    if (-1 == lts_set_nonblock(domain_fd)) {
+                        (void)lts_write_logger(
+                            &lts_file_logger, LTS_LOG_WARN,
+                            "set nonblock unix domain socket failed: %d\n",
+                            errno
+                        );
+                    }
+                }
 
                 p = fork();
 
@@ -500,19 +480,18 @@ int master_main(void)
                 }
 
                 if (0 == p) {
+                    // 子进程
+                    lts_processes[slot].ppid = lts_pid;
                     lts_pid = getpid();
+                    lts_processes[slot].pid = getpid();
                     lts_process_role = LTS_SLAVE;
                     lts_ps_slot = slot; // 新进程槽号
-                    break;
+                    _exit(worker_main());
                 }
 
                 lts_processes[slot].pid = p;
                 ++workers;
-            }
-
-            if (LTS_SLAVE == lts_process_role) {
-                _exit(worker_main());
-            }
+            } // end while
         }
 
         sigemptyset(&tmp_mask);
@@ -609,7 +588,7 @@ static int do_init_worker(int type)
 
 int worker_main(void)
 {
-    int i, rslt;
+    int rslt;
 
     // 初始化核心模块
     if (-1 == do_init_worker(LTS_CORE_MODULE)) {
@@ -629,18 +608,9 @@ int worker_main(void)
         return EXIT_FAILURE;
     }
 
-    // 使用第一个初始化成功的事件模块
-    for (i = 0; lts_modules[i]; ++i) {
-        if (LTS_EVENT_MODULE == lts_modules[i]->type) {
-            lts_event_itfc = (lts_event_module_itfc_t *)lts_modules[i]->itfc;
-            break;
-        }
-    }
-
     // 事件循环
     (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                            "start successfully\n");
-    // (*lts_event_itfc->event_add)(lts_channel);
     if (lts_use_accept_lock) {
         rslt = event_loop_multi();
     } else {

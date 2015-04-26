@@ -294,7 +294,7 @@ static int init_event_core_master(lts_module_t *mod)
             }
         }
 
-        rslt = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+        rslt = lts_set_nonblock(fd);
         if (-1 == rslt) {
             // log
             if (-1 == close(fd)) {
@@ -358,18 +358,14 @@ static int init_event_core_worker(lts_module_t *mod)
         return -1;
     }
 
-    // 关闭
-    for (int i = 0; i < lts_conf.workers; ++i) {
-    }
-
-    // 初始化master-worker通信管道
-    lts_channel = lts_alloc_socket();
-    lts_channel->fd = lts_processes[lts_ps_slot].channel[1];
-    lts_channel->ev_mask = (EPOLLET | EPOLLIN);
-    lts_channel->on_readable = &handle_input;
-    lts_channel->do_read = NULL;
-    lts_channel->on_writable = &handle_output;
-    lts_channel->do_write = NULL;
+    // 分配域套接字连接
+    lts_channels[lts_ps_slot] = lts_alloc_socket();
+    lts_channels[lts_ps_slot]->fd = lts_processes[lts_ps_slot].channel[1];
+    lts_channels[lts_ps_slot]->ev_mask = (EPOLLET | EPOLLIN);
+    lts_channels[lts_ps_slot]->on_readable = &handle_input;
+    lts_channels[lts_ps_slot]->do_read = NULL;
+    lts_channels[lts_ps_slot]->on_writable = &handle_output;
+    lts_channels[lts_ps_slot]->do_write = NULL;
 
     return 0;
 }
@@ -377,10 +373,8 @@ static int init_event_core_worker(lts_module_t *mod)
 
 static void exit_event_core_worker(lts_module_t *mod)
 {
-    if (-1 == close(lts_channel->fd)) {
-        // log
-    }
-    lts_free_socket(lts_channel);
+    // 释放域套接字连接
+    lts_free_socket(lts_channels[lts_ps_slot]);
 
     return;
 }
