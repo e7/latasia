@@ -232,7 +232,7 @@ static void free_listen_sockets(void)
         ls = CONTAINER_OF(pos_node, lts_socket_t, dlnode);
         if (-1 == close(ls->fd)) {
             (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                   "close() failed: %s\n", strerror(errno));
+                                   "close() failed: %d\n", errno);
         }
         dlist_del(&ls->dlnode);
     }
@@ -318,7 +318,7 @@ static int init_event_core_master(lts_module_t *mod)
         rslt = bind(fd, ls->local_addr, ls->addr_len);
         if (-1 == rslt) {
             (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                   "bind() failed: %s\n", strerror(errno));
+                                   "bind() failed: %d\n", errno);
             if (-1 == close(fd)) {
                 // log
             }
@@ -342,11 +342,21 @@ static int init_event_core_master(lts_module_t *mod)
     return rslt;
 }
 
+static void channel_do_read(lts_socket_t *s)
+{
+    uint32_t sig = 0;
 
+    if (-1 == recv(s->fd, &sig, sizeof(sig), 0)) {
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "recv() failed: %d\n", errno);
+    }
+    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
+                           "got data: %d\n", sig);
+    return;
+}
 static int init_event_core_worker(lts_module_t *mod)
 {
-    // 晶振间隔0.1s
-    struct itimerval timer_resolution = {
+    struct itimerval timer_resolution = { // 晶振间隔0.1s
         {0, 1000 * 100},
         {0, 1000 * 100},
     };
@@ -354,7 +364,7 @@ static int init_event_core_worker(lts_module_t *mod)
     // 工作进程晶振
     if (-1 == setitimer(ITIMER_REAL, &timer_resolution, NULL)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                               "setitimer() failed %s\n", strerror(errno));
+                               "setitimer() failed %d\n", errno);
         return -1;
     }
 
@@ -363,7 +373,7 @@ static int init_event_core_worker(lts_module_t *mod)
     lts_channels[lts_ps_slot]->fd = lts_processes[lts_ps_slot].channel[1];
     lts_channels[lts_ps_slot]->ev_mask = (EPOLLET | EPOLLIN);
     lts_channels[lts_ps_slot]->on_readable = &handle_input;
-    lts_channels[lts_ps_slot]->do_read = NULL;
+    lts_channels[lts_ps_slot]->do_read = &channel_do_read;
     lts_channels[lts_ps_slot]->on_writable = &handle_output;
     lts_channels[lts_ps_slot]->do_write = NULL;
 

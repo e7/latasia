@@ -233,8 +233,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     if (-1 == fstat(file->fd, &st)) {
         lts_file_close(file);
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
-                               "fstat configuration file failed: %s\n",
-                               strerror(errno));
+                               "fstat() failed: %d\n", errno);
         return -1;
     }
 
@@ -252,8 +251,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     if (MAP_FAILED == *addr) {
         lts_file_close(file);
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
-                               "mmap configuration file failed: %s\n",
-                               strerror(errno));
+                               "mmap() failed: %d\n", errno);
         return -1;
     }
 

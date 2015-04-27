@@ -241,24 +241,14 @@ int event_loop_single(void)
         // 检查父进程状态
         if (-1 == kill(lts_processes[lts_ps_slot].ppid, 0)) {
             (void)lts_write_logger(
-                &lts_file_logger, LTS_LOG_ERROR,
-                "I am gona die cause my parent has been dead\n"
+                &lts_file_logger, LTS_LOG_WARN,
+                "I am gona die because my parent has been dead\n"
             );
             break;
         }
 
         // 更新进程负载
-        if (lts_signals_mask & LTS_MASK_SIGEXIT) {
-            lts_accept_disabled = 1;
-            if (dlist_empty(&lts_post_list)) {
-                // 已处理完所有连接
-                (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
-                                       "worker will exit\n");
-                break;
-            }
-        } else {
-            lts_accept_disabled = lts_sock_inuse_n / 8 - lts_sock_cache_n;
-        }
+        lts_accept_disabled = lts_sock_inuse_n / 8 - lts_sock_cache_n;
 
         if (lts_accept_disabled < 0) {
             if (!hold) {
@@ -317,24 +307,14 @@ int event_loop_multi(void)
         // 检查父进程状态
         if (-1 == kill(lts_processes[lts_ps_slot].ppid, 0)) {
             (void)lts_write_logger(
-                &lts_file_logger, LTS_LOG_ERROR,
-                "I am gona die cause my parent has been dead\n"
+                &lts_file_logger, LTS_LOG_WARN,
+                "I am gona die because my parent has been dead\n"
             );
             break;
         }
 
         // 更新进程负载
-        if (lts_signals_mask & LTS_MASK_SIGEXIT) {
-            lts_accept_disabled = 1;
-            if (dlist_empty(&lts_post_list)) {
-                // 已处理完所有连接
-                (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
-                                       "worker will exit\n");
-                break;
-            }
-        } else {
-            lts_accept_disabled = lts_sock_inuse_n / 8 - lts_sock_cache_n;
-        }
+        lts_accept_disabled = lts_sock_inuse_n / 8 - lts_sock_cache_n;
 
         if (lts_accept_disabled < 0) {
             if (lts_shmtx_trylock((lts_atomic_t *)lts_accept_lock.addr)) {
@@ -431,6 +411,7 @@ int master_main(void)
     } else {
         lts_use_accept_lock = FALSE;
     }
+    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO, "master started\n");
     while (TRUE) {
         if (0 == (lts_signals_mask & LTS_MASK_SIGEXIT)) {
             // 重启工作进程
@@ -499,17 +480,23 @@ int master_main(void)
 
         if (lts_signals_mask & LTS_MASK_SIGEXIT) {
             for (int i = 0; i < lts_conf.workers; ++i) {
+                uint32_t sigexit = 3;
                 if (-1 == lts_processes[i].pid) {
                     continue;
                 }
 
                 // 通知子进程退出
+                if (-1 == send(lts_processes[i].channel[0],
+                               &sigexit, sizeof(uint32_t), 0)) {
+                    (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                           "send() failed: %d\n", errno);
+                }
                 if (-1 == kill(lts_processes[i].pid, SIGINT)) {
                     (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                            "kill() failed: %d\n", errno);
                 }
-                (void)raise(SIGCHLD);
             }
+            (void)raise(SIGCHLD);
         }
 
         if (lts_signals_mask & LTS_MASK_SIGCHLD) {
@@ -609,8 +596,7 @@ int worker_main(void)
     }
 
     // 事件循环
-    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
-                           "start successfully\n");
+    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO, "slave started\n");
     if (lts_use_accept_lock) {
         rslt = event_loop_multi();
     } else {
