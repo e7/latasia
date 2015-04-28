@@ -349,9 +349,11 @@ static void channel_do_read(lts_socket_t *s)
     if (-1 == recv(s->fd, &sig, sizeof(sig), 0)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "recv() failed: %d\n", errno);
+        return;
     }
-    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
-                           "got data: %d\n", sig);
+
+    lts_global_sm.channel_signal = sig;
+
     return;
 }
 static int init_event_core_worker(lts_module_t *mod)

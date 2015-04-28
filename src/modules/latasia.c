@@ -238,6 +238,15 @@ int event_loop_single(void)
     // 事件循环
     hold = FALSE;
     while (TRUE) {
+        // 检查channel信号
+        if (LTS_CHANNEL_SIGEXIT == lts_global_sm.channel_signal) {
+            (void)lts_write_logger(
+                &lts_file_logger, LTS_LOG_INFO,
+                "slave ready to exit\n"
+            );
+            break;
+        }
+
         // 检查父进程状态
         if (-1 == kill(lts_processes[lts_ps_slot].ppid, 0)) {
             (void)lts_write_logger(
@@ -304,6 +313,15 @@ int event_loop_multi(void)
 
     // 事件循环
     while (TRUE) {
+        // 检查channel信号
+        if (LTS_CHANNEL_SIGEXIT == lts_global_sm.channel_signal) {
+            (void)lts_write_logger(
+                &lts_file_logger, LTS_LOG_INFO,
+                "slave ready to exit\n"
+            );
+            break;
+        }
+
         // 检查父进程状态
         if (-1 == kill(lts_processes[lts_ps_slot].ppid, 0)) {
             (void)lts_write_logger(
@@ -467,6 +485,16 @@ int master_main(void)
                     lts_processes[slot].pid = getpid();
                     lts_process_role = LTS_SLAVE;
                     lts_ps_slot = slot; // 新进程槽号
+
+                    // 初始化信号处理
+                    if (-1 == lts_init_sigactions(lts_process_role)) {
+                        (void)lts_write_logger(
+                            &lts_stderr_logger, LTS_LOG_EMERGE,
+                            "init sigactions failed\n"
+                        );
+                        _exit(EXIT_FAILURE);
+                    }
+
                     _exit(worker_main());
                 }
 
@@ -480,7 +508,8 @@ int master_main(void)
 
         if (lts_signals_mask & LTS_MASK_SIGEXIT) {
             for (int i = 0; i < lts_conf.workers; ++i) {
-                uint32_t sigexit = 3;
+                uint32_t sigexit = LTS_CHANNEL_SIGEXIT;
+
                 if (-1 == lts_processes[i].pid) {
                     continue;
                 }
@@ -491,28 +520,19 @@ int master_main(void)
                     (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                            "send() failed: %d\n", errno);
                 }
-                if (-1 == kill(lts_processes[i].pid, SIGINT)) {
-                    (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                           "kill() failed: %d\n", errno);
-                }
             }
             (void)raise(SIGCHLD);
         }
 
         if (lts_signals_mask & LTS_MASK_SIGCHLD) {
             // 等待子进程退出
-            child = wait_children();
+            while ((child = wait_children()) > 0) {
+                --workers;
+            }
             if (-1 == child) {
                 assert(ECHILD == errno);
                 (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
-                                       "no more children to wait\n");
-            }
-            if (child > 0) {
-                --workers;
-            }
-
-            if (lts_signals_mask & LTS_MASK_SIGEXIT) {
-                lts_signals_mask &= ~LTS_MASK_SIGEXIT;
+                                       "master ready to exit\n");
                 break;
             }
         }
@@ -622,14 +642,24 @@ int main(int argc, char *argv[], char *env[])
     lts_module_t *module;
 
     // 全局初始化
+    lts_pid = getpid(); // 初始化进程号
+    lts_process_role = LTS_MASTER; // 进程角色
     lts_init_log_prefixes();
     lts_update_time();
     lts_sys_pagesize = (size_t)sysconf(_SC_PAGESIZE);
 
-    // 初始化核心模块
+    // 初始化信号处理
+    if (-1 == lts_init_sigactions(lts_process_role)) {
+        (void)lts_write_logger(&lts_stderr_logger,
+                               LTS_LOG_EMERGE, "init sigactions failed\n");
+        return EXIT_FAILURE;
+    }
+
+    // 核心模块 {{
+    i = 0;
     rslt = 0;
-    for (i = 0; lts_modules[i]; ++i) {
-        module = lts_modules[i];
+    while (lts_modules[i]) {
+        module = lts_modules[i++];
 
         if (LTS_CORE_MODULE != module->type) {
             continue;
@@ -650,7 +680,6 @@ int main(int argc, char *argv[], char *env[])
         rslt = (0 == master_main()) ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 
-    // 析构核心模块
     while (i > 0) {
         module = lts_modules[--i];
 
@@ -664,6 +693,7 @@ int main(int argc, char *argv[], char *env[])
 
         (*module->exit_master)(module);
     }
+    // }} 核心模块
 
     return rslt ? EXIT_FAILURE : EXIT_SUCCESS;
 }

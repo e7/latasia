@@ -61,7 +61,7 @@ static lts_signal_t lts_signals[] = {
 };
 
 
-int lts_init_sigactions(void)
+int lts_init_sigactions(int role)
 {
     struct sigaction sa;
 
@@ -71,7 +71,10 @@ int lts_init_sigactions(void)
         return -1;
     }
     for (int i = 0; lts_signals[i].signo; ++i) {
-        sa.sa_handler = lts_signals[i].handler;
+        // 子进程忽略所有信号
+        sa.sa_handler = (
+            (LTS_MASTER == role) ? lts_signals[i].handler : SIG_IGN
+        );
         if (-1 == sigaction(lts_signals[i].signo, &sa, NULL)) {
             return -1;
         }

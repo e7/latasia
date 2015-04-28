@@ -22,5 +22,5 @@ typedef struct {
 } lts_signal_t;
 
 
-extern int lts_init_sigactions(void);
+extern int lts_init_sigactions(int ismaster);
 #endif // __LATASIA__VSIGNAL_H__

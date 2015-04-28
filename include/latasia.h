@@ -36,7 +36,11 @@ typedef struct lts_process_s lts_process_t;
 
 
 // 全局状态机
+enum {
+    LTS_CHANNEL_SIGEXIT = 1001,
+};
 struct lts_status_machine_s {
+    uint32_t channel_signal;
     int unix_domain_enabled[LTS_MAX_PROCESSES];
 };
 
