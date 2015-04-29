@@ -28,6 +28,7 @@ void lts_close_conn(int fd, lts_pool_t *c, int reset)
         );
     }
 
+    // 释放连接内存池
     if (NULL != c) {
         lts_destroy_pool(c);
     }
@@ -131,17 +132,28 @@ static void lts_accept(lts_socket_t *s)
         cs->do_read = &lts_recv;
         cs->on_writable = &handle_output;
         cs->do_write = &lts_send;
-        cs->timeout = lts_current_time.tv_sec / 10;
-        cs->timeout += lts_current_time.tv_usec / 1000 / 100;
-        cs->timeout += count + 1;
 
+        // 超时绝对时间 == 当时时间 + 超时时间
+        cs->timeout = lts_current_time.tv_sec * 10;
+        cs->timeout += lts_current_time.tv_usec / 1000 / 100;
+        cs->timeout += lts_conf.keepalive * 10;
+
+        // 加入监视
         if (0 != (*lts_event_itfc->event_add)(cs)) {
             lts_close_conn(cmnct_fd, cpool, TRUE);
             lts_free_socket(cs);
             continue;
         }
 
-        lts_conn_list_add(cs);
+        if (lts_conf.keepalive > 0) {
+            while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
+                ++cs->timeout;
+            }
+        } else {
+            cs->short_lived = 1;
+        }
+
+        lts_conn_list_add(cs); // 纳入活动连接
     }
 
     return;

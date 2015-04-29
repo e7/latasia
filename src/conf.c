@@ -13,6 +13,7 @@
 
 
 #define CONF_FILE           "latasia.conf"
+#define MAX_KEEPALIVE       (24 * 60 * 60)
 
 
 typedef struct {
@@ -201,8 +202,8 @@ static void cb_keepalive_match(lts_conf_t *conf,
 
     // 更新配置
     nkeepalive = atoi((char const *)port_buf);
-    if ((nkeepalive < 0) || (nkeepalive > 300)) {
-        nkeepalive = 300;
+    if ((nkeepalive < 0) || (nkeepalive > MAX_KEEPALIVE)) { // 不超过一天
+        nkeepalive = MAX_KEEPALIVE;
     }
     conf->keepalive = nkeepalive;
 

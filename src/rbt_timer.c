@@ -16,6 +16,7 @@ static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
     lts_socket_t *s;
     lts_rb_node_t *parent, **iter;
 
+    parent = NULL;
     iter = &root->rb_node;
     while (*iter) {
         parent = *iter;
@@ -83,4 +84,4 @@ void lts_update_time(void)
 
 
 lts_timeval_t lts_current_time; // 当前时间
-lts_rb_root_t lts_timer_heap = {NULL}; // 时间堆
+lts_rb_root_t lts_timer_heap; // 时间堆

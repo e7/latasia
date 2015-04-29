@@ -103,6 +103,10 @@ static int init_event_epoll_worker(lts_module_t *mod)
     int max_conns;
     lts_pool_t *pool;
 
+    // 全局变量初始化
+    lts_timer_heap = RB_ROOT;
+    lts_event_itfc = (lts_event_module_itfc_t *)mod->itfc;
+
     // 创建内存池
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {
@@ -129,8 +133,6 @@ static int init_event_epoll_worker(lts_module_t *mod)
 
     // 添加channel事件监视
     epoll_event_add(lts_channels[lts_ps_slot]);
-
-    lts_event_itfc = (lts_event_module_itfc_t *)mod->itfc;
 
     return 0;
 }

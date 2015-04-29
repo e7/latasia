@@ -179,6 +179,8 @@ void process_post_sock_list(void)
         }
 
         if (cs->closing) {
+            lts_timer_heap_del(&lts_timer_heap, cs);
+            (*lts_event_itfc->event_del)(cs);
             lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
             lts_list_del(cs);
             lts_free_socket(cs);
@@ -204,6 +206,8 @@ void process_post_sock_list(void)
         }
 
         if (cs->closing) {
+            lts_timer_heap_del(&lts_timer_heap, cs);
+            (*lts_event_itfc->event_del)(cs);
             lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
             lts_list_del(cs);
             lts_free_socket(cs);
@@ -215,6 +219,8 @@ void process_post_sock_list(void)
         }
 
         if (cs->closing) {
+            lts_timer_heap_del(&lts_timer_heap, cs);
+            (*lts_event_itfc->event_del)(cs);
             lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
             lts_list_del(cs);
             lts_free_socket(cs);
@@ -641,6 +647,24 @@ int main(int argc, char *argv[], char *env[])
     int i, rslt;
     lts_module_t *module;
 
+    /*do {
+        lts_rb_root_t rt = RB_ROOT;
+        lts_socket_t s[1];
+        int count = ARRAY_COUNT(s);
+
+        for (int i = 0; i < count; ++i) {
+            lts_init_socket(&s[i]);
+        }
+        for (int i = 0; i < count; ++i) {
+            lts_timer_heap_add(&rt, &s[i]);
+        }
+        for (int i = 0; i < count; ++i) {
+            lts_timer_heap_del(&rt, &s[i]);
+        }
+
+        return 0;
+    } while(0);*/
+
     // 全局初始化
     lts_pid = getpid(); // 初始化进程号
     lts_process_role = LTS_MASTER; // 进程角色
@@ -677,7 +701,7 @@ int main(int argc, char *argv[], char *env[])
 
     if (0 == rslt) {
         lts_module_count = i;
-        rslt = (0 == master_main()) ? EXIT_SUCCESS : EXIT_FAILURE;
+        rslt = master_main();
     }
 
     while (i > 0) {
@@ -695,5 +719,5 @@ int main(int argc, char *argv[], char *env[])
     }
     // }} 核心模块
 
-    return rslt ? EXIT_FAILURE : EXIT_SUCCESS;
+    return (0 == rslt) ? EXIT_FAILURE : EXIT_SUCCESS;
 }

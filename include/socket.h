@@ -45,7 +45,7 @@ struct lts_socket_s {
     unsigned short_lived: 1;
     unsigned readable: 1;
     unsigned writable: 1;
-    unsigned closing: 2;
+    unsigned closing: 2; // 请求关闭
     unsigned instance: 1;
 
     lts_conn_t *conn;
@@ -55,7 +55,7 @@ struct lts_socket_s {
     lts_handle_event_pt on_writable;
     lts_handle_event_pt do_write;
 
-    uintptr_t timeout; // 超时时间
+    uint64_t timeout; // 超时时间
     lts_rb_node_t rbnode;
 };
 
@@ -80,17 +80,20 @@ void lts_init_socket(lts_socket_t *s)
 {
     s->fd = -1;
     s->ev_mask = 0;
-    s->short_lived = 0;
     s->readable = 0;
     s->writable = 0;
     s->closing = 0;
     s->instance = (!s->instance);
     s->conn = NULL;
     dlist_init(&s->dlnode);
+    s->short_lived = 0; // 短连接
     s->on_readable = NULL;
     s->do_read = NULL;
     s->on_writable = NULL;
     s->do_write = NULL;
+
+    s->timeout = 0;
+    s->rbnode = RB_NODE;
 }
 
 
