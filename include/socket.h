@@ -56,7 +56,9 @@ struct lts_socket_s {
     lts_handle_event_pt do_write;
 
     int64_t timeout; // 超时时间
+    dlist_t tonode; // lts_timeout_list
     lts_rb_node_t rbnode;
+    lts_handle_event_pt do_timeout;
 };
 
 
@@ -67,12 +69,22 @@ extern size_t lts_sock_inuse_n; // socket缓存使用量
 extern dlist_t lts_listen_sock_list; // 监听socket列表
 extern dlist_t lts_conn_list; // 连接列表
 extern dlist_t lts_post_list; // post链表，事件延迟处理
+extern dlist_t lts_timeout_list; // 超时列表
 #define lts_sock_list_add(s)    dlist_add_tail(&lts_sock_list, &s->dlnode)
-#define lts_listen_sock_list_add(s)     \
-        dlist_add_tail(&lts_listen_sock_list, &s->dlnode)
-#define lts_conn_list_add(s)    dlist_add_tail(&lts_conn_list, &s->dlnode)
-#define lts_post_list_add(s)    dlist_add_tail(&lts_post_list, &s->dlnode)
-#define lts_list_del(s)         dlist_del(&s->dlnode)
+#define lts_listen_sock_list_add(s) do {\
+            dlist_del(&s->dlnode);\
+            dlist_add_tail(&lts_listen_sock_list, &s->dlnode);\
+        } while (0)
+#define lts_conn_list_add(s)    do {\
+            dlist_del(&s->dlnode);\
+            dlist_add_tail(&lts_conn_list, &s->dlnode);\
+        } while (0)
+#define lts_post_list_add(s)    do {\
+            dlist_del(&s->dlnode);\
+            dlist_add_tail(&lts_post_list, &s->dlnode);\
+        } while (0)
+#define lts_timeout_list_add(s) dlist_add_tail(&lts_timeout_list, &s->tonode)
+#define lts_timeout_list_del(s) dlist_del(&s->tonode)
 
 
 static inline
@@ -94,6 +106,8 @@ void lts_init_socket(lts_socket_t *s)
 
     s->timeout = 0;
     s->rbnode = RB_NODE;
+    dlist_init(&s->tonode);
+    s->do_timeout = NULL;
 }
 
 
@@ -123,9 +137,10 @@ lts_socket_t *lts_alloc_socket(void)
 static inline
 void lts_free_socket(lts_socket_t *s)
 {
+    dlist_del(&s->dlnode);
+    lts_sock_list_add(s);
     ++lts_sock_cache_n;
     --lts_sock_inuse_n;
-    lts_sock_list_add(s);
 
     return;
 }

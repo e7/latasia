@@ -14,3 +14,4 @@ size_t lts_sock_inuse_n;
 dlist_t lts_listen_sock_list;
 dlist_t lts_conn_list;
 dlist_t lts_post_list;
+dlist_t lts_timeout_list; // 超时列表

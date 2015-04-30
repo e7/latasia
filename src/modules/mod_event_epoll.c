@@ -22,7 +22,8 @@ static int epoll_event_add(lts_socket_t *s)
     ee.data.ptr = (void *)((uintptr_t)s | s->instance);
 
     if (-1 == epoll_ctl(epfd, EPOLL_CTL_ADD, s->fd, &ee)) {
-        // log
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "epoll_ctl() failed: %d\n", errno);
         return LTS_E_SYS;
     }
 
@@ -35,7 +36,8 @@ static int epoll_event_del(lts_socket_t *s)
     struct epoll_event ee;
 
     if (-1 == epoll_ctl(epfd, EPOLL_CTL_DEL, s->fd, &ee)) {
-        // log
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "epoll_ctl() failed: %d\n", errno);
         return LTS_E_SYS;
     }
 
@@ -46,28 +48,24 @@ static int epoll_event_del(lts_socket_t *s)
 static int epoll_process_events(void)
 {
     int i, nevents, timeout, tmp_err;
-    lts_socket_t *s;
+    lts_socket_t *cs;
     uintptr_t instance;
     uint32_t revents;
     sigset_t sig_mask;
 
-    s = lts_timer_heap_pop_min(&lts_timer_heap);
-    if (s) {
-        timeout = (int)((s->timeout - lts_current_time) * 100); // ms
+    (void)sigfillset(&sig_mask);
+    cs = lts_timer_heap_min(&lts_timer_heap);
+    if (cs) {
+        timeout = (int)((cs->timeout - lts_current_time) * 100); // ms
     } else if (! dlist_empty(&lts_post_list)) {
         timeout = 0;
     } else {
+        // 无限等待则允许时钟信号
+        (void)sigdelset(&sig_mask, SIGALRM);
         timeout = -1;
     }
-    (void)sigfillset(&sig_mask);
-    (void)sigdelset(&sig_mask, SIGALRM); // 允许时钟信号
     nevents = epoll_pwait(epfd, buf_epevs, nbuf_epevs, timeout, &sig_mask);
     tmp_err = (-1 == nevents) ? errno : 0;
-
-    if (timeout > 0) {
-        (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                               "%d milliseconds elapsed\n", timeout);
-    }
 
     // 更新时间
     if (lts_signals_mask & LTS_MASK_SIGALRM) {
@@ -75,6 +73,16 @@ static int epoll_process_events(void)
         lts_update_time();
     }
 
+    // 检查定时器堆
+    while ((cs = lts_timer_heap_min(&lts_timer_heap))) {
+        if (cs->timeout > lts_current_time) {
+            break;
+        }
+        lts_timeout_list_add(cs);
+        lts_timer_heap_del(&lts_timer_heap, cs);
+    }
+
+    // 错误处理
     if (tmp_err) {
         if (EINTR == tmp_err) { // 信号中断
             return 0;
@@ -83,12 +91,13 @@ static int epoll_process_events(void)
         }
     }
 
+    // 事件处理
     for (i = 0; i < nevents; ++i) {
-        s = (lts_socket_t *)buf_epevs[i].data.ptr;
-        instance = ((uintptr_t)s & (uintptr_t)1);
-        s = (lts_socket_t *)((uintptr_t)s & (uintptr_t)~1);
+        cs = (lts_socket_t *)buf_epevs[i].data.ptr;
+        instance = ((uintptr_t)cs & (uintptr_t)1);
+        cs = (lts_socket_t *)((uintptr_t)cs & (uintptr_t)~1);
 
-        if ((-1 == s->fd) || (instance != s->instance)) {
+        if ((-1 == cs->fd) || (instance != cs->instance)) {
             // 过期事件
             continue;
         }
@@ -100,12 +109,12 @@ static int epoll_process_events(void)
             revents |= (EPOLLIN | EPOLLOUT);
         }
 
-        if ((revents & EPOLLIN) && (NULL != s->on_readable)) {
-            (*s->on_readable)(s);
+        if ((revents & EPOLLIN) && (NULL != cs->on_readable)) {
+            (*cs->on_readable)(cs);
         }
 
-        if ((revents & EPOLLOUT) && (NULL != s->on_writable)) {
-            (*s->on_writable)(s);
+        if ((revents & EPOLLOUT) && (NULL != cs->on_writable)) {
+            (*cs->on_writable)(cs);
         }
     }
 
@@ -159,7 +168,8 @@ static void exit_event_epoll_worker(lts_module_t *mod)
     epoll_event_del(lts_channels[lts_ps_slot]);
 
     if (-1 == close(epfd)) {
-        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR, "close failed");
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "close() failed: %d\n", errno);
     }
     lts_destroy_pool(mod->pool);
 

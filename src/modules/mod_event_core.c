@@ -39,7 +39,6 @@ void lts_close_conn(int fd, lts_pool_t *c, int reset)
 
 static void handle_input(lts_socket_t *s)
 {
-    lts_list_del(s);
     lts_post_list_add(s);
     s->readable = 1;
 
@@ -49,7 +48,6 @@ static void handle_input(lts_socket_t *s)
 
 static void handle_output(lts_socket_t *s)
 {
-    lts_list_del(s);
     lts_post_list_add(s);
     s->writable = 1;
 
@@ -84,7 +82,6 @@ static void lts_accept(lts_socket_t *s)
                 continue;
             }
 
-            lts_list_del(s);
             lts_listen_sock_list_add(s);
             if ((EAGAIN != errno) && (EWOULDBLOCK != errno)) {
                 (void)lts_write_logger(
@@ -187,6 +184,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
     dlist_init(&lts_sock_list);
     dlist_init(&lts_conn_list);
     dlist_init(&lts_post_list);
+    dlist_init(&lts_timeout_list);
     sock_cache = (lts_socket_t *)(
         lts_palloc(pool, lts_sock_cache_n * sizeof(lts_socket_t))
     );
@@ -438,13 +436,12 @@ void lts_recv(lts_socket_t *cs)
         if (-1 == recv_sz) {
             cs->readable = 0;
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                lts_list_del(cs);
                 lts_conn_list_add(cs);
             } else {
                 // 异常关闭
                 (void)lts_write_logger(
                     &lts_file_logger, LTS_LOG_ERROR,
-                    "recv failed(%d), reset connection\n", errno
+                    "recv() failed: %d, reset connection\n", errno
                 );
                 cs->closing = ((1 << 0) | (1 << 1));
             }
@@ -480,7 +477,6 @@ void lts_send(lts_socket_t *cs)
         // sent_sz won't be 0
         if (-1 == sent_sz) {
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                lts_list_del(cs);
                 lts_conn_list_add(cs);
             } else {
                 (void)lts_write_logger(

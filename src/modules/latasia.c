@@ -43,7 +43,8 @@ static int lts_shmtx_trylock(lts_atomic_t *lock);
 static void lts_shmtx_unlock(lts_atomic_t *lock);
 static int enable_accept_events(void);
 static int disable_accept_events(void);
-static void process_post_sock_list(void);
+static void process_post_list(void);
+static void process_timeout_list(void);
 static int event_loop_single(void);
 static int event_loop_multi(void);
 static int worker_main(void);
@@ -160,7 +161,7 @@ int disable_accept_events(void)
 }
 
 
-void process_post_sock_list(void)
+void process_post_list(void)
 {
     int i;
     lts_module_t *module;
@@ -182,7 +183,6 @@ void process_post_sock_list(void)
             lts_timer_heap_del(&lts_timer_heap, cs);
             (*lts_event_itfc->event_del)(cs);
             lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-            lts_list_del(cs);
             lts_free_socket(cs);
             continue;
         }
@@ -209,7 +209,6 @@ void process_post_sock_list(void)
             lts_timer_heap_del(&lts_timer_heap, cs);
             (*lts_event_itfc->event_del)(cs);
             lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-            lts_list_del(cs);
             lts_free_socket(cs);
             continue;
         }
@@ -222,15 +221,33 @@ void process_post_sock_list(void)
             lts_timer_heap_del(&lts_timer_heap, cs);
             (*lts_event_itfc->event_del)(cs);
             lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-            lts_list_del(cs);
             lts_free_socket(cs);
             continue;
         }
 
         if (0 == (cs->writable | cs->readable)) {
-            lts_list_del(cs);
             lts_conn_list_add(cs);
         }
+    }
+
+    return;
+}
+
+
+void process_timeout_list(void)
+{
+    dlist_for_each_f_safe(pos, cur_next, &lts_timeout_list) {
+        lts_socket_t *cs = CONTAINER_OF(pos, lts_socket_t, tonode);
+
+        lts_timeout_list_del(cs);
+        if (NULL == cs->do_timeout) {
+            (*lts_event_itfc->event_del)(cs);
+            lts_close_conn(cs->fd, cs->conn->pool, 0);
+            lts_free_socket(cs);
+            continue;
+        }
+
+        (*cs->do_timeout)(cs);
     }
 
     return;
@@ -303,7 +320,8 @@ int event_loop_single(void)
             break;
         }
 
-        process_post_sock_list();
+        process_post_list();
+        process_timeout_list();
     }
 
     if (0 != rslt) {
@@ -365,7 +383,8 @@ int event_loop_multi(void)
             break;
         }
 
-        process_post_sock_list();
+        process_post_list();
+        process_timeout_list();
     }
 
     if (0 != rslt) {

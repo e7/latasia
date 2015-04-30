@@ -55,7 +55,7 @@ void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
     return;
 }
 
-lts_socket_t *lts_timer_heap_pop_min(lts_rb_root_t *root)
+lts_socket_t *lts_timer_heap_min(lts_rb_root_t *root)
 {
 #if 1
 
@@ -64,7 +64,6 @@ lts_socket_t *lts_timer_heap_pop_min(lts_rb_root_t *root)
     if (NULL == p) {
         return NULL;
     }
-    rb_erase(p, root);
 
     return rb_entry(p, lts_socket_t, rbnode);
 
@@ -88,7 +87,6 @@ lts_socket_t *lts_timer_heap_pop_min(lts_rb_root_t *root)
 
 #endif
 }
-
 
 void lts_update_time(void)
 {
