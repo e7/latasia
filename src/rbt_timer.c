@@ -57,6 +57,19 @@ void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
 
 lts_socket_t *lts_timer_heap_pop_min(lts_rb_root_t *root)
 {
+#if 1
+
+    lts_rb_node_t *p = rb_first(root);
+
+    if (NULL == p) {
+        return NULL;
+    }
+    rb_erase(p, root);
+
+    return rb_entry(p, lts_socket_t, rbnode);
+
+#else
+
     lts_socket_t *s;
     lts_rb_node_t *p;
 
@@ -72,16 +85,21 @@ lts_socket_t *lts_timer_heap_pop_min(lts_rb_root_t *root)
     }
 
     return s;
+
+#endif
 }
 
 
 void lts_update_time(void)
 {
-    (void)gettimeofday(&lts_current_time, NULL);
+    lts_timeval_t current;
+
+    (void)gettimeofday(&current, NULL);
+    lts_current_time = current.tv_sec * 10 + current.tv_usec / 1000 / 100;
 
     return;
 }
 
 
-lts_timeval_t lts_current_time; // 当前时间
+int64_t lts_current_time; // 当前时间
 lts_rb_root_t lts_timer_heap; // 时间堆

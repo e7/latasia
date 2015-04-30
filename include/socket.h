@@ -55,7 +55,7 @@ struct lts_socket_s {
     lts_handle_event_pt on_writable;
     lts_handle_event_pt do_write;
 
-    uint64_t timeout; // 超时时间
+    int64_t timeout; // 超时时间
     lts_rb_node_t rbnode;
 };
 

@@ -59,7 +59,6 @@ static int http_core_iobuf(lts_socket_t *s)
     (void)memcpy(sb->start, rsp_buf, sizeof(rsp_buf));
     rb->last = rb->start;
     sb->last += sizeof(rsp_buf);
-    s->short_lived = 1;
 
     return 0;
 }

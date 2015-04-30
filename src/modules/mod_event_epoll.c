@@ -51,11 +51,23 @@ static int epoll_process_events(void)
     uint32_t revents;
     sigset_t sig_mask;
 
+    s = lts_timer_heap_pop_min(&lts_timer_heap);
+    if (s) {
+        timeout = (int)((s->timeout - lts_current_time) * 100); // ms
+    } else if (! dlist_empty(&lts_post_list)) {
+        timeout = 0;
+    } else {
+        timeout = -1;
+    }
     (void)sigfillset(&sig_mask);
     (void)sigdelset(&sig_mask, SIGALRM); // 允许时钟信号
-    timeout = dlist_empty(&lts_post_list) ? -1 : 0;
     nevents = epoll_pwait(epfd, buf_epevs, nbuf_epevs, timeout, &sig_mask);
     tmp_err = (-1 == nevents) ? errno : 0;
+
+    if (timeout > 0) {
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                               "%d milliseconds elapsed\n", timeout);
+    }
 
     // 更新时间
     if (lts_signals_mask & LTS_MASK_SIGALRM) {

@@ -36,9 +36,9 @@ int init_core_master(lts_module_t *module)
 
     // 读取配置
     if (-1 == lts_load_config(&lts_conf, module->pool)) {
-        (void)lts_write_logger(&lts_stderr_logger,
-                               LTS_LOG_EMERGE, "load configure failed\n");
-        return -1;
+        (void)lts_write_logger(
+            &lts_stderr_logger, LTS_LOG_WARN,
+            "load configuration failed, using default\n");
     }
 
     // 初始化日志
@@ -48,8 +48,8 @@ int init_core_master(lts_module_t *module)
                             S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH,
                             &lts_stderr_logger))
     {
-        (void)lts_write_logger(&lts_stderr_logger,
-                               LTS_LOG_EMERGE, "open log file failed\n");
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
+                               "open log file failed\n");
         return -1;
     }
 

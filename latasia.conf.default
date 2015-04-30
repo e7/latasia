@@ -8,7 +8,7 @@ servers = 127.0.0.1 # localhost only by default
 log_file = latasia.log
 
 # workers
-workers = 2
+workers = 1
 
 # keepalive
-keepalive = 30
+keepalive = 0

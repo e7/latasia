@@ -132,13 +132,9 @@ static void lts_accept(lts_socket_t *s)
         cs->do_read = &lts_recv;
         cs->on_writable = &handle_output;
         cs->do_write = &lts_send;
+        cs->timeout = lts_current_time + lts_conf.keepalive * 10;
 
-        // 超时绝对时间 == 当时时间 + 超时时间
-        cs->timeout = lts_current_time.tv_sec * 10;
-        cs->timeout += lts_current_time.tv_usec / 1000 / 100;
-        cs->timeout += lts_conf.keepalive * 10;
-
-        // 加入监视
+        // 加入事件监视
         if (0 != (*lts_event_itfc->event_add)(cs)) {
             lts_close_conn(cmnct_fd, cpool, TRUE);
             lts_free_socket(cs);

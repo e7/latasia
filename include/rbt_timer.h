@@ -18,6 +18,6 @@ extern void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s);
 extern lts_socket_t *lts_timer_heap_pop_min(lts_rb_root_t *root);
 
 extern void lts_update_time(void);
-extern lts_timeval_t lts_current_time; // 当前时间
+extern int64_t lts_current_time; // 当前时间
 extern lts_rb_root_t lts_timer_heap; // 时间堆
 #endif // __LATASIA__RBT_TIMER_H__

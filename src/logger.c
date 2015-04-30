@@ -13,7 +13,7 @@ lts_str_t LTS_LOG_PREFIXES[LTS_LOG_MAX];
 
 lts_logger_t lts_stderr_logger = {
     &lts_stderr_file,
-    LTS_LOG_EMERGE,
+    LTS_LOG_NOTICE,
 };
 lts_logger_t lts_file_logger = {
     &lts_log_file,

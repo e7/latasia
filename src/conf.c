@@ -226,14 +226,14 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     if (-1 == lts_file_open(file, O_RDONLY, S_IWUSR | S_IRUSR,
                             &lts_stderr_logger))
     {
-        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
                                "open configuration file failed\n");
         return -1;
     }
 
     if (-1 == fstat(file->fd, &st)) {
         lts_file_close(file);
-        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
                                "fstat() failed: %d\n", errno);
         return -1;
     }
@@ -241,7 +241,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     // 配置文件size检查
     if (st.st_size > MAX_CONF_SIZE) {
         lts_file_close(file);
-        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
                                "too large configuration file\n");
         return -1;
     }
@@ -251,7 +251,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
                             PROT_READ | PROT_WRITE, MAP_PRIVATE, file->fd, 0);
     if (MAP_FAILED == *addr) {
         lts_file_close(file);
-        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
                                "mmap() failed: %d\n", errno);
         return -1;
     }
@@ -459,9 +459,13 @@ parse_conf(lts_conf_t *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
 
 // 默认配置
 lts_conf_t lts_conf = {
-    FALSE, lts_string("6742"), 1, MAX_CONNECTIONS,
-    lts_string("latasia.log"),
-    lts_string("--SERVER=127.0.0.1"), 60,
+    FALSE, // 守护进程
+    lts_string("6742"), // 监听端口
+    1, // slave进程数
+    MAX_CONNECTIONS, // 每个slave最大连接数
+    lts_string("latasia.log"), // 日志路径
+    lts_string("--SERVER=127.0.0.1"), // 后台服务
+    0, // 连接超时
 };
 
 int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
