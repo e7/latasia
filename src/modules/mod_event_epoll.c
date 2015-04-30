@@ -49,9 +49,12 @@ static int epoll_process_events(void)
     lts_socket_t *s;
     uintptr_t instance;
     uint32_t revents;
+    sigset_t sig_mask;
 
+    (void)sigfillset(&sig_mask);
+    (void)sigdelset(&sig_mask, SIGALRM); // 允许时钟信号
     timeout = dlist_empty(&lts_post_list) ? -1 : 0;
-    nevents = epoll_wait(epfd, buf_epevs, nbuf_epevs, timeout);
+    nevents = epoll_pwait(epfd, buf_epevs, nbuf_epevs, timeout, &sig_mask);
     tmp_err = (-1 == nevents) ? errno : 0;
 
     // 更新时间
