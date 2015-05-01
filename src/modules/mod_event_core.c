@@ -82,7 +82,7 @@ static void lts_accept(lts_socket_t *s)
                 continue;
             }
 
-            lts_listen_sock_list_add(s);
+            lts_listen_list_add(s);
             if ((EAGAIN != errno) && (EWOULDBLOCK != errno)) {
                 (void)lts_write_logger(
                     &lts_file_logger, LTS_LOG_ERROR,
@@ -193,7 +193,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
     }
 
     // 监听套接字初始化
-    dlist_init(&lts_listen_sock_list);
+    dlist_init(&lts_listen_list);
     for (iter = records; NULL != iter; iter = iter->ai_next) {
         struct sockaddr *a;
         lts_socket_t *ls;
@@ -221,7 +221,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
         ls->ev_mask = (EPOLLET | EPOLLIN);
         ls->on_readable = &handle_input;
         ls->do_read = &lts_accept;
-        lts_listen_sock_list_add(ls);
+        lts_listen_list_add(ls); // 添加到监听套接字列表
     }
 
     freeaddrinfo(records);
@@ -232,7 +232,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
 
 static void free_listen_sockets(void)
 {
-    dlist_for_each_f_safe(pos_node, cur_next, &lts_listen_sock_list) {
+    dlist_for_each_f_safe(pos_node, cur_next, &lts_listen_list) {
         lts_socket_t *ls;
 
         ls = CONTAINER_OF(pos_node, lts_socket_t, dlnode);
@@ -275,7 +275,7 @@ static int init_event_core_master(lts_module_t *mod)
     // 打开监听套接字
     ipv6_only = 1;
     reuseaddr = 1;
-    dlist_for_each_f_safe(pos_node, cur_next, &lts_listen_sock_list) {
+    dlist_for_each_f_safe(pos_node, cur_next, &lts_listen_list) {
         int fd;
         lts_socket_t *ls;
 
@@ -292,9 +292,6 @@ static int init_event_core_master(lts_module_t *mod)
                               IPV6_V6ONLY, &ipv6_only, sizeof(ipv6_only));
             if (-1 == rslt) {
                 // log
-                if (-1 == close(fd)) {
-                    // log
-                }
                 rslt = LTS_E_SYS;
                 break;
             }
@@ -303,9 +300,6 @@ static int init_event_core_master(lts_module_t *mod)
         rslt = lts_set_nonblock(fd);
         if (-1 == rslt) {
             // log
-            if (-1 == close(fd)) {
-                // log
-            }
             rslt = LTS_E_SYS;
             break;
         }
@@ -314,9 +308,6 @@ static int init_event_core_master(lts_module_t *mod)
                           (const void *) &reuseaddr, sizeof(int));
         if (-1 == rslt) {
             // log
-            if (-1 == close(fd)) {
-                // log
-            }
             rslt = LTS_E_SYS;
             break;
         }
@@ -325,9 +316,6 @@ static int init_event_core_master(lts_module_t *mod)
         if (-1 == rslt) {
             (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                    "bind() failed: %d\n", errno);
-            if (-1 == close(fd)) {
-                // log
-            }
             rslt = LTS_E_SYS;
             break;
         }
@@ -335,9 +323,6 @@ static int init_event_core_master(lts_module_t *mod)
         rslt = listen(fd, SOMAXCONN);
         if (-1 == rslt) {
             // log
-            if (-1 == close(fd)) {
-                // log
-            }
             rslt = LTS_E_SYS;
             break;
         }

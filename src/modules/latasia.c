@@ -123,7 +123,7 @@ int enable_accept_events(void)
     }
 
     lts_accept_lock_hold = TRUE;
-    dlist_for_each_f(pos, &lts_listen_sock_list) {
+    dlist_for_each_f(pos, &lts_listen_list) {
         lts_socket_t *ls;
 
         ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
@@ -147,7 +147,7 @@ int disable_accept_events(void)
     }
 
     lts_accept_lock_hold = FALSE;
-    dlist_for_each_f(pos, &lts_listen_sock_list) {
+    dlist_for_each_f(pos, &lts_listen_list) {
         lts_socket_t *ls;
 
         ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
@@ -284,7 +284,7 @@ int event_loop_single(void)
 
         if (lts_accept_disabled < 0) {
             if (!hold) {
-                dlist_for_each_f(pos, &lts_listen_sock_list) {
+                dlist_for_each_f(pos, &lts_listen_list) {
                     lts_socket_t *ls;
 
                     ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
@@ -301,7 +301,7 @@ int event_loop_single(void)
             }
         } else {
             if (hold) {
-                dlist_for_each_f(pos, &lts_listen_sock_list) {
+                dlist_for_each_f(pos, &lts_listen_list) {
                     lts_socket_t *ls;
 
                     ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
