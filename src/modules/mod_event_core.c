@@ -73,8 +73,8 @@ static void lts_accept(lts_socket_t *s)
             break;
         }
 
-        cmnct_fd = accept4(s->fd,
-                           (struct sockaddr *)clt, &clt_len, SOCK_NONBLOCK);
+        cmnct_fd = accept4(s->fd, (struct sockaddr *)clt,
+                           &clt_len, SOCK_NONBLOCK);
         if (-1 == cmnct_fd) {
             s->readable = 0;
 
@@ -82,7 +82,6 @@ static void lts_accept(lts_socket_t *s)
                 continue;
             }
 
-            lts_listen_list_add(s);
             if ((EAGAIN != errno) && (EWOULDBLOCK != errno)) {
                 (void)lts_write_logger(
                     &lts_file_logger, LTS_LOG_ERROR,
@@ -182,9 +181,6 @@ static int alloc_listen_sockets(lts_pool_t *pool)
 
     // 建立socket缓存
     dlist_init(&lts_sock_list);
-    dlist_init(&lts_conn_list);
-    dlist_init(&lts_post_list);
-    dlist_init(&lts_timeout_list);
     sock_cache = (lts_socket_t *)(
         lts_palloc(pool, lts_sock_cache_n * sizeof(lts_socket_t))
     );
@@ -193,7 +189,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
     }
 
     // 监听套接字初始化
-    dlist_init(&lts_listen_list);
+    dlist_init(&lts_addr_list);
     for (iter = records; NULL != iter; iter = iter->ai_next) {
         struct sockaddr *a;
         lts_socket_t *ls;
@@ -221,7 +217,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
         ls->ev_mask = (EPOLLET | EPOLLIN);
         ls->on_readable = &handle_input;
         ls->do_read = &lts_accept;
-        lts_listen_list_add(ls); // 添加到监听套接字列表
+        lts_addr_list_add(ls); // 添加到地址列表
     }
 
     freeaddrinfo(records);
@@ -275,7 +271,8 @@ static int init_event_core_master(lts_module_t *mod)
     // 打开监听套接字
     ipv6_only = 1;
     reuseaddr = 1;
-    dlist_for_each_f_safe(pos_node, cur_next, &lts_listen_list) {
+    dlist_init(&lts_listen_list);
+    dlist_for_each_f_safe(pos_node, cur_next, &lts_addr_list) {
         int fd;
         lts_socket_t *ls;
 
@@ -328,6 +325,8 @@ static int init_event_core_master(lts_module_t *mod)
         }
 
         ls->fd = fd;
+
+        lts_listen_list_add(ls); // 纳入监听列表
     }
 
     return rslt;
@@ -353,6 +352,11 @@ static int init_event_core_worker(lts_module_t *mod)
         {0, 1000 * 100},
         {0, 1000 * 100},
     };
+
+    // 初始化各种列表
+    dlist_init(&lts_conn_list);
+    dlist_init(&lts_post_list);
+    dlist_init(&lts_timeout_list);
 
     // 工作进程晶振
     if (-1 == setitimer(ITIMER_REAL, &timer_resolution, NULL)) {

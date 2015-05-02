@@ -289,10 +289,9 @@ int event_loop_single(void)
 
                     ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
                     if (0 != (*lts_event_itfc->event_add)(ls)) {
-                        // log
                         (void)lts_write_logger(
                             &lts_file_logger, LTS_LOG_INFO,
-                            "listen socket add failed: %d\n", errno
+                            "add watch to listen socket failed: %d\n", errno
                         );
                     }
                 }
@@ -306,7 +305,10 @@ int event_loop_single(void)
 
                     ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
                     if (0 != (*lts_event_itfc->event_del)(ls)) {
-                        // log
+                        (void)lts_write_logger(
+                            &lts_file_logger, LTS_LOG_INFO,
+                            "add watch to listen socket failed: %d\n", errno
+                        );
                     }
                 }
 
