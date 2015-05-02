@@ -8,6 +8,7 @@
 #define __LATASIA__FILE_H__
 
 
+#include "list.h"
 #include "adv_string.h"
 
 

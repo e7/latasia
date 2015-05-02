@@ -1,16 +1,47 @@
 #include <zlib.h>
 #include <arpa/inet.h>
+#include <dirent.h>
 #include "latasia.h"
 #include "rbtree.h"
 #include "logger.h"
 #include "conf.h"
 
 
+typedef struct s_filename_list filename_list_t;
+
+struct s_filename_list {
+    lts_str_t name;
+    filename_list_t *next;
+};
+static DIR *cwd;
+
+
 static int init_http_core_module(lts_module_t *module)
 {
+    struct dirent entry, *rslt;
+
     module->pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == module->pool) {
         return -1;
+    }
+
+    cwd = opendir((char const *)lts_cwd.data);
+    if (NULL == cwd) {
+        return -1;
+    }
+    while (TRUE) {
+        if (readdir_r(cwd, &entry, &rslt)) {
+            // perror
+            break;
+        }
+
+        if (NULL == rslt) {
+            break;
+        }
+
+        if ('.' == entry.d_name[0]) {
+            continue;
+        }
     }
 
     return 0;
@@ -22,6 +53,10 @@ static void exit_http_core_module(lts_module_t *module)
     if (module->pool) {
         lts_destroy_pool(module->pool);
         module->pool = NULL;
+    }
+
+    if (cwd) {
+        (void)closedir(cwd);
     }
 
     return;

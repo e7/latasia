@@ -14,7 +14,11 @@
 #include "rbt_timer.h"
 
 
+static uint8_t __lts_cwd_buf[LTS_MAX_PATH_LEN];
+
+
 lts_sm_t lts_global_sm; // 全局状态机
+lts_str_t lts_cwd = {__lts_cwd_buf, 0,}; // 当前工作目录
 size_t lts_sys_pagesize;
 lts_atomic_t lts_signals_mask; // 信号掩码
 
@@ -704,7 +708,7 @@ int main(int argc, char *argv[], char *env[])
     i = 0;
     rslt = 0;
     while (lts_modules[i]) {
-        module = lts_modules[i++];
+        module = lts_modules[i];
 
         if (LTS_CORE_MODULE != module->type) {
             continue;
@@ -718,6 +722,8 @@ int main(int argc, char *argv[], char *env[])
             rslt = -1;
             break;
         }
+
+        ++i;
     }
 
     if (0 == rslt) {

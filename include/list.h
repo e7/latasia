@@ -78,9 +78,9 @@ struct s_dlist_t {
     dlist_t *mp_next;
     dlist_t *mp_prev;
 };
-#define INIT_DLIST(node)            {&(node), &(node)}
+#define DLIST_NODE(node)            {&(node), &(node)}
 #define DECLARE_DLIST(name)         extern dlist_t name
-#define DEFINE_DLIST(name)          dlist_t name = INIT_DLIST(name)
+#define DEFINE_DLIST(name)          dlist_t name = (dlist_t)DLIST_NODE(name)
 
 static inline
 void dlist_init(dlist_t *p_list)

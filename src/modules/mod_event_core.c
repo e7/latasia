@@ -188,7 +188,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
         dlist_add_tail(&lts_sock_list, &sock_cache[i].dlnode);
     }
 
-    // 监听套接字初始化
+    // 地址列表初始化
     dlist_init(&lts_addr_list);
     for (iter = records; NULL != iter; iter = iter->ai_next) {
         struct sockaddr *a;
@@ -248,10 +248,21 @@ static int init_event_core_master(lts_module_t *mod)
 
     rslt = 0;
 
+    // 全局初始化
+    if (NULL == getcwd((char *)lts_cwd.data, LTS_MAX_PATH_LEN)) {
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "getcwd() failed: %d\n", errno);
+        return -1;
+    }
+    for (lts_cwd.len = 0; lts_cwd.len < LTS_MAX_PATH_LEN; ++lts_cwd.len) {
+        if (lts_cwd.data[lts_cwd.len]) {
+            break;
+        }
+    }
+
     // 创建内存池
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {
-        // log
         return -1;
     }
     mod->pool = pool;
