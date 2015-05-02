@@ -669,7 +669,7 @@ int worker_main(void)
 
 int main(int argc, char *argv[], char *env[])
 {
-    int i, rslt;
+    int last, rslt;
     lts_module_t *module;
 
     /*do {
@@ -705,10 +705,10 @@ int main(int argc, char *argv[], char *env[])
     }
 
     // 核心模块 {{
-    i = 0;
+    last = 0;
     rslt = 0;
-    while (lts_modules[i]) {
-        module = lts_modules[i];
+    while (lts_modules[last]) {
+        module = lts_modules[last++];
 
         if (LTS_CORE_MODULE != module->type) {
             continue;
@@ -719,20 +719,19 @@ int main(int argc, char *argv[], char *env[])
         }
 
         if (0 != (*module->init_master)(module)) {
+            --last;
             rslt = -1;
             break;
         }
-
-        ++i;
     }
 
     if (0 == rslt) {
-        lts_module_count = i;
+        lts_module_count = last + 1;
         rslt = master_main();
     }
 
-    while (i > 0) {
-        module = lts_modules[--i];
+    while (last > 0) {
+        module = lts_modules[last--];
 
         if (LTS_CORE_MODULE != module->type) {
             continue;
