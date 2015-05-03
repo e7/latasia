@@ -719,19 +719,18 @@ int main(int argc, char *argv[], char *env[])
         }
 
         if (0 != (*module->init_master)(module)) {
-            --last;
             rslt = -1;
             break;
         }
     }
 
     if (0 == rslt) {
-        lts_module_count = last + 1;
+        lts_module_count = last;
         rslt = master_main();
     }
 
-    while (last > 0) {
-        module = lts_modules[last--];
+    while (--last > 0) {
+        module = lts_modules[last];
 
         if (LTS_CORE_MODULE != module->type) {
             continue;

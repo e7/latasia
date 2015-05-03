@@ -57,7 +57,7 @@ static lts_signal_t lts_signals_master[] = {
     {SIGCHLD, "SIGCHLD", &sig_chld_handler},
     {SIGPIPE, "SIGPIPE", &sig_pipe_handler},
     {SIGALRM, "SIGALRM", SIG_IGN},
-    {SIGSEGV, "SIGSEGV", &sig_segv_handler},
+    // {SIGSEGV, "SIGSEGV", &sig_segv_handler},
     {0, NULL, NULL},
 };
 static lts_signal_t lts_signals_slave[] = {
@@ -66,7 +66,7 @@ static lts_signal_t lts_signals_slave[] = {
     {SIGCHLD, "SIGCHLD", &sig_chld_handler},
     {SIGPIPE, "SIGPIPE", SIG_IGN},
     {SIGALRM, "SIGALRM", &sig_alrm_handler},
-    {SIGSEGV, "SIGSEGV", &sig_segv_handler},
+    // {SIGSEGV, "SIGSEGV", &sig_segv_handler},
     {0, NULL, NULL},
 };
 
