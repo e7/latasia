@@ -97,7 +97,7 @@ static int http_core_iobuf(lts_socket_t *s)
     lts_buffer_t *sb;
     static uint8_t rsp_buf_head[] = {
         "HTTP/1.1 200 OK\r\n"
-        "Server: hixo\r\n"
+        "Server: latasia\r\n"
         "Content-Length: %d\r\n"
         "Content-Type: text/html\r\n"
         "Connection: close\r\n\r\n"

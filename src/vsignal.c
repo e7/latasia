@@ -44,11 +44,13 @@ static void sig_alrm_handler(int s)
     return;
 }
 
+/*
 static void sig_segv_handler(int s)
 {
     abort();
     return;
 }
+*/
 
 
 static lts_signal_t lts_signals_master[] = {
