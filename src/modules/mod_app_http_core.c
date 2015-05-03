@@ -13,23 +13,33 @@ struct s_filename_list {
     lts_str_t name;
     filename_list_t *next;
 };
-static DIR *cwd;
+
+
+static filename_list_t *fn_list;
 
 
 static int init_http_core_module(lts_module_t *module)
 {
+    DIR *cwd;
+    lts_pool_t *pool;
     struct dirent entry, *rslt;
 
-    module->pool = lts_create_pool(MODULE_POOL_SIZE);
-    if (NULL == module->pool) {
+    pool = lts_create_pool(MODULE_POOL_SIZE);
+    if (NULL == pool) {
         return -1;
     }
+    module->pool = pool;
 
     cwd = opendir((char const *)lts_cwd.data);
     if (NULL == cwd) {
         return -1;
     }
+
+    fn_list = NULL;
     while (TRUE) {
+        size_t len;
+        filename_list_t *node;
+
         if (readdir_r(cwd, &entry, &rslt)) {
             // perror
             break;
@@ -39,8 +49,30 @@ static int init_http_core_module(lts_module_t *module)
             break;
         }
 
-        if ('.' == entry.d_name[0]) {
+        if (DT_REG != entry.d_type) {
             continue;
+        }
+
+        len = strlen(entry.d_name);
+        node = lts_palloc(pool, sizeof(filename_list_t));
+        node->name.data = lts_palloc(pool, len + 1);
+        (void)strncpy((char *)node->name.data, entry.d_name, len);
+        node->name.data[len] = '\0';
+        node->name.len = len;
+
+        // 挂到链表上
+        node->next = fn_list;
+        fn_list = node;
+    }
+
+    (void)closedir(cwd);
+
+    if (1) {
+        filename_list_t *p = fn_list;
+
+        while (p) {
+            fprintf(stderr, "%s\n", p->name.data);
+            p = p->next;
         }
     }
 
@@ -55,10 +87,6 @@ static void exit_http_core_module(lts_module_t *module)
         module->pool = NULL;
     }
 
-    if (cwd) {
-        (void)closedir(cwd);
-    }
-
     return;
 }
 
@@ -67,7 +95,25 @@ static int http_core_iobuf(lts_socket_t *s)
 {
     lts_buffer_t *rb;
     lts_buffer_t *sb;
-    uint8_t rsp_buf[] = {
+    static uint8_t rsp_buf_head[] = {
+        "HTTP/1.1 200 OK\r\n"
+        "Server: hixo\r\n"
+        "Content-Length: %d\r\n"
+        "Content-Type: text/html\r\n"
+        "Connection: close\r\n\r\n"
+    };
+    static uint8_t rsp_buf_body[] = {
+        "<!DOCTYPE html>\r\n"
+        "<html>\r\n"
+        "<head>\r\n"
+        "<title>welcome to latasia</title>\r\n"
+        "</head>\r\n"
+        "<body bgcolor=\"white\" text=\"black\">\r\n"
+        "%s\r\n"
+        "</body>\r\n"
+        "</html>\r\n"
+    };
+    static uint8_t rsp_buf[] = {
         "HTTP/1.1 200 OK\r\n"
         "Server: hixo\r\n"
         "Content-Length: 169\r\n"
@@ -83,6 +129,11 @@ static int http_core_iobuf(lts_socket_t *s)
         "</body>\r\n"
         "</html>\r\n"
     };
+    filename_list_t *p = fn_list;
+
+    while (p) {
+        p = p->next;
+    }
 
     rb = s->conn->rbuf;
     sb = s->conn->sbuf;
