@@ -76,7 +76,8 @@ struct lts_event_module_itfc_s {
 
 // app模块接口
 struct lts_app_module_itfc_s {
-    int (*process_iobuf)(lts_socket_t *);
+    void (*process_ibuf)(lts_socket_t *);
+    void (*process_obuf)(lts_socket_t *);
 };
 
 

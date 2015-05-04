@@ -195,45 +195,55 @@ void process_post_list(void)
         lts_socket_t *cs;
 
         cs = CONTAINER_OF(pos, lts_socket_t, dlnode);
+
+        // 监听套接字
+        if (NULL == cs->conn) {
+            if (cs->readable && cs->do_read) {
+                (*cs->do_read)(cs);
+            }
+            continue;
+        }
+
+        // 读事件
         if (cs->readable && cs->do_read) {
             (*cs->do_read)(cs);
+            if (cs->closing) {
+                lts_timer_heap_del(&lts_timer_heap, cs);
+                (*lts_event_itfc->event_del)(cs);
+                lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
+                lts_free_socket(cs);
+                continue;
+            }
+
+            (*app_itfc->process_ibuf)(cs);
+            if (cs->closing) {
+                lts_timer_heap_del(&lts_timer_heap, cs);
+                (*lts_event_itfc->event_del)(cs);
+                lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
+                lts_free_socket(cs);
+                continue;
+            }
         }
 
-        if (NULL == cs->conn) { // 监听套接字
-            continue;
-        }
+        // 写事件
+        if (cs->writable && cs->do_write) {
+            (*app_itfc->process_obuf)(cs);
+            if (cs->closing) {
+                lts_timer_heap_del(&lts_timer_heap, cs);
+                (*lts_event_itfc->event_del)(cs);
+                lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
+                lts_free_socket(cs);
+                continue;
+            }
 
-        if (cs->closing) {
-            lts_timer_heap_del(&lts_timer_heap, cs);
-            (*lts_event_itfc->event_del)(cs);
-            lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-            lts_free_socket(cs);
-            continue;
-        }
-
-        // 数据处理
-        if (0 != (*app_itfc->process_iobuf)(cs)) {
-            break;
-        }
-
-        if (cs->closing) {
-            lts_timer_heap_del(&lts_timer_heap, cs);
-            (*lts_event_itfc->event_del)(cs);
-            lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-            lts_free_socket(cs);
-            continue;
-        }
-
-        if (cs->writable && cs->do_read) {
             (*cs->do_write)(cs);
-        }
-
-        if (cs->closing) {
-            lts_timer_heap_del(&lts_timer_heap, cs);
-            (*lts_event_itfc->event_del)(cs);
-            lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-            lts_free_socket(cs);
-            continue;
+            if (cs->closing) {
+                lts_timer_heap_del(&lts_timer_heap, cs);
+                (*lts_event_itfc->event_del)(cs);
+                lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
+                lts_free_socket(cs);
+                continue;
+            }
         }
 
         if (0 == (cs->writable | cs->readable)) {

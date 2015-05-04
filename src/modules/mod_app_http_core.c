@@ -191,7 +191,12 @@ static void exit_http_core_module(lts_module_t *module)
 }
 
 
-static int http_core_iobuf(lts_socket_t *s)
+static void http_core_ibuf(lts_socket_t *s)
+{
+    return;
+}
+
+static void http_core_obuf(lts_socket_t *s)
 {
 #if 0
 
@@ -226,7 +231,7 @@ static int http_core_iobuf(lts_socket_t *s)
     rb->last = rb->start;
     sb->last += sizeof(rsp_buf);
 
-    return 0;
+    return;
 
 #else
 
@@ -236,25 +241,27 @@ static int http_core_iobuf(lts_socket_t *s)
     rb = s->conn->rbuf;
     sb = s->conn->sbuf;
     if (rb->last == rb->start) {
-        return 0;
+        return;
     }
 
     if ((sb->end - sb->last) < (output->last - output->start)) {
-        return -1;
+        // log
+        return;
     }
     (void)memcpy(sb->start, output->start, output->last - output->start);
 
     rb->last = rb->start;
     sb->last += output->last - output->start;
 
-    return 0;
+    return;
 
 #endif
 }
 
 
 static lts_app_module_itfc_t http_core_itfc = {
-    http_core_iobuf,
+    http_core_ibuf,
+    http_core_obuf,
 };
 
 lts_module_t lts_app_http_core_module = {
