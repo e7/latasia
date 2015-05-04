@@ -71,6 +71,7 @@ extern dlist_t lts_listen_list; // 监听socket列表
 extern dlist_t lts_conn_list; // 连接列表
 extern dlist_t lts_post_list; // post链表，事件延迟处理
 extern dlist_t lts_timeout_list; // 超时列表
+
 #define lts_sock_list_add(s)    dlist_add_tail(&lts_sock_list, &s->dlnode)
 #define lts_addr_list_add(s)    do {\
             dlist_del(&s->dlnode);\
@@ -88,6 +89,7 @@ extern dlist_t lts_timeout_list; // 超时列表
             dlist_del(&s->dlnode);\
             dlist_add_tail(&lts_post_list, &s->dlnode);\
         } while (0)
+
 #define lts_timeout_list_add(s) dlist_add_tail(&lts_timeout_list, &s->tonode)
 #define lts_timeout_list_del(s) dlist_del(&s->tonode)
 

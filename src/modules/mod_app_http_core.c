@@ -16,7 +16,99 @@ struct s_filename_list {
 
 
 static filename_list_t *fn_list;
+static lts_buffer_t *output;
 
+
+static int generate_rsp(lts_pool_t *pool)
+{
+    // 生成响应
+    lts_buffer_t *body;
+    uint8_t rsp_buf_head_tplt[] = {
+        "HTTP/1.1 200 OK\r\n"
+        "Server: latasia\r\n"
+        "Content-Length: %u\r\n"
+        "Content-Type: text/html\r\n"
+        "Connection: close\r\n\r\n"
+    };
+    uint8_t *rsp_buf_head;
+    size_t head_sz;
+    uint8_t rsp_buf_body_s[] = {
+        "<!DOCTYPE html>"
+        "<html>"
+        "<head>"
+        "<title>latasia</title>"
+        "</head>"
+        "<body>"
+    };
+    uint8_t rsp_buf_body_e[] = {
+        "</body>"
+        "</html>"
+    };
+
+    // body
+    body = lts_create_buffer(pool, 1024);
+    if (NULL == body) {
+        return -1;
+    }
+    if (lts_buffer_append(body, rsp_buf_body_s, sizeof(rsp_buf_body_s) - 1)) {
+        return -1;
+    }
+    do {
+        uint8_t ahref_s[] = {
+            "<a href=\"#\">"
+        };
+        uint8_t ahref_e[] = {
+            "</a><br>"
+        };
+        filename_list_t *p = fn_list;
+
+        while (p) {
+            if (lts_buffer_append(body, ahref_s, sizeof(ahref_s) - 1)) {
+                return -1;
+            }
+            if (lts_buffer_append(body, p->name.data, p->name.len)) {
+                return -1;
+            }
+            if (lts_buffer_append(body, ahref_e, sizeof(ahref_e) - 1)) {
+                return -1;
+            }
+            p = p->next;
+        }
+    } while (0);
+    if (lts_buffer_append(body, rsp_buf_body_e, sizeof(rsp_buf_body_e) - 1)) {
+        return -1;
+    }
+
+    /*
+    do {
+        FILE *f = fopen("dump.log", "wb");
+        fwrite(body->start, body->last - body->start, 1, f);
+        fclose(f);
+    } while (0);
+    */
+
+    // head
+    head_sz = sizeof(rsp_buf_head_tplt) + 16;
+    rsp_buf_head = lts_palloc(pool, head_sz);
+    (void)snprintf((char *)rsp_buf_head, head_sz,
+                   (char const *)rsp_buf_head_tplt,
+                   body->last - body->start);
+
+    //output
+    output = lts_create_buffer(pool, 1024);
+    if (NULL == output) {
+        return -1;
+    }
+    if (lts_buffer_append(output, rsp_buf_head,
+                          strlen((char const *)rsp_buf_head))) {
+        return -1;
+    }
+    if (lts_buffer_append(output, body->start, body->last - body->start)) {
+        return -1;
+    }
+
+    return 0;
+}
 
 static int init_http_core_module(lts_module_t *module)
 {
@@ -67,13 +159,21 @@ static int init_http_core_module(lts_module_t *module)
 
     (void)closedir(cwd);
 
-    if (1) {
+    /*
+    do {
         filename_list_t *p = fn_list;
 
         while (p) {
             fprintf(stderr, "%s\n", p->name.data);
             p = p->next;
         }
+
+        return -1;
+    } while (0);
+    */
+
+    if (generate_rsp(pool)) {
+        return -1;
     }
 
     return 0;
@@ -93,26 +193,10 @@ static void exit_http_core_module(lts_module_t *module)
 
 static int http_core_iobuf(lts_socket_t *s)
 {
+#if 0
+
     lts_buffer_t *rb;
     lts_buffer_t *sb;
-    static uint8_t rsp_buf_head[] = {
-        "HTTP/1.1 200 OK\r\n"
-        "Server: latasia\r\n"
-        "Content-Length: %d\r\n"
-        "Content-Type: text/html\r\n"
-        "Connection: close\r\n\r\n"
-    };
-    static uint8_t rsp_buf_body[] = {
-        "<!DOCTYPE html>\r\n"
-        "<html>\r\n"
-        "<head>\r\n"
-        "<title>welcome to latasia</title>\r\n"
-        "</head>\r\n"
-        "<body bgcolor=\"white\" text=\"black\">\r\n"
-        "%s\r\n"
-        "</body>\r\n"
-        "</html>\r\n"
-    };
     static uint8_t rsp_buf[] = {
         "HTTP/1.1 200 OK\r\n"
         "Server: hixo\r\n"
@@ -129,11 +213,6 @@ static int http_core_iobuf(lts_socket_t *s)
         "</body>\r\n"
         "</html>\r\n"
     };
-    filename_list_t *p = fn_list;
-
-    while (p) {
-        p = p->next;
-    }
 
     rb = s->conn->rbuf;
     sb = s->conn->sbuf;
@@ -143,10 +222,34 @@ static int http_core_iobuf(lts_socket_t *s)
 
     assert((uintptr_t)(sb->end - sb->last) > sizeof(rsp_buf));
     (void)memcpy(sb->start, rsp_buf, sizeof(rsp_buf));
+
     rb->last = rb->start;
     sb->last += sizeof(rsp_buf);
 
     return 0;
+
+#else
+
+    lts_buffer_t *rb;
+    lts_buffer_t *sb;
+
+    rb = s->conn->rbuf;
+    sb = s->conn->sbuf;
+    if (rb->last == rb->start) {
+        return 0;
+    }
+
+    if ((sb->end - sb->last) < (output->last - output->start)) {
+        return -1;
+    }
+    (void)memcpy(sb->start, output->start, output->last - output->start);
+
+    rb->last = rb->start;
+    sb->last += output->last - output->start;
+
+    return 0;
+
+#endif
 }
 
 

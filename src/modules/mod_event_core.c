@@ -55,7 +55,7 @@ static void handle_output(lts_socket_t *s)
 }
 
 
-static void lts_accept(lts_socket_t *s)
+static void lts_accept(lts_socket_t *ls)
 {
     int cmnct_fd, nodelay, count;
     uint8_t clt[LTS_SOCKADDRLEN];
@@ -73,10 +73,11 @@ static void lts_accept(lts_socket_t *s)
             break;
         }
 
-        cmnct_fd = accept4(s->fd, (struct sockaddr *)clt,
+        cmnct_fd = accept4(ls->fd, (struct sockaddr *)clt,
                            &clt_len, SOCK_NONBLOCK);
         if (-1 == cmnct_fd) {
-            s->readable = 0;
+            ls->readable = 0;
+            lts_listen_list_add(ls); // post_list -> listen_list
 
             if (ECONNABORTED == errno) {
                 continue;
