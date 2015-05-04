@@ -171,6 +171,26 @@ void process_post_list(void)
     lts_module_t *module;
     lts_app_module_itfc_t *app_itfc;
 
+    // 寻找app模块
+    module = NULL;
+    for (i = 0; lts_modules[i]; ++i) {
+        module = lts_modules[i];
+
+        if (LTS_APP_MODULE != module->type) {
+            continue;
+        }
+    }
+    if (NULL == module) {
+        return;
+    }
+
+    // 获取app接口
+    app_itfc = (lts_app_module_itfc_t *)module->itfc;
+    if (NULL == app_itfc) {
+        return;
+    }
+
+    // 处理事件
     dlist_for_each_f_safe(pos, cur_next, &lts_post_list) {
         lts_socket_t *cs;
 
@@ -191,22 +211,9 @@ void process_post_list(void)
             continue;
         }
 
-        // 将数据交给app模块处理
-        for (i = 0; lts_modules[i]; ++i) {
-            module = lts_modules[i];
-
-            if (LTS_APP_MODULE != module->type) {
-                continue;
-            }
-
-            app_itfc = (lts_app_module_itfc_t *)module->itfc;
-            if (NULL == app_itfc) {
-                continue;
-            }
-
-            if (0 != (*app_itfc->process_iobuf)(cs)) {
-                break;
-            }
+        // 数据处理
+        if (0 != (*app_itfc->process_iobuf)(cs)) {
+            break;
         }
 
         if (cs->closing) {

@@ -9,6 +9,10 @@
 #include "logger.h"
 
 
+extern pid_t lts_pid;
+extern int64_t lts_current_time;
+
+
 lts_str_t LTS_LOG_PREFIXES[LTS_LOG_MAX];
 
 lts_logger_t lts_stderr_logger = {
@@ -35,16 +39,13 @@ ssize_t lts_write_logger(lts_logger_t *log,
     char buf[4096];
     struct tm tmp_tm;
     time_t current_time;
-    extern pid_t lts_pid;
-    extern struct timeval lts_current_time;
 
     if (level < log->level) {
         return 0;
     }
 
     // 时间转换
-    current_time = lts_current_time.tv_sec;
-    current_time += lts_current_time.tv_usec / 1000 / 1000;
+    current_time = (time_t)(lts_current_time / 10);
     (void)gmtime_r(&current_time, &tmp_tm);
     total = len = snprintf(
         buf, sizeof(buf), "%d.%02d.%02d %02d:%02d:%02d [%d] [%s] ",
