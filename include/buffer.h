@@ -23,6 +23,22 @@ struct lts_buffer_s {
 };
 
 
+static inline int lts_buffer_empty(lts_buffer_t *buffer)
+{
+    return buffer->start == buffer->last;
+}
+
+static inline int lts_buffer_full(lts_buffer_t *buffer)
+{
+    return buffer->last == buffer->end;
+}
+
+static inline void lts_buffer_clear(lts_buffer_t *buffer)
+{
+    buffer->seek = buffer->start;
+    buffer->last = buffer->start;
+}
+
 extern lts_buffer_t *lts_create_buffer(lts_pool_t *pool, size_t size);
 extern int lts_buffer_append(lts_buffer_t *buffer, uint8_t *data, size_t n);
 #endif // __LATASIA__BUFFER_H__

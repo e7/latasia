@@ -16,6 +16,7 @@ struct s_filename_list {
 
 
 static filename_list_t *fn_list;
+static lts_str_t req_file;
 static lts_buffer_t *output;
 
 
@@ -193,6 +194,71 @@ static void exit_http_core_module(lts_module_t *module)
 
 static void http_core_ibuf(lts_socket_t *s)
 {
+    lts_buffer_t *rb;
+    lts_str_t idata, req_line;
+    int pattern_s;
+    lts_str_t pattern;
+    lts_str_t uri;
+    lts_pool_t *pool;
+
+    if (NULL == s->conn) {
+        return;
+    }
+
+    pool = s->conn->pool;
+    if (NULL == pool) {
+        return;
+    }
+    rb = s->conn->rbuf;
+    if (lts_buffer_empty(rb)) {
+        return;
+    }
+
+    /*
+    if (lts_buffer_full(rb)) {
+        *(rb->last - 1) = 0;
+    } else {
+        *(rb->last - 0) = 0;
+    }
+    fprintf(stderr, "%s\n", rb->start);
+    */
+
+    idata.data = rb->start;
+    idata.len = (size_t)(rb->last - rb->start);
+    pattern = (lts_str_t)lts_string("\r\n");
+    pattern_s = lts_str_find(&idata, &pattern, 0);
+    if (-1 == pattern_s) {
+        // log
+        return;
+    }
+
+    req_line.data = idata.data;
+    req_line.len = pattern_s;
+    uri.data = NULL;
+    uri.len = 0;
+    for (size_t i = 0; i < req_line.len; ++i) {
+        if (uri.data) {
+            ++uri.len;
+            if (' ' == req_line.data[i]) {
+                break;
+            }
+        } else {
+            if ('/' == req_line.data[i]) {
+                uri.data = &req_line.data[i];
+            }
+        }
+    }
+
+
+    req_file.len = lts_cwd.len + uri.len;
+    req_file.data = lts_palloc(pool, req_file.len + 1);
+    (void)memcpy(req_file.data, lts_cwd.data, lts_cwd.len);
+    (void)memcpy(req_file.data + lts_cwd.len, uri.data, uri.len);
+    req_file.data[req_file.len] = 0;
+    fprintf(stderr, "%s\n", req_file.data);
+
+    lts_buffer_clear(rb);
+
     return;
 }
 
@@ -235,14 +301,12 @@ static void http_core_obuf(lts_socket_t *s)
 
 #else
 
-    lts_buffer_t *rb;
     lts_buffer_t *sb;
 
-    rb = s->conn->rbuf;
-    sb = s->conn->sbuf;
-    if (rb->last == rb->start) {
+    if (NULL == s->conn) {
         return;
     }
+    sb = s->conn->sbuf;
 
     if ((sb->end - sb->last) < (output->last - output->start)) {
         // log
@@ -250,7 +314,6 @@ static void http_core_obuf(lts_socket_t *s)
     }
     (void)memcpy(sb->start, output->start, output->last - output->start);
 
-    rb->last = rb->start;
     sb->last += output->last - output->start;
 
     return;

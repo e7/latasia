@@ -256,7 +256,7 @@ static int init_event_core_master(lts_module_t *mod)
         return -1;
     }
     for (lts_cwd.len = 0; lts_cwd.len < LTS_MAX_PATH_LEN; ++lts_cwd.len) {
-        if (lts_cwd.data[lts_cwd.len]) {
+        if (! lts_cwd.data[lts_cwd.len]) {
             break;
         }
     }
@@ -496,8 +496,7 @@ void lts_send(lts_socket_t *cs)
             if ((! cs->additional) && cs->short_lived) {
                 cs->closing = 1;
             }
-            buf->seek = buf->start;
-            buf->last = buf->start;
+            lts_buffer_clear(buf);
         }
     }
 

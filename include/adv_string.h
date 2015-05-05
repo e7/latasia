@@ -39,6 +39,6 @@ extern void lts_str_trim(lts_str_t *str);
 extern void lts_str_reverse(lts_str_t *src);
 extern size_t lts_str_filter(lts_str_t *src, uint8_t c);
 extern int lts_str_compare(lts_str_t *a, lts_str_t *b);
-extern int lts_str_find(lts_str_t *text, lts_str_t *pattern);
+extern int lts_str_find(lts_str_t *text, lts_str_t *pattern, int offset);
 extern int lts_l2str(lts_str_t *str, long x);
 #endif // __LATASIA__ADV_STRING_H__

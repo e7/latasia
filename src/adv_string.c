@@ -73,6 +73,7 @@ void lts_str_trim(lts_str_t *str)
 }
 
 
+/*
 int lts_str_find(lts_str_t *text, lts_str_t *pattern)
 {
     int rslt;
@@ -87,6 +88,44 @@ int lts_str_find(lts_str_t *text, lts_str_t *pattern)
 
         while ((i < (int)text->len) && (j < (int)pattern->len)) {
             if ((-1 == j) || (text->data[i] == pattern->data[j])) {
+                ++i;
+                ++j;
+            } else {
+                j = next[j];
+            }
+        }
+
+        if (j >= (int)pattern->len) {
+            rslt = i - pattern->len;
+        } else {
+            rslt = -1;
+        }
+    } while (0);
+
+    return rslt;
+}
+*/
+int lts_str_find(lts_str_t *text, lts_str_t *pattern, int offset)
+{
+    int rslt;
+    size_t next_sz = pattern->len * sizeof(int);
+    int *next = (int *)alloca(next_sz);
+    lts_str_t region;
+
+    if (offset < 0) {
+        abort();
+    }
+
+    region.data = text->data + offset;
+    region.len = text->len - offset;
+    kmp_next(pattern, next, next_sz);
+
+    do {
+        int i = 0;
+        int j = 0;
+
+        while ((i < (int)region.len) && (j < (int)pattern->len)) {
+            if ((-1 == j) || (region.data[i] == pattern->data[j])) {
                 ++i;
                 ++j;
             } else {
