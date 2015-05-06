@@ -7,35 +7,25 @@
 #include "conf.h"
 
 
-#define DEFAULT_FILENAME            "index.html"
-#define HTTP_404_HEADER             "HTTP/1.1 404 NOT FOUND\r\n"\
-                                    "Server: latasia\r\n"\
-                                    "Content-Length: 132\r\n"\
-                                    "Content-Type: text/html\r\n"\
-                                    "Connection: close\r\n\r\n"
-#define HTTP_404_BODY               "<!DOCTYPE html>"\
-                                    "<html>"\
-                                    "<head>"\
-                                    "<meta charset=\"utf-8\" />"\
-                                    "<title>404</title>"\
-                                    "</head>"\
-                                    "<body>"\
-                                    "{\"result\": 404, \"message\":not found}"\
-                                    "</body>"\
-                                    "</html>"
+#define DEFAULT_FILENAME        "index.html"
+#define HTTP_404_HEADER         "HTTP/1.1 404 NOT FOUND\r\n"\
+                                "Server: latasia\r\n"\
+                                "Content-Length: 133\r\n"\
+                                "Content-Type: text/html\r\n"\
+                                "Connection: close\r\n\r\n"
+#define HTTP_404_BODY           "<!DOCTYPE html>"\
+                                "<html>"\
+                                "<head>"\
+                                "<meta charset=\"utf-8\" />"\
+                                "<title>404</title>"\
+                                "</head>"\
+                                "<body>"\
+                                "{\"result\": 404, \"message\": not found}"\
+                                "</body>"\
+                                "</html>"
 
 
-typedef struct s_filename_list filename_list_t;
-
-struct s_filename_list {
-    lts_str_t name;
-    filename_list_t *next;
-};
-
-
-static filename_list_t *fn_list;
 static lts_file_t req_file = {-1};
-static lts_buffer_t *output;
 
 
 void dump_mem_to_file(char const *filepath, uint8_t *data, size_t n)
@@ -45,154 +35,16 @@ void dump_mem_to_file(char const *filepath, uint8_t *data, size_t n)
     fclose(f);
 }
 
-static int generate_rsp(lts_pool_t *pool)
-{
-    // 生成响应
-    lts_buffer_t *body;
-    uint8_t rsp_buf_head_tplt[] = {
-        "HTTP/1.1 200 OK\r\n"
-        "Server: latasia\r\n"
-        "Content-Length: %u\r\n"
-        "Content-Type: text/html\r\n"
-        "Connection: close\r\n\r\n"
-    };
-    uint8_t *rsp_buf_head;
-    size_t head_sz;
-    uint8_t rsp_buf_body_s[] = {
-        "<!DOCTYPE html>"
-        "<html>"
-        "<head>"
-        "<title>latasia</title>"
-        "</head>"
-        "<body>"
-    };
-    uint8_t rsp_buf_body_e[] = {
-        "</body>"
-        "</html>"
-    };
-
-    // body
-    body = lts_create_buffer(pool, 1024, TRUE);
-    if (NULL == body) {
-        return -1;
-    }
-    if (lts_buffer_append(body, rsp_buf_body_s, sizeof(rsp_buf_body_s) - 1)) {
-        return -1;
-    }
-    do {
-        uint8_t ahref_s[] = {
-            "<a href=\"#\">"
-        };
-        uint8_t ahref_e[] = {
-            "</a><br>"
-        };
-        filename_list_t *p = fn_list;
-
-        while (p) {
-            if (lts_buffer_append(body, ahref_s, sizeof(ahref_s) - 1)) {
-                return -1;
-            }
-            if (lts_buffer_append(body, p->name.data, p->name.len)) {
-                return -1;
-            }
-            if (lts_buffer_append(body, ahref_e, sizeof(ahref_e) - 1)) {
-                return -1;
-            }
-            p = p->next;
-        }
-    } while (0);
-    if (lts_buffer_append(body, rsp_buf_body_e, sizeof(rsp_buf_body_e) - 1)) {
-        return -1;
-    }
-
-    // head
-    head_sz = sizeof(rsp_buf_head_tplt) + 16;
-    rsp_buf_head = lts_palloc(pool, head_sz);
-    (void)snprintf((char *)rsp_buf_head, head_sz,
-                   (char const *)rsp_buf_head_tplt,
-                   body->last - body->start);
-
-    //output
-    output = lts_create_buffer(pool, 1024, TRUE);
-    if (NULL == output) {
-        return -1;
-    }
-    if (lts_buffer_append(output, rsp_buf_head,
-                          strlen((char const *)rsp_buf_head))) {
-        return -1;
-    }
-    if (lts_buffer_append(output, body->start, body->last - body->start)) {
-        return -1;
-    }
-
-    return 0;
-}
 
 static int init_http_core_module(lts_module_t *module)
 {
-    DIR *cwd;
     lts_pool_t *pool;
-    struct dirent entry, *rslt;
 
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {
         return -1;
     }
     module->pool = pool;
-
-    cwd = opendir((char const *)lts_cwd.data);
-    if (NULL == cwd) {
-        return -1;
-    }
-
-    fn_list = NULL;
-    while (TRUE) {
-        size_t len;
-        filename_list_t *node;
-
-        if (readdir_r(cwd, &entry, &rslt)) {
-            // perror
-            break;
-        }
-
-        if (NULL == rslt) {
-            break;
-        }
-
-        if (DT_REG != entry.d_type) {
-            continue;
-        }
-
-        len = strlen(entry.d_name);
-        node = lts_palloc(pool, sizeof(filename_list_t));
-        node->name.data = lts_palloc(pool, len + 1);
-        (void)strncpy((char *)node->name.data, entry.d_name, len);
-        node->name.data[len] = '\0';
-        node->name.len = len;
-
-        // 挂到链表上
-        node->next = fn_list;
-        fn_list = node;
-    }
-
-    (void)closedir(cwd);
-
-    /*
-    do {
-        filename_list_t *p = fn_list;
-
-        while (p) {
-            fprintf(stderr, "%s\n", p->name.data);
-            p = p->next;
-        }
-
-        return -1;
-    } while (0);
-    */
-
-    if (generate_rsp(pool)) {
-        return -1;
-    }
 
     return 0;
 }
@@ -290,6 +142,7 @@ static void http_core_ibuf(lts_socket_t *s)
     req_file.name = req_path;
     if (-1 == lts_file_open(&req_file, O_RDONLY, S_IWUSR | S_IRUSR,
                             &lts_file_logger)) {
+        fprintf(stderr, "open file failed: %s\n", req_path.data);
         return;
     }
 
@@ -310,17 +163,26 @@ static void http_core_obuf(lts_socket_t *s)
         return; // 等清空再发
     }
 
-    n = sizeof(HTTP_404_HEADER) - 1;
-    (void)memcpy(sb->last, HTTP_404_HEADER, n);
-    sb->last += n;
-    n = sizeof(HTTP_404_BODY) - 1;
-    (void)memcpy(sb->last, HTTP_404_BODY, n);
-    sb->last += n;
     if (-1 == req_file.fd) {
         // 404
+        n = sizeof(HTTP_404_HEADER) - 1;
+        (void)memcpy(sb->last, HTTP_404_HEADER, n);
+        sb->last += n;
+        n = sizeof(HTTP_404_BODY) - 1;
+        (void)memcpy(sb->last, HTTP_404_BODY, n);
+        sb->last += n;
         return;
     }
 
+    // 读文件数据
+    n = sb->end - sb->last;
+    if (lts_file_read(&req_file, sb->last, n) > 0) {
+        sb->last += n;
+        return;
+    }
+
+    // 读取完毕
+    assert(sb->start == sb->last);
     lts_file_close(&req_file);
 
     return;

@@ -27,7 +27,7 @@ lts_logger_t lts_file_logger = {
 
 ssize_t lts_write_logger_fd(lts_logger_t *log, void const *buf, size_t n)
 {
-    return lts_file_write(log->file, buf, n, 0);
+    return lts_file_write(log->file, buf, n);
 }
 
 

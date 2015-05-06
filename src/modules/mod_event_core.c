@@ -473,6 +473,7 @@ void lts_send(lts_socket_t *cs)
         cs->writable = 0;
     }
 
+    // 发送数据
     if ((uintptr_t)buf->seek < (uintptr_t)buf->last) {
         sent_sz = send(cs->fd, buf->seek,
                        (uintptr_t)buf->last - (uintptr_t)buf->seek, 0);
@@ -491,13 +492,14 @@ void lts_send(lts_socket_t *cs)
         }
 
         buf->seek = (uint8_t *)((uintptr_t)buf->seek + (uintptr_t)sent_sz);
-        if (buf->seek == buf->last) {
-            // 数据已发完
-            if ((! cs->additional) && cs->short_lived) {
-                cs->closing = 1;
-            }
-            lts_buffer_clear(buf);
+    }
+
+    // 数据已发完
+    if (buf->seek == buf->last) {
+        if ((! cs->additional) && cs->short_lived) {
+            cs->closing = 1;
         }
+        lts_buffer_clear(buf);
     }
 
     return;

@@ -9,14 +9,8 @@
 #include "logger.h"
 
 
-lts_file_t lts_stderr_file = {
-    STDERR_FILENO,
-    {
-        (uint8_t *)STDERR_NAME,
-        sizeof(STDERR_NAME) - 1,
-    },
-};
-lts_file_t lts_log_file; // 日志文件
+DECLARE_FILE_FD(lts_stderr_file, STDERR_FILENO, STDERR_NAME);
+DECLARE_FILE(lts_log_file, "latasia.log"); // 文件日志
 
 
 int lts_file_open(lts_file_t *file, int flags,
@@ -36,35 +30,36 @@ int lts_file_open(lts_file_t *file, int flags,
         );
         return -1;
     }
+    file->rseek = 0;
+    file->rseek = 0;
 
     return 0;
 }
 
 
-ssize_t lts_file_read(lts_file_t *file, void *buf, size_t sz, off_t ofst)
+ssize_t lts_file_read(lts_file_t *file, void *buf, size_t sz)
 {
     ssize_t rslt;
 
-    rslt = pread(file->fd, buf, sz, ofst);
-    if ((-1 == rslt) && (ESPIPE == errno)) {
-        rslt = read(file->fd, buf, sz);
+    rslt = pread(file->fd, buf, sz, file->rseek);
+    if (-1 == rslt) {
+        return -1;
     }
+    file->rseek += sz;
 
     return rslt;
 }
 
 
-ssize_t lts_file_write(lts_file_t *file,
-                       void const *buf, size_t sz, off_t ofst)
+ssize_t lts_file_write(lts_file_t *file, void const *buf, size_t sz)
 {
-    int tmp_err;
     ssize_t rslt;
 
-    rslt = pwrite(file->fd, buf, sz, ofst);
-    tmp_err = errno;
-    if ((-1 == rslt) && (ESPIPE == tmp_err)) {
-        rslt = write(file->fd, buf, sz);
+    rslt = pwrite(file->fd, buf, sz, file->wseek);
+    if (-1 == rslt) {
+        return -1;
     }
+    file->wseek += sz;
 
     return rslt;
 }
