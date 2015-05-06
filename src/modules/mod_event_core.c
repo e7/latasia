@@ -113,8 +113,8 @@ static void lts_accept(lts_socket_t *ls)
             continue;
         }
         c->pool = cpool; // 新连接的内存池
-        c->rbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE);
-        c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE);
+        c->rbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, FALSE);
+        c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, FALSE);
         assert(c->rbuf != c->sbuf);
         if ((NULL == c->rbuf) || (NULL == c->sbuf)) {
             lts_close_conn(cmnct_fd, cpool, TRUE);
