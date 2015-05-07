@@ -490,10 +490,13 @@ void lts_send(lts_socket_t *cs)
                     "send failed(%d), reset connection\n", errno
                 );
                 cs->closing = ((1 << 0) | (1 << 1));
+                abort();
             }
+
+            return;
         }
 
-        buf->seek = (uint8_t *)((uintptr_t)buf->seek + (uintptr_t)sent_sz);
+        buf->seek += sent_sz;
 
         // 数据已发完
         if (buf->seek == buf->last) {
