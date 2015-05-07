@@ -60,6 +60,8 @@ struct lts_socket_s {
     dlist_t tonode; // lts_timeout_list
     lts_rb_node_t rbnode;
     lts_handle_event_pt do_timeout;
+
+    void *app_ctx;
 };
 
 
@@ -117,6 +119,8 @@ void lts_init_socket(lts_socket_t *s)
     s->rbnode = RB_NODE;
     dlist_init(&s->tonode);
     s->do_timeout = NULL;
+
+    s->app_ctx = NULL;
 }
 
 

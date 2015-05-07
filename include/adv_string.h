@@ -20,9 +20,6 @@ typedef struct {
 #define lts_string(str) {\
     (uint8_t *)(str), sizeof(str) - 1,\
 }
-#define lts_empty_string {\
-    "", 0,\
-};
 #define lts_null_string {\
     NULL, 0,\
 };
