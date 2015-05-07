@@ -246,7 +246,7 @@ void process_post_list(void)
             }
         }
 
-        if (0 == (cs->writable | cs->readable)) {
+        if ((! cs->writable) && (! cs->readable)) {
             lts_conn_list_add(cs);
         }
     }

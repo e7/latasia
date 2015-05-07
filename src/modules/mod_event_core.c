@@ -481,7 +481,9 @@ void lts_send(lts_socket_t *cs)
         // sent_sz won't be 0
         if (-1 == sent_sz) {
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                lts_conn_list_add(cs);
+                if (! cs->additional) {
+                    lts_conn_list_add(cs);
+                }
             } else {
                 (void)lts_write_logger(
                     &lts_file_logger, LTS_LOG_ERROR,
