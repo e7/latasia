@@ -4,7 +4,6 @@
  * */
 
 
-#include <alloca.h>
 #include "adv_string.h"
 
 
@@ -78,7 +77,11 @@ int lts_str_find(lts_str_t *text, lts_str_t *pattern)
 {
     int rslt;
     size_t next_sz = pattern->len * sizeof(int);
-    int *next = (int *)alloca(next_sz);
+    int *next = (int *)malloc(next_sz);
+
+    if (NULL == next) {
+        return;
+    }
 
     kmp_next(pattern, next, next_sz);
 
@@ -102,6 +105,8 @@ int lts_str_find(lts_str_t *text, lts_str_t *pattern)
         }
     } while (0);
 
+    free(next);
+
     return rslt;
 }
 */
@@ -109,7 +114,7 @@ int lts_str_find(lts_str_t *text, lts_str_t *pattern, int offset)
 {
     int rslt;
     size_t next_sz = pattern->len * sizeof(int);
-    int *next = (int *)alloca(next_sz);
+    int *next = (int *)malloc(next_sz);
     lts_str_t region;
 
     if (offset < 0) {
@@ -139,6 +144,8 @@ int lts_str_find(lts_str_t *text, lts_str_t *pattern, int offset)
             rslt = -1;
         }
     } while (0);
+
+    free(next);
 
     return rslt;
 }

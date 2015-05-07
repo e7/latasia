@@ -5,7 +5,6 @@
 
 
 #include <sys/mman.h>
-#include <alloca.h>
 
 #include "conf.h"
 #include "file.h"

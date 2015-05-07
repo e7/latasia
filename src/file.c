@@ -18,18 +18,20 @@ int lts_file_open(lts_file_t *file, int flags,
 {
     char *buf;
 
-    buf = (char *)alloca(file->name.len + 1);
+    buf = (char *)malloc(file->name.len + 1);
     (void)memcpy(buf, file->name.data, file->name.len);
     buf[file->name.len] = 0;
 
     file->fd = open(buf, flags, mode);
     if (-1 == file->fd) {
+        free(buf);
         (void)lts_write_logger((lts_logger_t *)logger, LTS_LOG_ERROR,
                                 "open() failed: %d\n", errno);
         return -1;
     }
     file->rseek = 0;
     file->rseek = 0;
+    free(buf);
 
     return 0;
 }
