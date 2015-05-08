@@ -54,14 +54,13 @@ static int epoll_process_events(void)
     sigset_t sig_mask;
 
     (void)sigfillset(&sig_mask);
+    (void)sigdelset(&sig_mask, SIGALRM); // 允许时钟信号
     cs = lts_timer_heap_min(&lts_timer_heap);
-    if (cs) {
-        timeout = (int)((cs->timeout - lts_current_time) * 100); // ms
-    } else if (! dlist_empty(&lts_post_list)) {
+    if (! dlist_empty(&lts_post_list)) {
         timeout = 0;
+    } else if (cs) {
+        timeout = (int)((cs->timeout - lts_current_time) * 100); // ms
     } else {
-        // 无限等待则允许时钟信号
-        (void)sigdelset(&sig_mask, SIGALRM);
         timeout = -1;
     }
     nevents = epoll_pwait(epfd, buf_epevs, nbuf_epevs, timeout, &sig_mask);

@@ -23,6 +23,11 @@
                                 "{\"result\": 404, \"message\": not found}"\
                                 "</body>"\
                                 "</html>"
+#define HTTP_200_HEADER         "HTTP/1.1 200 OK\r\n"\
+                                "Server: latasia\r\n"\
+                                "Content-Length: %lu\r\n"\
+                                "Content-Type: application/octet-stream\r\n"\
+                                "Connection: close\r\n\r\n"
 
 
 typedef struct {
@@ -166,8 +171,11 @@ static void http_core_obuf(lts_socket_t *s)
         return;
     }
 
+    n = sb->end - sb->last;
     ctx->req_file.name = ctx->req_path;
     if (-1 == ctx->req_file.fd) {
+        struct stat st;
+
         // 打开文件
         if (-1 == lts_file_open(&ctx->req_file, O_RDONLY, S_IWUSR | S_IRUSR,
                                 &lts_file_logger)) {
@@ -180,10 +188,23 @@ static void http_core_obuf(lts_socket_t *s)
             sb->last += n;
             return;
         }
+
+        (void)fstat(ctx->req_file.fd, &st);
+
+        // 发送http头
+        if (sizeof(HTTP_200_HEADER) - 1 > (n + 32)) { // 预留长度字符串
+            abort();
+        }
+
+        n_read = snprintf((char *)sb->last, n, HTTP_200_HEADER, st.st_size);
+        if (n_read > 0) {
+            sb->last += n_read;
+        }
+
+        return;
     }
 
     // 读文件数据
-    n = sb->end - sb->last;
     n_read = lts_file_read(&ctx->req_file, sb->last, n, &lts_file_logger);
     if (n_read > 0) {
         sb->last += n_read;
@@ -191,6 +212,7 @@ static void http_core_obuf(lts_socket_t *s)
     }
 
     // 读取完毕
+    s->closing = 1;
     lts_file_close(&ctx->req_file);
     ctx->req_path.len = 0;
     ctx->req_file.fd = -1;

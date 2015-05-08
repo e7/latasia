@@ -42,12 +42,10 @@ struct lts_socket_s {
     socklen_t addr_len;
     uint32_t ev_mask;
 
-    unsigned short_lived: 1;
     unsigned readable: 1;
     unsigned writable: 1;
     unsigned closing: 2; // 请求关闭
     unsigned instance: 1;
-    unsigned additional: 1; // 追加数据
 
     lts_conn_t *conn;
     dlist_t dlnode;
@@ -106,10 +104,8 @@ void lts_init_socket(lts_socket_t *s)
     s->writable = 0;
     s->closing = 0;
     s->instance = (!s->instance);
-    s->additional = 0;
     s->conn = NULL;
     dlist_init(&s->dlnode);
-    s->short_lived = 0; // 短连接
     s->on_readable = NULL;
     s->do_read = NULL;
     s->on_writable = NULL;

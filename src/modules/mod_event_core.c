@@ -138,12 +138,8 @@ static void lts_accept(lts_socket_t *ls)
             continue;
         }
 
-        if (lts_conf.keepalive > 0) {
-            while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
-                ++cs->timeout;
-            }
-        } else {
-            cs->short_lived = 1;
+        while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
+            ++cs->timeout;
         }
 
         lts_conn_list_add(cs); // 纳入活动连接
@@ -423,21 +419,20 @@ void lts_recv(lts_socket_t *cs)
 
     buf = cs->conn->rbuf;
 
-    if ((buf->last == buf->end) && (buf->seek > buf->start)) {
-        size_t cp_sz = (size_t)((uintptr_t)buf->last - (uintptr_t)buf->seek);
-
-        (void)memmove(buf->start, buf->seek, cp_sz);
-        buf->seek = buf->start;
-        buf->last = (uint8_t *)((size_t)buf->start + cp_sz);
+    if (lts_buffer_full(buf)) { // 无法接受数据
+        (void)lts_write_logger(
+            &lts_file_logger, LTS_LOG_DEBUG, "recv buffer is full\n"
+        );
+        return;
     }
 
-    while ((uintptr_t)buf->last < (uintptr_t)buf->end) {
+    if ((uintptr_t)buf->last < (uintptr_t)buf->end) {
         recv_sz = recv(cs->fd, buf->last,
                       (uintptr_t)buf->end - (uintptr_t)buf->last, 0);
         if (-1 == recv_sz) {
             cs->readable = 0;
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                lts_conn_list_add(cs);
+                return;
             } else {
                 // 异常关闭
                 (void)lts_write_logger(
@@ -445,18 +440,18 @@ void lts_recv(lts_socket_t *cs)
                     "recv() failed: %d, reset connection\n", errno
                 );
                 cs->closing = ((1 << 0) | (1 << 1));
+                return;
             }
-            break;
-        }
-
-        if (0 == recv_sz) {
+        } else if (0 == recv_sz) {
             // 正常关闭连接
             cs->readable = 0;
             cs->closing = (1 << 0);
-            break;
+            return;
+        } else {
+            buf->last += recv_sz;
         }
-
-        buf->last = (uint8_t *)((uintptr_t)buf->last + (uintptr_t)recv_sz);
+    } else {
+        abort();
     }
 
     return;
@@ -469,8 +464,10 @@ void lts_send(lts_socket_t *cs)
     lts_buffer_t *buf;
 
     buf = cs->conn->sbuf;
-    if (! cs->additional) {
+
+    if (lts_buffer_empty(buf)) { // 无数据可发
         cs->writable = 0;
+        return;
     }
 
     // 发送数据
@@ -481,9 +478,7 @@ void lts_send(lts_socket_t *cs)
         // sent_sz won't be 0
         if (-1 == sent_sz) {
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                if (! cs->additional) {
-                    lts_conn_list_add(cs);
-                }
+                return;
             } else {
                 (void)lts_write_logger(
                     &lts_file_logger, LTS_LOG_ERROR,
@@ -498,13 +493,12 @@ void lts_send(lts_socket_t *cs)
 
         buf->seek += sent_sz;
 
-        // 数据已发完
+        // 本次数据已发完
         if (buf->seek == buf->last) {
-            if ((! cs->additional) && cs->short_lived) {
-                cs->closing = 1;
-            }
             lts_buffer_clear(buf);
         }
+    } else {
+        abort();
     }
 
     return;

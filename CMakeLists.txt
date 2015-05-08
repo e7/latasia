@@ -7,7 +7,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 add_definitions(-Wall)
 # add_definitions(-Wall -Wextra)
 add_definitions(-D_GNU_SOURCE)
-add_definitions(-std=gnu99 -pipe -rdynamic)
+add_definitions(-ggdb -O0 -std=gnu99 -pipe -rdynamic)
 
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-D_DEBUG)
