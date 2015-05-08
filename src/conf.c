@@ -464,7 +464,7 @@ lts_conf_t lts_conf = {
     MAX_CONNECTIONS, // 每个slave最大连接数
     lts_string("latasia.log"), // 日志路径
     lts_string("--SERVER=127.0.0.1"), // 后台服务
-    0, // 连接超时
+    60, // 连接超时
 };
 
 int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
