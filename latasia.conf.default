@@ -11,4 +11,4 @@ log_file = latasia.log
 workers = 1
 
 # keepalive
-keepalive = 0
+keepalive = 60

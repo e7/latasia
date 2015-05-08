@@ -245,6 +245,11 @@ void process_post_list(void)
                 continue;
             }
         }
+
+        // 移出post链
+        if ((! cs->readable) && (! cs->writable)) {
+            lts_conn_list_add(cs);
+        }
     }
 
     return;

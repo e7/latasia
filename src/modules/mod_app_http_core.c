@@ -128,6 +128,9 @@ static void http_core_ibuf(lts_socket_t *s)
             }
         }
     }
+    if (0 == uri.len) {
+        return;
+    }
 
     // 生成绝对路径
     ctx = (http_core_ctx_t *)lts_palloc(pool, sizeof(http_core_ctx_t));
@@ -144,10 +147,11 @@ static void http_core_ibuf(lts_socket_t *s)
     }
     ctx->req_path.data[ctx->req_path.len] = 0;
     ctx->req_file.fd = -1;
-    s->app_ctx = ctx;
 
     // 清空接收缓冲
     lts_buffer_clear(rb);
+
+    s->app_ctx = ctx;
 
     return;
 }
