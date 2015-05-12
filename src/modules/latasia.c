@@ -378,6 +378,7 @@ void process_post_list(void)
         if (cs->readable && cs->do_read) {
             (*cs->do_read)(cs);
             if (cs->closing) {
+                lts_timeout_list_del(cs);
                 lts_timer_heap_del(&lts_timer_heap, cs);
                 (*lts_event_itfc->event_del)(cs);
                 lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
@@ -387,6 +388,7 @@ void process_post_list(void)
 
             (*app_itfc->process_ibuf)(cs);
             if (cs->closing) {
+                lts_timeout_list_del(cs);
                 lts_timer_heap_del(&lts_timer_heap, cs);
                 (*lts_event_itfc->event_del)(cs);
                 lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
@@ -399,6 +401,7 @@ void process_post_list(void)
         if (cs->writable && cs->do_write) {
             (*app_itfc->process_obuf)(cs);
             if (cs->closing) {
+                lts_timeout_list_del(cs);
                 lts_timer_heap_del(&lts_timer_heap, cs);
                 (*lts_event_itfc->event_del)(cs);
                 lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
@@ -408,6 +411,7 @@ void process_post_list(void)
 
             (*cs->do_write)(cs);
             if (cs->closing) {
+                lts_timeout_list_del(cs);
                 lts_timer_heap_del(&lts_timer_heap, cs);
                 (*lts_event_itfc->event_del)(cs);
                 lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
@@ -415,6 +419,9 @@ void process_post_list(void)
                 continue;
             }
         }
+
+        // 超时事件
+        // todo: 合并超时事件到post链
 
         // 移出post链
         if ((! cs->readable) && (! cs->writable)) {
