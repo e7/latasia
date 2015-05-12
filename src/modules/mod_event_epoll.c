@@ -23,7 +23,8 @@ static int epoll_event_add(lts_socket_t *s)
 
     if (-1 == epoll_ctl(epfd, EPOLL_CTL_ADD, s->fd, &ee)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                               "epoll_ctl() failed: %d\n", errno);
+                               "epoll_ctl() failed: %s\n",
+                               lts_errno_desc[errno]);
         return LTS_E_SYS;
     }
 
@@ -37,7 +38,8 @@ static int epoll_event_del(lts_socket_t *s)
 
     if (-1 == epoll_ctl(epfd, EPOLL_CTL_DEL, s->fd, &ee)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                               "epoll_ctl() failed: %d\n", errno);
+                               "epoll_ctl() failed: %s\n",
+                               lts_errno_desc[errno]);
         return LTS_E_SYS;
     }
 
@@ -168,7 +170,8 @@ static void exit_event_epoll_worker(lts_module_t *mod)
 
     if (-1 == close(epfd)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                               "close() failed: %d\n", errno);
+                               "close() failed: %s\n",
+                               lts_errno_desc[errno]);
     }
     lts_destroy_pool(mod->pool);
 

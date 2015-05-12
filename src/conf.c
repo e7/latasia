@@ -233,7 +233,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     if (-1 == fstat(file->fd, &st)) {
         lts_file_close(file);
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
-                               "fstat() failed: %d\n", errno);
+                               "fstat() failed: %s\n", lts_errno_desc[errno]);
         return -1;
     }
 
@@ -251,7 +251,7 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     if (MAP_FAILED == *addr) {
         lts_file_close(file);
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
-                               "mmap() failed: %d\n", errno);
+                               "mmap() failed: %s\n", lts_errno_desc[errno]);
         return -1;
     }
 
@@ -262,7 +262,8 @@ static void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz)
 {
     if (-1 == munmap(addr, sz)) {
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
-                               "munmap configure file failed(%d)\n", errno);
+                               "munmap configure file failed(%s)\n",
+                               lts_errno_desc[errno]);
     }
     lts_file_close(file);
 

@@ -15,8 +15,178 @@
 
 
 static uint8_t __lts_cwd_buf[LTS_MAX_PATH_LEN];
+static char const *__lts_errno_desc[] = {
+    // 0 ~ 9
+    "success [0]",
+    "operation not permitted [1]",
+    "no such file or directory [2]",
+    "no such process [3]",
+    "interrupted system call [4]",
+    "input or output error [5]",
+    "no such device or address [6]",
+    "argument list too long [7]",
+    "exec format error [8]",
+    "bad file descriptor [9]",
+
+    // 10 ~ 19
+    "no child process [10]",
+    "resource temporarily unavailable [11]",
+    "can not allocate memory[12]",
+    "permission denied [13]",
+    "bad address [14]",
+    "block device required [15]",
+    "device or resource busy [16]",
+    "already exists [17]",
+    "invalid cross-device link [18]",
+    "no such device [19]",
+
+    // 20 ~ 29
+    "not a directory [20]",
+    "is a directory [21]",
+    "invalid argument [22]",
+    "too many open files in system [23]",
+    "too many open files in process [24]",
+    "inappropriate ioctl for device [25]",
+    "text file busy [26]",
+    "file too large [27]",
+    "no space left on device [28]",
+    "illegal seek [29]",
+
+    // 30 ~ 39
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+
+    // 40 ~ 49
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+
+    // 50 ~ 59
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+
+    // 60 ~ 69
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+
+    // 70 ~ 79
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+
+    // 80 ~ 89
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+
+    // 90 ~ 99
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    "address already in use [98]",
+    NULL,
+
+    // 100 ~ 109
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+
+    // 110 ~ 119
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+
+    // 120 ~ 129
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+
+    // 130 ~ 139
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+};
 
 
+char const **lts_errno_desc = __lts_errno_desc;
 lts_sm_t lts_global_sm; // 全局状态机
 lts_str_t lts_cwd = {__lts_cwd_buf, 0,}; // 当前工作目录
 size_t lts_sys_pagesize;
@@ -313,7 +483,8 @@ int event_loop_single(void)
                     if (0 != (*lts_event_itfc->event_add)(ls)) {
                         (void)lts_write_logger(
                             &lts_file_logger, LTS_LOG_INFO,
-                            "add watch to listen socket failed: %d\n", errno
+                            "add watch to listen socket failed: %s\n",
+                            lts_errno_desc[errno]
                         );
                     }
                 }
@@ -329,8 +500,8 @@ int event_loop_single(void)
                     if (0 != (*lts_event_itfc->event_del)(ls)) {
                         (void)lts_write_logger(
                             &lts_file_logger, LTS_LOG_INFO,
-                            "add watch to listen socket failed: %d\n", errno
-                        );
+                            "add watch to listen socket failed: %s\n",
+                            lts_errno_desc[errno]);
                     }
                 }
 
@@ -503,8 +674,8 @@ int master_main(void)
                     lts_global_sm.unix_domain_enabled[slot] = FALSE;
                     (void)lts_write_logger(&lts_file_logger,
                                            LTS_LOG_ERROR,
-                                           "socketpair() failed: %d\n",
-                                           errno);
+                                           "socketpair() failed: %s\n",
+                                           lts_errno_desc[errno]);
                 }
                 domain_fd = -1;
                 if (lts_global_sm.unix_domain_enabled[slot]) {
@@ -512,8 +683,8 @@ int master_main(void)
                     if (-1 == lts_set_nonblock(domain_fd)) {
                         (void)lts_write_logger(
                             &lts_file_logger, LTS_LOG_WARN,
-                            "set nonblock unix domain socket failed: %d\n",
-                            errno
+                            "set nonblock unix domain socket failed: %s\n",
+                            lts_errno_desc[errno]
                         );
                     }
                 }
@@ -567,7 +738,8 @@ int master_main(void)
                 if (-1 == send(lts_processes[i].channel[0],
                                &sigexit, sizeof(uint32_t), 0)) {
                     (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                           "send() failed: %d\n", errno);
+                                           "send() failed: %s\n",
+                                           lts_errno_desc[errno]);
                 }
             }
             (void)raise(SIGCHLD);

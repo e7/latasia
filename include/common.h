@@ -78,4 +78,6 @@ lts_atomic_t lts_atomic_cmp_set(lts_atomic_t *lock,
 
     return res;
 }
+
+extern char const **lts_errno_desc;
 #endif // __LATASIA__COMMON_H__
