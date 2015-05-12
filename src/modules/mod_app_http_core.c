@@ -216,7 +216,7 @@ static void http_core_obuf(lts_socket_t *s)
     }
 
     // 读取完毕
-    s->closing = 1;
+    s->shutdown = 1;
     lts_file_close(&ctx->req_file);
     ctx->req_path.len = 0;
     ctx->req_file.fd = -1;

@@ -497,6 +497,13 @@ void lts_send(lts_socket_t *cs)
         // 本次数据已发完
         if (buf->seek == buf->last) {
             lts_buffer_clear(buf);
+            if (cs->shutdown) {
+                if (-1 == shutdown(cs->fd, SHUT_WR)) {
+                    (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                           "shut() failed: %s\n",
+                                           lts_errno_desc[errno]);
+                }
+            }
         }
     } else {
         abort();

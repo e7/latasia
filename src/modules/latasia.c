@@ -144,7 +144,7 @@ static char const *__lts_errno_desc[] = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    "Transport endpoint is not connected [107]",
     NULL,
     NULL,
 
