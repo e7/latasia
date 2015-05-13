@@ -375,14 +375,18 @@ void process_post_list(void)
 
         // 读事件
         if (cs->readable && cs->do_read) {
-            (*cs->do_read)(cs);
+            (void)(*cs->do_read)(cs);
             if (cs->closing) {
+                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                                 "do_read close %d\n", cs->fd);
                 lts_close_conn(cs);
                 continue;
             }
 
             (*app_itfc->process_ibuf)(cs);
             if (cs->closing) {
+                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                                 "process_ibuf close %d\n", cs->fd);
                 lts_close_conn(cs);
                 continue;
             }
@@ -390,14 +394,18 @@ void process_post_list(void)
 
         // 写事件
         if (cs->writable && cs->do_write) {
-            (*app_itfc->process_obuf)(cs);
+            (void)(*app_itfc->process_obuf)(cs);
             if (cs->closing) {
+                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                                 "process_obuf close %d\n", cs->fd);
                 lts_close_conn(cs);
                 continue;
             }
 
             (*cs->do_write)(cs);
             if (cs->closing) {
+                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                                 "do_write close %d\n", cs->fd);
                 lts_close_conn(cs);
                 continue;
             }
@@ -405,8 +413,10 @@ void process_post_list(void)
 
         // 超时事件
         if (cs->timeoutable && cs->do_timeout) {
-            (*cs->do_timeout)(cs);
+            (void)(*cs->do_timeout)(cs);
             if (cs->closing) {
+                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                                 "do_timeout close %d\n", cs->fd);
                 lts_close_conn(cs);
                 continue;
             }

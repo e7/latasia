@@ -79,6 +79,9 @@ static void http_core_ibuf(lts_socket_t *s)
     lts_pool_t *pool;
     http_core_ctx_t *ctx;
 
+    (void)lts_write_logger(&lts_file_logger,
+                           LTS_LOG_DEBUG, "http_core_ibuf\n");
+
     if (NULL == s->conn) {
         return;
     }
@@ -91,15 +94,6 @@ static void http_core_ibuf(lts_socket_t *s)
     if (lts_buffer_empty(rb)) {
         return;
     }
-
-    /*
-    if (lts_buffer_full(rb)) {
-        *(rb->last - 1) = 0;
-    } else {
-        *(rb->last - 0) = 0;
-    }
-    fprintf(stderr, "%s\n", rb->start);
-    */
 
     // 获取请求第一行
     idata.data = rb->start;
@@ -161,6 +155,9 @@ static void http_core_obuf(lts_socket_t *s)
     size_t n, n_read;
     lts_buffer_t *sb;
     http_core_ctx_t *ctx;
+
+    (void)lts_write_logger(&lts_file_logger,
+                           LTS_LOG_DEBUG, "http_core_obuf\n");
 
     if (NULL == s->conn) {
         return;

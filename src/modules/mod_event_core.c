@@ -46,34 +46,34 @@ void lts_close_conn(lts_socket_t *cs)
 }
 
 
-static void handle_input(lts_socket_t *s)
+static ssize_t handle_input(lts_socket_t *s)
 {
     lts_post_list_add(s);
     s->readable = 1;
 
-    return;
+    return 0;
 }
 
 
-static void handle_output(lts_socket_t *s)
+static ssize_t handle_output(lts_socket_t *s)
 {
     lts_post_list_add(s);
     s->writable = 1;
 
-    return;
+    return 0;
 }
 
 
-static void handle_timeout(lts_socket_t *s)
+static ssize_t handle_timeout(lts_socket_t *s)
 {
     lts_post_list_add(s);
     s->timeoutable = 1;
 
-    return;
+    return 0;
 }
 
 
-static void lts_accept(lts_socket_t *ls)
+static ssize_t lts_accept(lts_socket_t *ls)
 {
     int cmnct_fd, nodelay, count;
     uint8_t clt[LTS_SOCKADDRLEN];
@@ -167,7 +167,7 @@ static void lts_accept(lts_socket_t *ls)
         lts_conn_list_add(cs); // 纳入活动连接
     }
 
-    return;
+    return 0;
 }
 
 
@@ -365,7 +365,7 @@ static int init_event_core_master(lts_module_t *mod)
     return rslt;
 }
 
-static void channel_do_read(lts_socket_t *s)
+static ssize_t channel_do_read(lts_socket_t *s)
 {
     uint32_t sig = 0;
 
@@ -373,12 +373,12 @@ static void channel_do_read(lts_socket_t *s)
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "recv() failed: %s\n",
                                lts_errno_desc[errno]);
-        return;
+        return -1;
     }
 
     lts_global_sm.channel_signal = sig;
 
-    return;
+    return 0;
 }
 static int init_event_core_worker(lts_module_t *mod)
 {
@@ -438,7 +438,7 @@ static void exit_event_core_master(lts_module_t *mod)
 }
 
 
-void lts_recv(lts_socket_t *cs)
+ssize_t lts_recv(lts_socket_t *cs)
 {
     ssize_t recv_sz;
     lts_buffer_t *buf;
@@ -449,29 +449,32 @@ void lts_recv(lts_socket_t *cs)
         (void)lts_write_logger(
             &lts_file_logger, LTS_LOG_DEBUG, "recv buffer is full\n"
         );
-        return;
+        return 0;
     }
 
+    recv_sz = 0;
     if ((uintptr_t)buf->last < (uintptr_t)buf->end) {
         recv_sz = recv(cs->fd, buf->last,
-                      (uintptr_t)buf->end - (uintptr_t)buf->last, 0);
+                       (uintptr_t)buf->end - (uintptr_t)buf->last, 0);
         if (-1 == recv_sz) {
             cs->readable = 0;
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                return;
+                return 0;
             } else {
                 // 异常关闭
                 (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                        "recv() failed: %s, reset connection\n",
                                        lts_errno_desc[errno]);
                 cs->closing = ((1 << 0) | (1 << 1));
-                return;
+                return -1;
             }
         } else if (0 == recv_sz) {
             // 正常关闭连接
+            (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                                   "connection(%d) closed by peer\n", cs->fd);
             cs->readable = 0;
             cs->closing = (1 << 0);
-            return;
+            return 0;
         } else {
             buf->last += recv_sz;
         }
@@ -479,11 +482,11 @@ void lts_recv(lts_socket_t *cs)
         abort();
     }
 
-    return;
+    return recv_sz;
 }
 
 
-void lts_send(lts_socket_t *cs)
+ssize_t lts_send(lts_socket_t *cs)
 {
     ssize_t sent_sz;
     lts_buffer_t *buf;
@@ -492,7 +495,7 @@ void lts_send(lts_socket_t *cs)
 
     if (lts_buffer_empty(buf)) { // 无数据可发
         cs->writable = 0;
-        return;
+        return 0;
     }
 
     if ((uintptr_t)buf->seek >= (uintptr_t)buf->last) {
@@ -505,15 +508,15 @@ void lts_send(lts_socket_t *cs)
 
     if (-1 == sent_sz) {
         if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-            return;
+            return 0;
         } else {
             (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                   "send failed: %s, reset connection\n",
-                                   lts_errno_desc[errno]);
+                                   "send(%d) failed: %s, reset connection\n",
+                                   cs->fd, lts_errno_desc[errno]);
             cs->closing = ((1 << 0) | (1 << 1));
         }
 
-        return;
+        return -1;
     }
 
     // assert(sent_sz > 0);
@@ -525,20 +528,23 @@ void lts_send(lts_socket_t *cs)
     }
 
     // 应用主动关闭
+    (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                           "shutdown(%d)\n", cs->fd);
     if (cs->shutdown && shutdown(cs->fd, SHUT_WR)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "shut() failed: %s\n", lts_errno_desc[errno]);
+        cs->writable = 0;
     }
 
-    return;
+    return sent_sz;
 }
 
 
-void lts_timeout(lts_socket_t *cs)
+ssize_t lts_timeout(lts_socket_t *cs)
 {
     cs->timeoutable = 0;
 
-    return;
+    return 0;
 }
 
 

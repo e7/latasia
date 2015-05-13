@@ -21,7 +21,7 @@ lts_logger_t lts_stderr_logger = {
 };
 lts_logger_t lts_file_logger = {
     &lts_log_file,
-    LTS_LOG_INFO,
+    LTS_LOG_DEBUG,
 };
 
 
