@@ -472,41 +472,40 @@ void lts_send(lts_socket_t *cs)
         return;
     }
 
-    // 发送数据
-    if ((uintptr_t)buf->seek < (uintptr_t)buf->last) {
-        sent_sz = send(cs->fd, buf->seek,
-                       (uintptr_t)buf->last - (uintptr_t)buf->seek, 0);
-
-        // sent_sz won't be 0
-        if (-1 == sent_sz) {
-            if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                return;
-            } else {
-                (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                       "send failed: %s, reset connection\n",
-                                       lts_errno_desc[errno]);
-                cs->closing = ((1 << 0) | (1 << 1));
-                abort();
-            }
-
-            return;
-        }
-
-        buf->seek += sent_sz;
-
-        // 本次数据已发完
-        if (buf->seek == buf->last) {
-            lts_buffer_clear(buf);
-            if (cs->shutdown) {
-                if (-1 == shutdown(cs->fd, SHUT_WR)) {
-                    (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                           "shut() failed: %s\n",
-                                           lts_errno_desc[errno]);
-                }
-            }
-        }
-    } else {
+    if ((uintptr_t)buf->seek >= (uintptr_t)buf->last) {
         abort();
+    }
+
+    // 发送数据
+    sent_sz = send(cs->fd, buf->seek,
+                   (uintptr_t)buf->last - (uintptr_t)buf->seek, 0);
+
+    if (-1 == sent_sz) {
+        if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
+            return;
+        } else {
+            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                   "send failed: %s, reset connection\n",
+                                   lts_errno_desc[errno]);
+            cs->closing = ((1 << 0) | (1 << 1));
+            abort();
+        }
+
+        return;
+    }
+
+    // assert(sent_sz > 0);
+    buf->seek += sent_sz;
+
+    // 本次数据已发完
+    if (buf->seek == buf->last) {
+        lts_buffer_clear(buf);
+    }
+
+    // 应用主动关闭
+    if (cs->shutdown && shutdown(cs->fd, SHUT_WR)) {
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "shut() failed: %s\n", lts_errno_desc[errno]);
     }
 
     return;
