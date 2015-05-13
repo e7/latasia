@@ -190,6 +190,10 @@ static void http_core_obuf(lts_socket_t *s)
             n = sizeof(HTTP_404_BODY) - 1;
             (void)memcpy(sb->last, HTTP_404_BODY, n);
             sb->last += n;
+
+            // 完毕
+            s->shutdown = 1;
+
             return;
         }
 
@@ -215,7 +219,7 @@ static void http_core_obuf(lts_socket_t *s)
         return;
     }
 
-    // 读取完毕
+    // 完毕
     s->shutdown = 1;
     lts_file_close(&ctx->req_file);
     ctx->req_path.len = 0;

@@ -44,23 +44,25 @@ struct lts_socket_s {
 
     unsigned readable: 1;
     unsigned writable: 1;
+    unsigned timeoutable: 1;
     unsigned shutdown: 1;
     unsigned closing: 2; // 请求关闭
     unsigned instance: 1;
 
     lts_conn_t *conn;
     dlist_t dlnode;
+
+    int64_t timeout; // 超时时间
+    lts_rb_node_t rbnode; // timer heap
+
     lts_handle_event_pt on_readable;
     lts_handle_event_pt do_read;
     lts_handle_event_pt on_writable;
     lts_handle_event_pt do_write;
-
-    int64_t timeout; // 超时时间
-    dlist_t tonode; // lts_timeout_list
-    lts_rb_node_t rbnode;
+    lts_handle_event_pt on_timeoutable;
     lts_handle_event_pt do_timeout;
 
-    void *app_ctx;
+    void *app_ctx; // 应用上下文
 };
 
 
@@ -72,7 +74,6 @@ extern dlist_t lts_addr_list; // 地址列表
 extern dlist_t lts_listen_list; // 监听socket列表
 extern dlist_t lts_conn_list; // 连接列表
 extern dlist_t lts_post_list; // post链表，事件延迟处理
-extern dlist_t lts_timeout_list; // 超时列表
 
 #define lts_sock_list_add(s)    dlist_add_tail(&lts_sock_list, &s->dlnode)
 #define lts_addr_list_add(s)    do {\
@@ -92,9 +93,6 @@ extern dlist_t lts_timeout_list; // 超时列表
             dlist_add_tail(&lts_post_list, &s->dlnode);\
         } while (0)
 
-#define lts_timeout_list_add(s) dlist_add_tail(&lts_timeout_list, &s->tonode)
-#define lts_timeout_list_del(s) dlist_del(&s->tonode)
-
 
 static inline
 void lts_init_socket(lts_socket_t *s)
@@ -103,19 +101,22 @@ void lts_init_socket(lts_socket_t *s)
     s->ev_mask = 0;
     s->readable = 0;
     s->writable = 0;
+    s->timeoutable = 0;
     s->shutdown = 0;
     s->closing = 0;
     s->instance = (!s->instance);
+
     s->conn = NULL;
     dlist_init(&s->dlnode);
+
+    s->timeout = 0;
+    s->rbnode = RB_NODE;
+
     s->on_readable = NULL;
     s->do_read = NULL;
     s->on_writable = NULL;
     s->do_write = NULL;
-
-    s->timeout = 0;
-    s->rbnode = RB_NODE;
-    dlist_init(&s->tonode);
+    s->on_timeoutable = NULL;
     s->do_timeout = NULL;
 
     s->app_ctx = NULL;

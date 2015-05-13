@@ -74,15 +74,6 @@ static int epoll_process_events(void)
         lts_update_time();
     }
 
-    // 检查定时器堆
-    while ((cs = lts_timer_heap_min(&lts_timer_heap))) {
-        if (cs->timeout > lts_current_time) {
-            break;
-        }
-        lts_timeout_list_add(cs);
-        lts_timer_heap_del(&lts_timer_heap, cs);
-    }
-
     // 错误处理
     if (tmp_err) {
         if (EINTR == tmp_err) { // 信号中断
@@ -110,12 +101,23 @@ static int epoll_process_events(void)
             revents |= (EPOLLIN | EPOLLOUT);
         }
 
-        if ((revents & EPOLLIN) && (NULL != cs->on_readable)) {
+        if ((revents & EPOLLIN) && (cs->on_readable)) {
             (*cs->on_readable)(cs);
         }
 
-        if ((revents & EPOLLOUT) && (NULL != cs->on_writable)) {
+        if ((revents & EPOLLOUT) && (cs->on_writable)) {
             (*cs->on_writable)(cs);
+        }
+    }
+
+    // 检查定时器堆
+    while ((cs = lts_timer_heap_min(&lts_timer_heap))) {
+        if (cs->timeout > lts_current_time) {
+            break;
+        }
+        lts_timer_heap_del(&lts_timer_heap, cs);
+        if (cs->on_timeoutable) {
+            (*cs->on_timeoutable)(cs);
         }
     }
 

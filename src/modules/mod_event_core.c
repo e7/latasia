@@ -11,7 +11,7 @@
 #include "rbt_timer.h"
 
 
-void lts_close_conn(int fd, lts_pool_t *c, int reset)
+void lts_close_conn_orig(int fd, int reset)
 {
     if (reset) {
         struct linger so_linger;
@@ -27,10 +27,20 @@ void lts_close_conn(int fd, lts_pool_t *c, int reset)
                                "close() failed: %s\n", lts_errno_desc[errno]);
     }
 
-    // 释放连接内存池
-    if (NULL != c) {
-        lts_destroy_pool(c);
+    return;
+}
+
+
+void lts_close_conn(lts_socket_t *cs)
+{
+    lts_timer_heap_del(&lts_timer_heap, cs);
+    (*lts_event_itfc->event_del)(cs);
+    lts_close_conn_orig(cs->fd, cs->closing & (1 << 1));
+    if (cs->conn->pool) {
+        lts_destroy_pool(cs->conn->pool);
+        cs->conn->pool = NULL;
     }
+    lts_free_socket(cs);
 
     return;
 }
@@ -49,6 +59,15 @@ static void handle_output(lts_socket_t *s)
 {
     lts_post_list_add(s);
     s->writable = 1;
+
+    return;
+}
+
+
+static void handle_timeout(lts_socket_t *s)
+{
+    lts_post_list_add(s);
+    s->timeoutable = 1;
 
     return;
 }
@@ -101,13 +120,14 @@ static void lts_accept(lts_socket_t *ls)
         // 新连接初始化
         cpool = lts_create_pool(CONN_POOL_SIZE);
         if (NULL == cpool) {
-            lts_close_conn(cmnct_fd, cpool, TRUE);
+            lts_close_conn_orig(cmnct_fd, TRUE);
             continue;
         }
 
         c = (lts_conn_t *)lts_palloc(cpool, sizeof(lts_conn_t));
         if (NULL == c) {
-            lts_close_conn(cmnct_fd, cpool, TRUE);
+            lts_close_conn_orig(cmnct_fd, TRUE);
+            lts_destroy_pool(cpool);
             continue;
         }
         c->pool = cpool; // 新连接的内存池
@@ -115,7 +135,8 @@ static void lts_accept(lts_socket_t *ls)
         c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, FALSE);
         assert(c->rbuf != c->sbuf);
         if ((NULL == c->rbuf) || (NULL == c->sbuf)) {
-            lts_close_conn(cmnct_fd, cpool, TRUE);
+            lts_close_conn_orig(cmnct_fd, TRUE);
+            lts_destroy_pool(cpool);
             continue;
         }
 
@@ -127,11 +148,14 @@ static void lts_accept(lts_socket_t *ls)
         cs->do_read = &lts_recv;
         cs->on_writable = &handle_output;
         cs->do_write = &lts_send;
+        cs->on_timeoutable = &handle_timeout;
+        cs->do_timeout = &lts_timeout;
         cs->timeout = lts_current_time + lts_conf.keepalive * 10;
 
         // 加入事件监视
         if (0 != (*lts_event_itfc->event_add)(cs)) {
-            lts_close_conn(cmnct_fd, cpool, TRUE);
+            lts_close_conn_orig(cmnct_fd, TRUE);
+            lts_destroy_pool(cpool);
             lts_free_socket(cs);
             continue;
         }
@@ -366,7 +390,6 @@ static int init_event_core_worker(lts_module_t *mod)
     // 初始化各种列表
     dlist_init(&lts_conn_list);
     dlist_init(&lts_post_list);
-    dlist_init(&lts_timeout_list);
 
     // 工作进程晶振
     if (-1 == setitimer(ITIMER_REAL, &timer_resolution, NULL)) {
@@ -488,7 +511,6 @@ void lts_send(lts_socket_t *cs)
                                    "send failed: %s, reset connection\n",
                                    lts_errno_desc[errno]);
             cs->closing = ((1 << 0) | (1 << 1));
-            abort();
         }
 
         return;
@@ -507,6 +529,14 @@ void lts_send(lts_socket_t *cs)
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "shut() failed: %s\n", lts_errno_desc[errno]);
     }
+
+    return;
+}
+
+
+void lts_timeout(lts_socket_t *cs)
+{
+    cs->timeoutable = 0;
 
     return;
 }

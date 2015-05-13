@@ -83,7 +83,9 @@ struct lts_app_module_itfc_s {
 
 extern void lts_recv(lts_socket_t *cs);
 extern void lts_send(lts_socket_t *cs);
-extern void lts_close_conn(int fd, lts_pool_t *c, int reset);
+extern void lts_timeout(lts_socket_t *cs);
+extern void lts_close_conn_orig(int fd, int reset);
+extern void lts_close_conn(lts_socket_t *cs);
 
 
 extern lts_sm_t lts_global_sm; // 全局状态机

@@ -53,12 +53,12 @@ static char const *__lts_errno_desc[] = {
     "illegal seek [29]",
 
     // 30 ~ 39
+    "read-only file system [30]",
+    "too many links [31]",
+    "broken pipe [32]",
     NULL,
     NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    "resource deadlock avoided [35]",
     NULL,
     NULL,
     NULL,
@@ -218,7 +218,6 @@ static void lts_shmtx_unlock(lts_atomic_t *lock);
 static int enable_accept_events(void);
 static int disable_accept_events(void);
 static void process_post_list(void);
-static void process_timeout_list(void);
 static int event_loop_single(void);
 static int event_loop_multi(void);
 static int worker_main(void);
@@ -378,21 +377,13 @@ void process_post_list(void)
         if (cs->readable && cs->do_read) {
             (*cs->do_read)(cs);
             if (cs->closing) {
-                lts_timeout_list_del(cs);
-                lts_timer_heap_del(&lts_timer_heap, cs);
-                (*lts_event_itfc->event_del)(cs);
-                lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-                lts_free_socket(cs);
+                lts_close_conn(cs);
                 continue;
             }
 
             (*app_itfc->process_ibuf)(cs);
             if (cs->closing) {
-                lts_timeout_list_del(cs);
-                lts_timer_heap_del(&lts_timer_heap, cs);
-                (*lts_event_itfc->event_del)(cs);
-                lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-                lts_free_socket(cs);
+                lts_close_conn(cs);
                 continue;
             }
         }
@@ -401,52 +392,30 @@ void process_post_list(void)
         if (cs->writable && cs->do_write) {
             (*app_itfc->process_obuf)(cs);
             if (cs->closing) {
-                lts_timeout_list_del(cs);
-                lts_timer_heap_del(&lts_timer_heap, cs);
-                (*lts_event_itfc->event_del)(cs);
-                lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-                lts_free_socket(cs);
+                lts_close_conn(cs);
                 continue;
             }
 
             (*cs->do_write)(cs);
             if (cs->closing) {
-                lts_timeout_list_del(cs);
-                lts_timer_heap_del(&lts_timer_heap, cs);
-                (*lts_event_itfc->event_del)(cs);
-                lts_close_conn(cs->fd, cs->conn->pool, cs->closing & (1 << 1));
-                lts_free_socket(cs);
+                lts_close_conn(cs);
                 continue;
             }
         }
 
         // 超时事件
-        // todo: 合并超时事件到post链
+        if (cs->timeoutable && cs->do_timeout) {
+            (*cs->do_timeout)(cs);
+            if (cs->closing) {
+                lts_close_conn(cs);
+                continue;
+            }
+        }
 
         // 移出post链
-        if ((! cs->readable) && (! cs->writable)) {
+        if ((! cs->readable) && (! cs->writable) && (! cs->timeoutable)) {
             lts_conn_list_add(cs);
         }
-    }
-
-    return;
-}
-
-
-void process_timeout_list(void)
-{
-    dlist_for_each_f_safe(pos, cur_next, &lts_timeout_list) {
-        lts_socket_t *cs = CONTAINER_OF(pos, lts_socket_t, tonode);
-
-        lts_timeout_list_del(cs);
-        if (NULL == cs->do_timeout) {
-            (*lts_event_itfc->event_del)(cs);
-            lts_close_conn(cs->fd, cs->conn->pool, 0);
-            lts_free_socket(cs);
-            continue;
-        }
-
-        (*cs->do_timeout)(cs);
     }
 
     return;
@@ -523,7 +492,6 @@ int event_loop_single(void)
         }
 
         process_post_list();
-        process_timeout_list();
     }
 
     if (0 != rslt) {
@@ -586,7 +554,6 @@ int event_loop_multi(void)
         }
 
         process_post_list();
-        process_timeout_list();
     }
 
     if (0 != rslt) {
