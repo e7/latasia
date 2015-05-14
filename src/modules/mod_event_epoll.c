@@ -14,7 +14,7 @@ static struct epoll_event *buf_epevs;
 static int nbuf_epevs;
 
 
-static int epoll_event_add(lts_socket_t *s)
+static void epoll_event_add(lts_socket_t *s)
 {
     struct epoll_event ee;
 
@@ -25,14 +25,30 @@ static int epoll_event_add(lts_socket_t *s)
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "epoll_ctl() failed: %s\n",
                                lts_errno_desc[errno]);
-        return LTS_E_SYS;
     }
 
-    return 0;
+    return;
 }
 
 
-static int epoll_event_del(lts_socket_t *s)
+static void epoll_event_mod(lts_socket_t *s)
+{
+    struct epoll_event ee;
+
+    ee.events = s->ev_mask;
+    ee.data.ptr = (void *)((uintptr_t)s | s->instance);
+
+    if (-1 == epoll_ctl(epfd, EPOLL_CTL_MOD, s->fd, &ee)) {
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "epoll_ctl() failed: %s\n",
+                               lts_errno_desc[errno]);
+    }
+
+    return;
+}
+
+
+static void epoll_event_del(lts_socket_t *s)
 {
     struct epoll_event ee;
 
@@ -40,10 +56,9 @@ static int epoll_event_del(lts_socket_t *s)
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "epoll_ctl() failed: %s\n",
                                lts_errno_desc[errno]);
-        return LTS_E_SYS;
     }
 
-    return 0;
+    return;
 }
 
 
@@ -183,6 +198,7 @@ static void exit_event_epoll_worker(lts_module_t *mod)
 
 static lts_event_module_itfc_t event_epoll_itfc = {
     &epoll_event_add,
+    &epoll_event_mod,
     &epoll_event_del,
     &epoll_process_events,
 };

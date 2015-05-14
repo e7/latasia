@@ -68,8 +68,9 @@ struct lts_module_s {
 
 // 事件模块接口
 struct lts_event_module_itfc_s {
-    int (*event_add)(lts_socket_t *);
-    int (*event_del)(lts_socket_t *);
+    void (*event_add)(lts_socket_t *);
+    void (*event_mod)(lts_socket_t *);
+    void (*event_del)(lts_socket_t *);
     int (*process_events)(void);
 };
 

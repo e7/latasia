@@ -38,7 +38,7 @@ void lts_close_conn(lts_socket_t *cs)
     lts_close_conn_orig(cs->fd, cs->closing & (1 << 1));
     if (cs->conn->pool) {
         lts_destroy_pool(cs->conn->pool);
-        cs->conn->pool = NULL;
+        cs->conn = NULL;
     }
     lts_free_socket(cs);
 
@@ -142,7 +142,7 @@ static ssize_t lts_accept(lts_socket_t *ls)
 
         cs = lts_alloc_socket();
         cs->fd = cmnct_fd;
-        cs->ev_mask = (EPOLLET | EPOLLIN | EPOLLOUT);
+        cs->ev_mask = (EPOLLET | EPOLLIN);
         cs->conn = c;
         cs->on_readable = &handle_input;
         cs->do_read = &lts_recv;
@@ -153,12 +153,7 @@ static ssize_t lts_accept(lts_socket_t *ls)
         cs->timeout = lts_current_time + lts_conf.keepalive * 10;
 
         // 加入事件监视
-        if (0 != (*lts_event_itfc->event_add)(cs)) {
-            lts_close_conn_orig(cmnct_fd, TRUE);
-            lts_destroy_pool(cpool);
-            lts_free_socket(cs);
-            continue;
-        }
+        (*lts_event_itfc->event_add)(cs);
 
         while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
             ++cs->timeout;
@@ -525,15 +520,24 @@ ssize_t lts_send(lts_socket_t *cs)
     // 本次数据已发完
     if (buf->seek == buf->last) {
         lts_buffer_clear(buf);
+
+        cs->ev_mask &= (~EPOLLOUT);
+        (*lts_event_itfc->event_mod)(cs);
     }
 
     // 应用主动关闭
     (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
                            "shutdown(%d)\n", cs->fd);
-    if (cs->shutdown && shutdown(cs->fd, SHUT_WR)) {
-        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                               "shut() failed: %s\n", lts_errno_desc[errno]);
+    if (cs->shutdown) {
         cs->writable = 0;
+
+        cs->ev_mask &= (~EPOLLOUT);
+        (*lts_event_itfc->event_mod)(cs);
+        if (shutdown(cs->fd, SHUT_WR)) {
+            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                   "shut() failed: %s\n",
+                                   lts_errno_desc[errno]);
+        }
     }
 
     return sent_sz;

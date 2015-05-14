@@ -50,7 +50,14 @@ int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
 
 void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
 {
-    rb_erase(&s->rbnode, root);
+    if (! RB_EMPTY_NODE(&s->rbnode)) {
+        if (rb_parent(&s->rbnode) == root->rb_node) {
+            RB_CLEAR_NODE(&s->rbnode);
+            root->rb_node = NULL;
+        } else {
+            rb_erase(&s->rbnode, root);
+        }
+    }
 
     return;
 }

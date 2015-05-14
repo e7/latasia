@@ -7,6 +7,8 @@
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+#include <sys/epoll.h>
+
 #include "latasia.h"
 #include "logger.h"
 #include "conf.h"
@@ -215,8 +217,8 @@ lts_module_t *lts_modules[] = {
 
 static int lts_shmtx_trylock(lts_atomic_t *lock);
 static void lts_shmtx_unlock(lts_atomic_t *lock);
-static int enable_accept_events(void);
-static int disable_accept_events(void);
+static void enable_accept_events(void);
+static void disable_accept_events(void);
 static void process_post_list(void);
 static int event_loop_single(void);
 static int event_loop_multi(void);
@@ -286,13 +288,10 @@ void lts_shmtx_unlock(lts_atomic_t *lock)
 }
 
 
-int enable_accept_events(void)
+void enable_accept_events(void)
 {
-    int rslt;
-
-    rslt = 0;
     if (lts_accept_lock_hold) {
-        return rslt;
+        return;
     }
 
     lts_accept_lock_hold = TRUE;
@@ -300,23 +299,17 @@ int enable_accept_events(void)
         lts_socket_t *ls;
 
         ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-        if (0 != (*lts_event_itfc->event_add)(ls)) {
-            rslt = LTS_E_SYS;
-            break;
-        }
+        (*lts_event_itfc->event_add)(ls);
     }
 
-    return rslt;
+    return;
 }
 
 
-int disable_accept_events(void)
+void disable_accept_events(void)
 {
-    int rslt;
-
-    rslt = 0;
     if (!lts_accept_lock_hold) {
-        return rslt;
+        return;
     }
 
     lts_accept_lock_hold = FALSE;
@@ -324,13 +317,10 @@ int disable_accept_events(void)
         lts_socket_t *ls;
 
         ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-        if (0 != (*lts_event_itfc->event_del)(ls)) {
-            rslt = LTS_E_SYS;
-            break;
-        }
+        (*lts_event_itfc->event_del)(ls);
     }
 
-    return rslt;
+    return;
 }
 
 
@@ -373,35 +363,40 @@ void process_post_list(void)
             continue;
         }
 
-        // 读事件
         if (cs->readable && cs->do_read) {
             (void)(*cs->do_read)(cs);
             if (cs->closing) {
-                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                                 "do_read close %d\n", cs->fd);
+                (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                                       "do_read close %d\n", cs->fd);
                 lts_close_conn(cs);
                 continue;
             }
 
             (*app_itfc->process_ibuf)(cs);
             if (cs->closing) {
-                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                                 "process_ibuf close %d\n", cs->fd);
+                (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                                       "process_ibuf close %d\n", cs->fd);
+                lts_close_conn(cs);
+                continue;
+            }
+
+            (void)(*app_itfc->process_obuf)(cs);
+            if (cs->closing) {
+                (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                                       "process_obuf close %d\n", cs->fd);
                 lts_close_conn(cs);
                 continue;
             }
         }
 
-        // 写事件
-        if (cs->writable && cs->do_write) {
-            (void)(*app_itfc->process_obuf)(cs);
-            if (cs->closing) {
-                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                                 "process_obuf close %d\n", cs->fd);
-                lts_close_conn(cs);
-                continue;
-            }
+        if (! cs->writable) {
+            lts_buffer_t *sb = cs->conn->sbuf;
 
+            if ((sb->seek < sb->last) && (0 == (cs->ev_mask & EPOLLOUT))) {
+                cs->ev_mask |= EPOLLOUT;
+                (*lts_event_itfc->event_mod)(cs);
+            }
+        } else if (cs->do_write) {
             (*cs->do_write)(cs);
             if (cs->closing) {
                 lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
@@ -409,9 +404,10 @@ void process_post_list(void)
                 lts_close_conn(cs);
                 continue;
             }
+        } else {
+            abort();
         }
 
-        // 超时事件
         if (cs->timeoutable && cs->do_timeout) {
             (void)(*cs->do_timeout)(cs);
             if (cs->closing) {
@@ -466,13 +462,7 @@ int event_loop_single(void)
                     lts_socket_t *ls;
 
                     ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-                    if (0 != (*lts_event_itfc->event_add)(ls)) {
-                        (void)lts_write_logger(
-                            &lts_file_logger, LTS_LOG_INFO,
-                            "add watch to listen socket failed: %s\n",
-                            lts_errno_desc[errno]
-                        );
-                    }
+                    (*lts_event_itfc->event_add)(ls);
                 }
 
                 hold = TRUE;
@@ -483,12 +473,7 @@ int event_loop_single(void)
                     lts_socket_t *ls;
 
                     ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-                    if (0 != (*lts_event_itfc->event_del)(ls)) {
-                        (void)lts_write_logger(
-                            &lts_file_logger, LTS_LOG_INFO,
-                            "add watch to listen socket failed: %s\n",
-                            lts_errno_desc[errno]);
-                    }
+                    (*lts_event_itfc->event_del)(ls);
                 }
 
                 hold = FALSE;
@@ -541,18 +526,12 @@ int event_loop_multi(void)
         if (lts_accept_disabled < 0) {
             if (lts_shmtx_trylock((lts_atomic_t *)lts_accept_lock.addr)) {
                 // 抢锁成功
-                if (0 != enable_accept_events()) {
-                    continue;
-                }
+                enable_accept_events();
             } else {
-                if (0 != disable_accept_events()) {
-                    continue;
-                }
+                 disable_accept_events();
             }
         } else {
-            if (0 != disable_accept_events()) {
-                continue;
-            }
+            disable_accept_events();
         }
 
         rslt = (*lts_event_itfc->process_events)();
