@@ -69,7 +69,7 @@ static void exit_http_core_module(lts_module_t *module)
 }
 
 
-static void http_core_ibuf(lts_socket_t *s)
+static int http_core_ibuf(lts_socket_t *s)
 {
     lts_buffer_t *rb;
     lts_str_t idata, req_line;
@@ -79,20 +79,17 @@ static void http_core_ibuf(lts_socket_t *s)
     lts_pool_t *pool;
     http_core_ctx_t *ctx;
 
-    (void)lts_write_logger(&lts_file_logger,
-                           LTS_LOG_DEBUG, "http_core_ibuf\n");
-
     if (NULL == s->conn) {
-        return;
+        return -1;
     }
 
     pool = s->conn->pool;
     if (NULL == pool) {
-        return;
+        return -1;
     }
     rb = s->conn->rbuf;
     if (lts_buffer_empty(rb)) {
-        return;
+        abort();
     }
 
     // 获取请求第一行
@@ -101,8 +98,9 @@ static void http_core_ibuf(lts_socket_t *s)
     pattern = (lts_str_t)lts_string("\r\n");
     pattern_s = lts_str_find(&idata, &pattern, 0);
     if (-1 == pattern_s) {
-        // log
-        return;
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "bad request, no enter\n");
+        return -1;
     }
     req_line.data = idata.data;
     req_line.len = pattern_s;
@@ -110,7 +108,7 @@ static void http_core_ibuf(lts_socket_t *s)
     // 获取请求路径
     uri.data = NULL;
     uri.len = 0;
-    for (size_t i = 0; i < req_line.len; ++i) {
+    for (size_t i = 0; i < req_line.len + 1; ++i) {
         if (uri.data) {
             ++uri.len;
             if (' ' == req_line.data[i]) {
@@ -123,7 +121,9 @@ static void http_core_ibuf(lts_socket_t *s)
         }
     }
     if (0 == uri.len) {
-        return;
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "bad request, no slash\n");
+        return -1;
     }
 
     // 生成绝对路径
@@ -147,29 +147,26 @@ static void http_core_ibuf(lts_socket_t *s)
 
     s->app_ctx = ctx;
 
-    return;
+    return 0;
 }
 
-static void http_core_obuf(lts_socket_t *s)
+static int http_core_obuf(lts_socket_t *s)
 {
     size_t n, n_read;
     lts_buffer_t *sb;
     http_core_ctx_t *ctx;
 
-    (void)lts_write_logger(&lts_file_logger,
-                           LTS_LOG_DEBUG, "http_core_obuf\n");
-
     if (NULL == s->conn) {
-        return;
+        return -1;
     }
     sb = s->conn->sbuf;
     if (! lts_buffer_empty(sb)) {
-        return; // 等清空再发
+        return 0; // 等清空再发
     }
 
     ctx = s->app_ctx;
     if ((NULL == ctx) || (0 == ctx->req_path.len)) {
-        return;
+        return -1;
     }
 
     n = sb->end - sb->last;
@@ -191,7 +188,7 @@ static void http_core_obuf(lts_socket_t *s)
             // 完毕
             s->shutdown = 1;
 
-            return;
+            return 0;
         }
 
         (void)fstat(ctx->req_file.fd, &st);
@@ -206,23 +203,27 @@ static void http_core_obuf(lts_socket_t *s)
             sb->last += n_read;
         }
 
-        return;
+        s->more = 1;
+
+        return 0;
     }
 
     // 读文件数据
     n_read = lts_file_read(&ctx->req_file, sb->last, n, &lts_file_logger);
     if (n_read > 0) {
         sb->last += n_read;
-        return;
+        s->more = 1;
+        return 0;
     }
 
     // 完毕
+    s->more = 0;
     s->shutdown = 1;
     lts_file_close(&ctx->req_file);
     ctx->req_path.len = 0;
     ctx->req_file.fd = -1;
 
-    return;
+    return 0;
 }
 
 

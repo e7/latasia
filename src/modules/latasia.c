@@ -364,44 +364,18 @@ void process_post_list(void)
         }
 
         if (cs->readable && cs->do_read) {
-            (void)(*cs->do_read)(cs);
-            if (cs->closing) {
-                (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                                       "do_read close %d\n", cs->fd);
-                lts_close_conn(cs);
-                continue;
-            }
-
-            (*app_itfc->process_ibuf)(cs);
-            if (cs->closing) {
-                (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                                       "process_ibuf close %d\n", cs->fd);
-                lts_close_conn(cs);
-                continue;
-            }
-
-            (void)(*app_itfc->process_obuf)(cs);
-            if (cs->closing) {
-                (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                                       "process_obuf close %d\n", cs->fd);
-                lts_close_conn(cs);
+            if (-1 == (*cs->do_read)(cs)) {
                 continue;
             }
         }
 
         if (! cs->writable) {
-            lts_buffer_t *sb = cs->conn->sbuf;
-
-            if ((sb->seek < sb->last) && (0 == (cs->ev_mask & EPOLLOUT))) {
+            if (cs->more && (0 == (cs->ev_mask & EPOLLOUT))) {
                 cs->ev_mask |= EPOLLOUT;
                 (*lts_event_itfc->event_mod)(cs);
             }
         } else if (cs->do_write) {
-            (*cs->do_write)(cs);
-            if (cs->closing) {
-                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                                 "do_write close %d\n", cs->fd);
-                lts_close_conn(cs);
+            if (-1 == (*cs->do_write)(cs)) {
                 continue;
             }
         } else {
@@ -409,11 +383,7 @@ void process_post_list(void)
         }
 
         if (cs->timeoutable && cs->do_timeout) {
-            (void)(*cs->do_timeout)(cs);
-            if (cs->closing) {
-                lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                                 "do_timeout close %d\n", cs->fd);
-                lts_close_conn(cs);
+            if (-1 == (*cs->do_timeout)(cs)) {
                 continue;
             }
         }

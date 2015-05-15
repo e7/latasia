@@ -442,7 +442,7 @@ ssize_t lts_recv(lts_socket_t *cs)
 
     if (lts_buffer_full(buf)) { // 无法接受数据
         (void)lts_write_logger(
-            &lts_file_logger, LTS_LOG_DEBUG, "recv buffer is full\n"
+            &lts_file_logger, LTS_LOG_WARN, "recv buffer is full\n"
         );
         return 0;
     }
@@ -454,22 +454,22 @@ ssize_t lts_recv(lts_socket_t *cs)
         if (-1 == recv_sz) {
             cs->readable = 0;
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
-                return 0;
+                return -1;
             } else {
                 // 异常关闭
                 (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                        "recv() failed: %s, reset connection\n",
                                        lts_errno_desc[errno]);
                 cs->closing = ((1 << 0) | (1 << 1));
+                lts_close_conn(cs);
                 return -1;
             }
         } else if (0 == recv_sz) {
             // 正常关闭连接
-            (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                                   "connection(%d) closed by peer\n", cs->fd);
             cs->readable = 0;
             cs->closing = (1 << 0);
-            return 0;
+            lts_close_conn(cs);
+            return -1;
         } else {
             buf->last += recv_sz;
         }
@@ -509,6 +509,7 @@ ssize_t lts_send(lts_socket_t *cs)
                                    "send(%d) failed: %s, reset connection\n",
                                    cs->fd, lts_errno_desc[errno]);
             cs->closing = ((1 << 0) | (1 << 1));
+            lts_close_conn(cs);
         }
 
         return -1;
@@ -521,13 +522,13 @@ ssize_t lts_send(lts_socket_t *cs)
     if (buf->seek == buf->last) {
         lts_buffer_clear(buf);
 
-        cs->ev_mask &= (~EPOLLOUT);
-        (*lts_event_itfc->event_mod)(cs);
+        if (! cs->more) {
+            cs->ev_mask &= (~EPOLLOUT);
+            (*lts_event_itfc->event_mod)(cs);
+        }
     }
 
     // 应用主动关闭
-    (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
-                           "shutdown(%d)\n", cs->fd);
     if (cs->shutdown) {
         cs->writable = 0;
 
