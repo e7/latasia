@@ -41,6 +41,10 @@ static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
 
 int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
 {
+    if (! RB_EMPTY_NODE(&s->rbnode)) {
+        return -1;
+    }
+
     if (s != __lts_timer_heap_search(root, s, TRUE)) {
         return -1;
     }
@@ -50,14 +54,12 @@ int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
 
 void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
 {
-    if (! RB_EMPTY_NODE(&s->rbnode)) {
-        if (rb_parent(&s->rbnode) == root->rb_node) {
-            RB_CLEAR_NODE(&s->rbnode);
-            root->rb_node = NULL;
-        } else {
-            rb_erase(&s->rbnode, root);
-        }
+    if (RB_EMPTY_NODE(&s->rbnode)) {
+        return;
     }
+
+    rb_erase(&s->rbnode, root);
+    RB_CLEAR_NODE(&s->rbnode);
 
     return;
 }

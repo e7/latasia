@@ -111,6 +111,7 @@ void lts_init_socket(lts_socket_t *s)
 
     s->timeout = 0;
     s->rbnode = RB_NODE;
+    RB_CLEAR_NODE(&s->rbnode);
 
     s->on_readable = NULL;
     s->do_read = NULL;
