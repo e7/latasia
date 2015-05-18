@@ -529,7 +529,8 @@ ssize_t lts_send(lts_socket_t *cs)
     }
 
     // 应用主动关闭
-    if (cs->shutdown) {
+    if (! cs->more) {
+        cs->more = 0;
         cs->writable = 0;
 
         cs->ev_mask &= (~EPOLLOUT);

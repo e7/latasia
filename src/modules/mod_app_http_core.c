@@ -46,25 +46,12 @@ void dump_mem_to_file(char const *filepath, uint8_t *data, size_t n)
 
 static int init_http_core_module(lts_module_t *module)
 {
-    lts_pool_t *pool;
-
-    pool = lts_create_pool(MODULE_POOL_SIZE);
-    if (NULL == pool) {
-        return -1;
-    }
-    module->pool = pool;
-
     return 0;
 }
 
 
 static void exit_http_core_module(lts_module_t *module)
 {
-    if (module->pool) {
-        lts_destroy_pool(module->pool);
-        module->pool = NULL;
-    }
-
     return;
 }
 
@@ -157,12 +144,9 @@ static int http_core_obuf(lts_socket_t *s)
     http_core_ctx_t *ctx;
 
     if (NULL == s->conn) {
-        return -1;
+        abort();
     }
     sb = s->conn->sbuf;
-    if (! lts_buffer_empty(sb)) {
-        return 0; // 等清空再发
-    }
 
     ctx = s->app_ctx;
     if ((NULL == ctx) || (0 == ctx->req_path.len)) {
@@ -185,9 +169,6 @@ static int http_core_obuf(lts_socket_t *s)
             (void)memcpy(sb->last, HTTP_404_BODY, n);
             sb->last += n;
 
-            // 完毕
-            s->shutdown = 1;
-
             return 0;
         }
 
@@ -204,21 +185,37 @@ static int http_core_obuf(lts_socket_t *s)
         }
 
         s->more = 1;
+    }
 
-        return 0;
+    return 0;
+}
+
+static int http_core_more(lts_socket_t *s)
+{
+    size_t n, n_read;
+    http_core_ctx_t *ctx;
+    lts_buffer_t *sb;
+
+    if (NULL == s->conn) {
+        abort();
+    }
+    sb = s->conn->sbuf;
+
+    ctx = s->app_ctx;
+    if ((NULL == ctx) || (0 == ctx->req_path.len)) {
+        abort();
     }
 
     // 读文件数据
+    n = sb->end - sb->last;
     n_read = lts_file_read(&ctx->req_file, sb->last, n, &lts_file_logger);
     if (n_read > 0) {
         sb->last += n_read;
-        s->more = 1;
         return 0;
     }
 
     // 完毕
     s->more = 0;
-    s->shutdown = 1;
     lts_file_close(&ctx->req_file);
     ctx->req_path.len = 0;
     ctx->req_file.fd = -1;
@@ -230,6 +227,7 @@ static int http_core_obuf(lts_socket_t *s)
 static lts_app_module_itfc_t http_core_itfc = {
     http_core_ibuf,
     http_core_obuf,
+    http_core_more,
 };
 
 lts_module_t lts_app_http_core_module = {

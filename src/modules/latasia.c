@@ -369,13 +369,33 @@ void process_post_list(void)
             }
         }
 
+        if (lts_buffer_has_pending(cs->conn->rbuf)) {
+            if (app_itfc->handle_ibuf
+                    && (-1 == (*app_itfc->handle_ibuf)(cs))) {
+                // log
+            }
+            if (app_itfc->handle_obuf
+                    && (-1 == (*app_itfc->handle_obuf)(cs))) {
+                // log
+            }
+        }
+
+        if (cs->more) {
+            if (app_itfc->handle_more
+                    && (-1 == (*app_itfc->handle_more)(cs))) {
+                // log
+            }
+        }
+
         if (! cs->writable) {
-            if (cs->more && (0 == (cs->ev_mask & EPOLLOUT))) {
+            if (lts_buffer_has_pending(cs->conn->sbuf)
+                    && (0 == (cs->ev_mask & EPOLLOUT))) {
                 cs->ev_mask |= EPOLLOUT;
                 (*lts_event_itfc->event_mod)(cs);
             }
         } else if (cs->do_write) {
-            if (-1 == (*cs->do_write)(cs)) {
+            if ((lts_buffer_has_pending(cs->conn->sbuf))
+                    && (-1 == (*cs->do_write)(cs))) {
                 continue;
             }
         } else {
