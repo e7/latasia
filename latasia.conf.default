@@ -12,3 +12,6 @@ workers = 1
 
 # keepalive
 keepalive = 60
+
+# http_cwd
+http_cwd = /

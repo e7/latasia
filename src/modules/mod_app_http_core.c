@@ -62,7 +62,7 @@ static int http_core_ibuf(lts_socket_t *s)
     lts_str_t idata, req_line;
     int pattern_s;
     lts_str_t pattern;
-    lts_str_t uri;
+    lts_str_t uri, *http_cwd;
     lts_pool_t *pool;
     http_core_ctx_t *ctx;
 
@@ -114,16 +114,17 @@ static int http_core_ibuf(lts_socket_t *s)
     }
 
     // 生成绝对路径
+    http_cwd = &lts_conf.http_cwd;
     ctx = (http_core_ctx_t *)lts_palloc(pool, sizeof(http_core_ctx_t));
-    ctx->req_path.len = lts_cwd.len + uri.len;
+    ctx->req_path.len = http_cwd->len + uri.len;
     if ('/' == uri.data[uri.len - 1]) {
         ctx->req_path.len += sizeof(DEFAULT_FILENAME) - 1;
     }
     ctx->req_path.data = lts_palloc(pool, ctx->req_path.len + 1);
-    (void)memcpy(ctx->req_path.data, lts_cwd.data, lts_cwd.len);
-    (void)memcpy(ctx->req_path.data + lts_cwd.len, uri.data, uri.len);
+    (void)memcpy(ctx->req_path.data, http_cwd->data, http_cwd->len);
+    (void)memcpy(ctx->req_path.data + http_cwd->len, uri.data, uri.len);
     if ('/' == uri.data[uri.len - 1]) {
-        (void)memcpy(ctx->req_path.data + lts_cwd.len + uri.len,
+        (void)memcpy(ctx->req_path.data + http_cwd->len + uri.len,
                      DEFAULT_FILENAME, sizeof(DEFAULT_FILENAME) - 1);
     }
     ctx->req_path.data[ctx->req_path.len] = 0;

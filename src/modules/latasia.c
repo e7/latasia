@@ -143,7 +143,7 @@ static char const *__lts_errno_desc[] = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    "connection reset by peer [104]",
     NULL,
     NULL,
     "Transport endpoint is not connected [107]",
@@ -213,6 +213,8 @@ lts_module_t *lts_modules[] = {
     &lts_app_http_core_module,
     NULL,
 };
+lts_module_t *lts_module_event_cur;
+lts_module_t *lts_module_app_cur;
 
 
 static int lts_shmtx_trylock(lts_atomic_t *lock);
@@ -380,13 +382,6 @@ void process_post_list(void)
             }
         }
 
-        if (cs->more) {
-            if (app_itfc->handle_more
-                    && (-1 == (*app_itfc->handle_more)(cs))) {
-                // log
-            }
-        }
-
         if (! cs->writable) {
             if (lts_buffer_has_pending(cs->conn->sbuf)
                     && (0 == (cs->ev_mask & EPOLLOUT))) {
@@ -399,7 +394,12 @@ void process_post_list(void)
                 if (-1 == (*cs->do_write)(cs)) {
                     continue;
                 }
-            } else if (! cs->more) {
+            } else if (cs->more) {
+                if (app_itfc->handle_more
+                        && (-1 == (*app_itfc->handle_more)(cs))) {
+                    // log
+                }
+            } else {
                 // 发送完毕
                 cs->writable = 0;
                 cs->ev_mask &= (~EPOLLOUT);
@@ -411,10 +411,6 @@ void process_post_list(void)
                         "shut() failed: %s\n", lts_errno_desc[errno]
                     );
                 }
-            } else {
-                // 长连接
-                (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                       "long connection %d\n", cs->fd);
             }
         } else {
             abort();

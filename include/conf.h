@@ -33,6 +33,8 @@ struct lts_conf_s {
     lts_str_t log_file; // 日志
     lts_str_t backends; // 后台服务器
     int keepalive; // 连接超时时间
+
+    lts_str_t http_cwd;
 };
 
 

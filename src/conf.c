@@ -210,12 +210,30 @@ static void cb_keepalive_match(lts_conf_t *conf,
 }
 
 
+// http_cwd配置
+static void cb_http_cwd_match(lts_conf_t *conf,
+                              lts_str_t *k,
+                              lts_str_t *v,
+                              lts_pool_t *pool)
+{
+    uint8_t *p;
+
+    p = lts_palloc(pool, v->len + 1);
+    (void)memcpy(p, v->data, v->len);
+    p[v->len] = 0;
+    lts_str_init(&conf->http_cwd, p, v->len);
+
+    return;
+}
+
+
 static conf_item_t conf_items[] = {
     {lts_string("port"), &cb_port_match},
     {lts_string("workers"), &cb_workers_match},
     {lts_string("log_file"), &cb_log_file_match},
     {lts_string("servers"), &cb_servers_match},
     {lts_string("keepalive"), &cb_keepalive_match},
+    {lts_string("http_cwd"), &cb_http_cwd_match},
 };
 
 static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
@@ -463,9 +481,11 @@ lts_conf_t lts_conf = {
     lts_string("6742"), // 监听端口
     1, // slave进程数
     MAX_CONNECTIONS, // 每个slave最大连接数
-    lts_string("latasia.log"), // 日志路径
+    lts_string("/var/log/latasia/latasia.log"), // 日志路径
     lts_string("--SERVER=127.0.0.1"), // 后台服务
     60, // 连接超时
+
+    lts_string("/"),
 };
 
 int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)

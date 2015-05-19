@@ -100,6 +100,8 @@ extern lts_module_t lts_core_module; // 核心模块
 extern lts_module_t lts_event_core_module; // 事件核心模块
 extern lts_module_t lts_event_epoll_module; // epoll事件模块
 extern lts_module_t lts_app_http_core_module; // http core模块
+extern lts_module_t *lts_module_event_cur;
+extern lts_module_t *lts_module_app_cur;
 
 extern lts_socket_t *lts_channels[LTS_MAX_PROCESSES];
 extern int lts_ps_slot;
