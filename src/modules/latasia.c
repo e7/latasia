@@ -394,9 +394,27 @@ void process_post_list(void)
                 (*lts_event_itfc->event_mod)(cs);
             }
         } else if (cs->do_write) {
-            if ((lts_buffer_has_pending(cs->conn->sbuf))
-                    && (-1 == (*cs->do_write)(cs))) {
-                continue;
+            if (lts_buffer_has_pending(cs->conn->sbuf)) {
+                // 有数据待发
+                if (-1 == (*cs->do_write)(cs)) {
+                    continue;
+                }
+            } else if (! cs->more) {
+                // 发送完毕
+                cs->writable = 0;
+                cs->ev_mask &= (~EPOLLOUT);
+                (*lts_event_itfc->event_mod)(cs);
+
+                if (shutdown(cs->fd, SHUT_WR)) {
+                    (void)lts_write_logger(
+                        &lts_file_logger, LTS_LOG_ERROR,
+                        "shut() failed: %s\n", lts_errno_desc[errno]
+                    );
+                }
+            } else {
+                // 长连接
+                (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                       "long connection %d\n", cs->fd);
             }
         } else {
             abort();

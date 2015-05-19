@@ -528,20 +528,6 @@ ssize_t lts_send(lts_socket_t *cs)
         }
     }
 
-    // 应用主动关闭
-    if (! cs->more) {
-        cs->more = 0;
-        cs->writable = 0;
-
-        cs->ev_mask &= (~EPOLLOUT);
-        (*lts_event_itfc->event_mod)(cs);
-        if (shutdown(cs->fd, SHUT_WR)) {
-            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                   "shut() failed: %s\n",
-                                   lts_errno_desc[errno]);
-        }
-    }
-
     return sent_sz;
 }
 

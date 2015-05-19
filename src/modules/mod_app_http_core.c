@@ -207,6 +207,9 @@ static int http_core_more(lts_socket_t *s)
     }
 
     // 读文件数据
+    if (lts_buffer_full(sb)) {
+        return 0;
+    }
     n = sb->end - sb->last;
     n_read = lts_file_read(&ctx->req_file, sb->last, n, &lts_file_logger);
     if (n_read > 0) {
