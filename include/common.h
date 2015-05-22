@@ -52,6 +52,9 @@
 #define STDOUT_NAME         "stdout"
 #define STDERR_NAME         "stderr"
 
+#define SRC2STR_ARG(arg)    #arg
+#define SRC2STR(src)        SRC2STR_ARG(src)
+
 
 typedef volatile sig_atomic_t lts_atomic_t;
 typedef struct timeval lts_timeval_t;

@@ -11,6 +11,8 @@
 #include "adv_string.h"
 #include "file.h"
 
+#define LOG_SHOW_LOC        TRUE
+
 
 enum {
     LTS_LOG_DEBUG = 1,
@@ -50,4 +52,10 @@ extern ssize_t lts_write_logger_fd(lts_logger_t *log,
                                    void const *buf, size_t n);
 extern ssize_t lts_write_logger(lts_logger_t *log,
                                 int level, char const *fmt, ...);
+
+#if LOG_SHOW_LOC
+#define STR_LOCATION        __FILE__":"SRC2STR(__LINE__)
+#else
+#define STR_LOCATION        "*"
+#endif // LOG_SHOW_LOC
 #endif // __LATASIA__LOGGER_H__

@@ -616,7 +616,8 @@ int master_main(void)
     } else {
         lts_use_accept_lock = FALSE;
     }
-    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO, "master started\n");
+    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
+                           "%s:master started\n", STR_LOCATION);
     while (TRUE) {
         if (0 == (lts_signals_mask & LTS_MASK_SIGEXIT)) {
             // 重启工作进程
