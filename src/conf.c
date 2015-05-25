@@ -125,7 +125,8 @@ static void cb_servers_match(lts_conf_t *conf,
 
     if ((',' == v->data[0]) || (',' == v->data[v->len - 1])) {
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
-                               "invalid cache server configuration\n");
+                               "%s:invalid cache server configuration\n",
+                               STR_LOCATION);
         return;
     }
 
@@ -244,14 +245,16 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
                             &lts_stderr_logger))
     {
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
-                               "open configuration file failed\n");
+                               "%s:open configuration file failed\n",
+                               STR_LOCATION);
         return -1;
     }
 
     if (-1 == fstat(file->fd, &st)) {
         lts_file_close(file);
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
-                               "fstat() failed: %s\n", lts_errno_desc[errno]);
+                               "%s:fstat() failed:%s\n",
+                               STR_LOCATION, lts_errno_desc[errno]);
         return -1;
     }
 
@@ -259,7 +262,8 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     if (st.st_size > MAX_CONF_SIZE) {
         lts_file_close(file);
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
-                               "too large configuration file\n");
+                               "%s:too large configuration file\n",
+                               STR_LOCATION);
         return -1;
     }
     *sz = st.st_size;
@@ -269,7 +273,8 @@ static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
     if (MAP_FAILED == *addr) {
         lts_file_close(file);
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
-                               "mmap() failed: %s\n", lts_errno_desc[errno]);
+                               "%s:mmap() failed: %s\n",
+                               STR_LOCATION, lts_errno_desc[errno]);
         return -1;
     }
 
@@ -280,8 +285,8 @@ static void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz)
 {
     if (-1 == munmap(addr, sz)) {
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
-                               "munmap configure file failed(%s)\n",
-                               lts_errno_desc[errno]);
+                               "%s:munmap() configure file failed:%s\n",
+                               STR_LOCATION, lts_errno_desc[errno]);
     }
     lts_file_close(file);
 
@@ -297,7 +302,7 @@ static void log_invalid_conf(lts_str_t *item, lts_pool_t *pool)
     tmp[item->len] = '\0';
     (void)lts_write_logger(
         &lts_stderr_logger, LTS_LOG_EMERGE,
-        "invalid conf '%s'\n", tmp
+        "%s:invalid conf '%s'\n", STR_LOCATION, tmp
     );
 
     return;

@@ -408,7 +408,8 @@ void process_post_list(void)
                 if (shutdown(cs->fd, SHUT_WR)) {
                     (void)lts_write_logger(
                         &lts_file_logger, LTS_LOG_ERROR,
-                        "shut() failed: %s\n", lts_errno_desc[errno]
+                        "%s:shut() failed:%s\n",
+                        STR_LOCATION, lts_errno_desc[errno]
                     );
                 }
             }
@@ -443,7 +444,7 @@ int event_loop_single(void)
         if (LTS_CHANNEL_SIGEXIT == lts_global_sm.channel_signal) {
             (void)lts_write_logger(
                 &lts_file_logger, LTS_LOG_INFO,
-                "slave ready to exit\n"
+                "%s:slave ready to exit\n", STR_LOCATION
             );
             break;
         }
@@ -452,7 +453,8 @@ int event_loop_single(void)
         if (-1 == kill(lts_processes[lts_ps_slot].ppid, 0)) {
             (void)lts_write_logger(
                 &lts_file_logger, LTS_LOG_WARN,
-                "I am gona die because my parent has been dead\n"
+                "%s:I am gona die because my parent has been dead\n",
+                STR_LOCATION
             );
             break;
         }
@@ -510,7 +512,7 @@ int event_loop_multi(void)
         if (LTS_CHANNEL_SIGEXIT == lts_global_sm.channel_signal) {
             (void)lts_write_logger(
                 &lts_file_logger, LTS_LOG_INFO,
-                "slave ready to exit\n"
+                "%s:slave ready to exit\n", STR_LOCATION
             );
             break;
         }
@@ -519,7 +521,8 @@ int event_loop_multi(void)
         if (-1 == kill(lts_processes[lts_ps_slot].ppid, 0)) {
             (void)lts_write_logger(
                 &lts_file_logger, LTS_LOG_WARN,
-                "I am gona die because my parent has been dead\n"
+                "%s:I am gona die because my parent has been dead\n",
+                STR_LOCATION
             );
             break;
         }
@@ -574,7 +577,8 @@ pid_t wait_children(void)
             lts_processes[slot].pid = -1;
             if (-1 == close(lts_processes[slot].channel[0])) {
                 (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                       "close channel failed\n");
+                                       "%s:close channel failed\n",
+                                       STR_LOCATION);
             }
             break;
         }
@@ -582,15 +586,15 @@ pid_t wait_children(void)
     if (WIFSIGNALED(status)) {
         (void)lts_write_logger(
             &lts_file_logger, LTS_LOG_WARN,
-            "child process %d terminated by %d\n",
-            (long)child, WTERMSIG(status)
+            "%s:child process %d terminated by %d\n",
+            STR_LOCATION, (long)child, WTERMSIG(status)
         );
     }
     if (WIFEXITED(status)) {
         (void)lts_write_logger(
             &lts_file_logger, LTS_LOG_INFO,
-            "child process %d exit with code %d\n",
-            (long)child, WEXITSTATUS(status)
+            "%s:child process %d exit with code %d\n",
+            STR_LOCATION, (long)child, WEXITSTATUS(status)
         );
     }
 
@@ -642,7 +646,8 @@ int master_main(void)
                     lts_global_sm.unix_domain_enabled[slot] = FALSE;
                     (void)lts_write_logger(&lts_file_logger,
                                            LTS_LOG_ERROR,
-                                           "socketpair() failed: %s\n",
+                                           "%s:socketpair() failed: %s\n",
+                                           STR_LOCATION,
                                            lts_errno_desc[errno]);
                 }
                 domain_fd = -1;
@@ -651,7 +656,8 @@ int master_main(void)
                     if (-1 == lts_set_nonblock(domain_fd)) {
                         (void)lts_write_logger(
                             &lts_file_logger, LTS_LOG_WARN,
-                            "set nonblock unix domain socket failed: %s\n",
+                            "%s:set nonblock unix domain socket failed: %s\n",
+                            STR_LOCATION,
                             lts_errno_desc[errno]
                         );
                     }
@@ -661,7 +667,8 @@ int master_main(void)
 
                 if (-1 == p) {
                     (void)lts_write_logger(
-                        &lts_file_logger, LTS_LOG_ERROR, "fork failed\n"
+                        &lts_file_logger, LTS_LOG_ERROR,
+                        "%s:fork failed\n", STR_LOCATION
                     );
                     break;
                 }
@@ -706,7 +713,8 @@ int master_main(void)
                 if (-1 == send(lts_processes[i].channel[0],
                                &sigexit, sizeof(uint32_t), 0)) {
                     (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                           "send() failed: %s\n",
+                                           "%s:send() failed: %s\n",
+                                           STR_LOCATION,
                                            lts_errno_desc[errno]);
                 }
             }
@@ -721,7 +729,8 @@ int master_main(void)
             if (-1 == child) {
                 assert(ECHILD == errno);
                 (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
-                                       "master ready to exit\n");
+                                       "%s:master ready to exit\n",
+                                       STR_LOCATION);
                 break;
             }
         }
@@ -805,7 +814,8 @@ int worker_main(void)
     }
 
     // 事件循环
-    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO, "slave started\n");
+    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
+                           "%s:slave started\n", STR_LOCATION);
     if (lts_use_accept_lock) {
         rslt = event_loop_multi();
     } else {

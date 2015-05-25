@@ -86,7 +86,7 @@ static int http_core_ibuf(lts_socket_t *s)
     pattern_s = lts_str_find(&idata, &pattern, 0);
     if (-1 == pattern_s) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                               "bad request, no enter\n");
+                               "%s:bad request, no enter\n", STR_LOCATION);
         return -1;
     }
     req_line.data = idata.data;
@@ -109,7 +109,7 @@ static int http_core_ibuf(lts_socket_t *s)
     }
     if (0 == uri.len) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                               "bad request, no slash\n");
+                               "%s:bad request, no slash\n", STR_LOCATION);
         return -1;
     }
 
