@@ -68,7 +68,9 @@ int rm_node(list_t **pp_list, list_t *p_node)
 
 // 栈
 typedef list_t lstack_t;
-#define lstack_top(stack)           (*stack)
+#define lstack_top(stack)           (*(stack))
+#define lstack_is_empty(stack)      (NULL == (*(stack)))
+#define lstack_set_empty(stack)     ((*(stack)) = NULL)
 #define lstack_push(stack, node)    add_node(stack, node)
 #define lstack_pop(stack)           rm_node(stack, *stack)
 

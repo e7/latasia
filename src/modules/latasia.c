@@ -328,25 +328,10 @@ void disable_accept_events(void)
 
 void process_post_list(void)
 {
-    int i;
-    lts_module_t *module;
     lts_app_module_itfc_t *app_itfc;
 
-    // 寻找app模块
-    module = NULL;
-    for (i = 0; lts_modules[i]; ++i) {
-        module = lts_modules[i];
-
-        if (LTS_APP_MODULE != module->type) {
-            continue;
-        }
-    }
-    if (NULL == module) {
-        return;
-    }
-
     // 获取app接口
-    app_itfc = (lts_app_module_itfc_t *)module->itfc;
+    app_itfc = (lts_app_module_itfc_t *)lts_module_app_cur->itfc;
     if (NULL == app_itfc) {
         return;
     }
@@ -740,37 +725,20 @@ int master_main(void)
 }
 
 
-static void do_exit_worker(int type, int last)
+int worker_main(void)
 {
+    int rslt;
+    lstack_t *stk;
     lts_module_t *module;
 
-    while (last > 0) {
-        module = lts_modules[last--];
+    rslt = 0;
+    lstack_set_empty(&stk);
 
-        if (type != module->type) {
-            continue;
-        }
-
-        if (NULL == module->exit_worker) {
-            continue;
-        }
-
-        (*module->exit_worker)(module);
-    }
-
-    return;
-}
-
-static int do_init_worker(int type)
-{
-    int i;
-    lts_module_t *module;
-
-
-    for (i = 0; lts_modules[i]; ++i) {
+    // 初始化核心模块
+    for (int i = 0; lts_modules[i]; ++i) {
         module = lts_modules[i];
 
-        if (type != module->type) {
+        if (LTS_CORE_MODULE != module->type) {
             continue;
         }
 
@@ -779,37 +747,84 @@ static int do_init_worker(int type)
         }
 
         if (0 != (*module->init_worker)(module)) {
+            rslt = -1;
             break;
         }
+
+        lstack_push(&stk, &module->s_node);
     }
+    if (rslt) {
+        while (! lstack_is_empty(&stk)) {
+            module = CONTAINER_OF(lstack_top(&stk), lts_module_t, s_node);
+            lstack_pop(&stk);
+            if (module->exit_worker) {
+                (*module->exit_worker)(module);
+            }
+        }
 
-    if (lts_modules[i]) {
-        do_exit_worker(type, i - 1);
-        return -1;
-    }
-
-    return 0;
-}
-
-int worker_main(void)
-{
-    int rslt;
-
-    // 初始化核心模块
-    if (-1 == do_init_worker(LTS_CORE_MODULE)) {
         return EXIT_FAILURE;
     }
 
     // 初始化事件模块
-    if (-1 == do_init_worker(LTS_EVENT_MODULE)) {
-        do_exit_worker(LTS_CORE_MODULE, lts_module_count - 1);
+    for (int i = 0; lts_modules[i]; ++i) {
+        module = lts_modules[i];
+
+        if (LTS_EVENT_MODULE != module->type) {
+            continue;
+        }
+
+        if (module->init_worker) {
+            if (0 == (*module->init_worker)(module)) {
+                lstack_push(&stk, &module->s_node);
+                lts_module_event_cur = module;
+            } else {
+                rslt = -1;
+            }
+
+            break;
+        }
+
+    }
+    if (rslt) {
+        while (! lstack_is_empty(&stk)) {
+            module = CONTAINER_OF(lstack_top(&stk), lts_module_t, s_node);
+            lstack_pop(&stk);
+            if (module->exit_worker) {
+                (*module->exit_worker)(module);
+            }
+        }
+
         return EXIT_FAILURE;
     }
 
     // 初始化app模块
-    if (-1 == do_init_worker(LTS_APP_MODULE)) {
-        do_exit_worker(LTS_EVENT_MODULE, lts_module_count - 1);
-        do_exit_worker(LTS_CORE_MODULE, lts_module_count - 1);
+    for (int i = 0; lts_modules[i]; ++i) {
+        module = lts_modules[i];
+
+        if (LTS_APP_MODULE != module->type) {
+            continue;
+        }
+
+        if (module->init_worker) {
+            if (0 == (*module->init_worker)(module)) {
+                lstack_push(&stk, &module->s_node);
+                lts_module_app_cur = module;
+            } else {
+                rslt = -1;
+            }
+
+            break;
+        }
+    }
+    if (rslt) {
+        while (! lstack_is_empty(&stk)) {
+            module = CONTAINER_OF(lstack_top(&stk), lts_module_t, s_node);
+            lstack_pop(&stk);
+            if (module->exit_worker) {
+                (*module->exit_worker)(module);
+            }
+        }
+
         return EXIT_FAILURE;
     }
 
@@ -822,16 +837,16 @@ int worker_main(void)
         rslt = event_loop_single();
     }
 
-    // 析构app模块
-    do_exit_worker(LTS_APP_MODULE, lts_module_count - 1);
+    // 析构所有模块
+    while (! lstack_is_empty(&stk)) {
+        module = CONTAINER_OF(lstack_top(&stk), lts_module_t, s_node);
+        lstack_pop(&stk);
+        if (module->exit_worker) {
+            (*module->exit_worker)(module);
+        }
+    }
 
-    // 析构事件模块
-    do_exit_worker(LTS_EVENT_MODULE, lts_module_count - 1);
-
-    // 析构核心模块
-    do_exit_worker(LTS_CORE_MODULE, lts_module_count - 1);
-
-    return (0 == rslt) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }
 
 

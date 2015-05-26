@@ -63,6 +63,7 @@ struct lts_module_s {
     int         (*init_worker)(lts_module_t *);
     void        (*exit_worker)(lts_module_t *);
     void        (*exit_master)(lts_module_t *);
+    lstack_t    s_node;
 };
 
 
