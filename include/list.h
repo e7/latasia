@@ -45,16 +45,16 @@ void add_node(list_t **pp_list, list_t *p_node)
 static inline
 int rm_node(list_t **pp_list, list_t *p_node)
 {
-    int removed;
+    int rslt;
     list_t **pp_curr;
 
-    removed = FALSE;
+    rslt = -1;
     pp_curr = pp_list;
     while (*pp_curr) {
         if (p_node == *pp_curr) {
             *pp_curr = (list_t *)*p_node;
             *p_node = 0;
-            removed = TRUE;
+            rslt = 0;
 
             break;
         }
@@ -62,14 +62,15 @@ int rm_node(list_t **pp_list, list_t *p_node)
         pp_curr = (list_t **)*pp_curr;
     }
 
-    return removed;
+    return rslt;
 }
 
 
 // 栈
 typedef list_t lstack_t;
-#define push_node(pplstack, p_node)   add_node(pplstack, p_node)
-#define pop_node(pplstack)            rm_node(pplstack, *pplstack)
+#define lstack_top(stack)           (*stack)
+#define lstack_push(stack, node)    add_node(stack, node)
+#define lstack_pop(stack)           rm_node(stack, *stack)
 
 
 // 双链表

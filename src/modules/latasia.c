@@ -840,26 +840,6 @@ int main(int argc, char *argv[], char *env[])
     int last, rslt;
     lts_module_t *module;
 
-    do {
-        /*
-        lts_rb_root_t rt = RB_ROOT;
-        lts_socket_t s[1000];
-        int count = ARRAY_COUNT(s);
-
-        for (int i = 0; i < count; ++i) {
-            lts_init_socket(&s[i]);
-            s[i].timeout = i + 10;
-        }
-        for (int i = 0; i < count; ++i) {
-            lts_timer_heap_add(&rt, &s[i]);
-        }
-        for (int i = count - 1; i >= 0; --i) {
-            lts_timer_heap_del(&rt, &s[i]);
-        }
-
-        return 0;
-        */
-    } while(0);
 
     // 全局初始化
     lts_pid = getpid(); // 初始化进程号
