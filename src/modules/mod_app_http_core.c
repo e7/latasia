@@ -1,6 +1,9 @@
 #include <zlib.h>
 #include <arpa/inet.h>
 #include <dirent.h>
+
+#include <strings.h>
+
 #include "latasia.h"
 #include "rbtree.h"
 #include "logger.h"
@@ -23,11 +26,18 @@
                                 "{\"result\": 404, \"message\": not found}"\
                                 "</body>"\
                                 "</html>"
+/*
 #define HTTP_200_HEADER         "HTTP/1.1 200 OK\r\n"\
                                 "Server: latasia\r\n"\
                                 "Content-Length: %lu\r\n"\
                                 "Content-Type: application/octet-stream\r\n"\
-                                "Connection: close\r\n\r\n"
+                                "Connection: keep-alive\r\n\r\n"
+*/
+#define HTTP_200_HEADER         "HTTP/1.1 200 OK\r\n"\
+                                "Server: latasia\r\n"\
+                                "Content-Length: %lu\r\n"\
+                                "Content-Type: %s\r\n"\
+                                "Connection: keep-alive\r\n\r\n"
 
 
 typedef struct {
@@ -158,6 +168,7 @@ static int http_core_obuf(lts_socket_t *s)
     ctx->req_file.name = ctx->req_path;
     if (-1 == ctx->req_file.fd) {
         struct stat st;
+        lts_str_t ftype;
 
         // 打开文件
         if (-1 == lts_file_open(&ctx->req_file, O_RDONLY, S_IWUSR | S_IRUSR,
@@ -173,14 +184,84 @@ static int http_core_obuf(lts_socket_t *s)
             return 0;
         }
 
+        // 获取文件大小
         (void)fstat(ctx->req_file.fd, &st);
+
+        // 获取文件类型
+        for (int i = ctx->req_path.len - 1; i >= 0; --i) {
+            if ('.' == ctx->req_path.data[i]) {
+                ftype.data = &ctx->req_path.data[i + 1];
+                ftype.len = ctx->req_path.len - 1 - i;
+                break;
+            }
+        }
 
         // 发送http头
         if (sizeof(HTTP_200_HEADER) - 1 > (n + 32)) { // 预留长度字符串
             abort();
         }
 
-        n_read = snprintf((char *)sb->last, n, HTTP_200_HEADER, st.st_size);
+        if (0 == strncasecmp((const char *)ftype.data, "html",
+                             MIN(ftype.len, sizeof("html") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "text/html");
+        } else if (0 == strncasecmp((const char *)ftype.data, "txt",
+                                    MIN(ftype.len, sizeof("txt") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "text/plain");
+        } else if (0 == strncasecmp((const char *)ftype.data, "log",
+                                    MIN(ftype.len, sizeof("log") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "text/plain");
+        } else if (0 == strncasecmp((const char *)ftype.data, "xml",
+                                    MIN(ftype.len, sizeof("xml") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "text/xml");
+        } else if (0 == strncasecmp((const char *)ftype.data, "gif",
+                                    MIN(ftype.len, sizeof("gif") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "image/gif");
+        } else if (0 == strncasecmp((const char *)ftype.data, "jpg",
+                                    MIN(ftype.len, sizeof("jpg") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "image/jpeg");
+        } else if (0 == strncasecmp((const char *)ftype.data, "png",
+                                    MIN(ftype.len, sizeof("png") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "image/png");
+        } else if (0 == strncasecmp((const char *)ftype.data, "ico",
+                                    MIN(ftype.len, sizeof("ico") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "image/x-icon");
+        } else if (0 == strncasecmp((const char *)ftype.data, "mid",
+                                    MIN(ftype.len, sizeof("mid") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "audio/midi");
+        } else if (0 == strncasecmp((const char *)ftype.data, "mp3",
+                                    MIN(ftype.len, sizeof("mp3") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "audio/mpeg");
+        } else if (0 == strncasecmp((const char *)ftype.data, "mp4",
+                                    MIN(ftype.len, sizeof("mp4") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "video/mp4");
+        } else if (0 == strncasecmp((const char *)ftype.data, "webm",
+                                    MIN(ftype.len, sizeof("webm") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "video/webm");
+        } else if (0 == strncasecmp((const char *)ftype.data, "flv",
+                                    MIN(ftype.len, sizeof("flv") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "video/x-flv");
+        } else if (0 == strncasecmp((const char *)ftype.data, "avi",
+                                    MIN(ftype.len, sizeof("avi") - 1))) {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size, "video/x-msvideo");
+        } else {
+            n_read = snprintf((char *)sb->last, n,
+                              HTTP_200_HEADER, st.st_size,
+                              "pplication/octet-stream");
+        }
         if (n_read > 0) {
             sb->last += n_read;
         }
