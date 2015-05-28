@@ -9,8 +9,9 @@
 #include "logger.h"
 
 
-DECLARE_FILE_FD(lts_stderr_file, STDERR_FILENO, STDERR_NAME);
-DECLARE_FILE(lts_log_file, "latasia.log"); // 文件日志
+DEFINE_FILE_FD(lts_stderr_file, STDERR_FILENO, STDERR_NAME);
+DEFINE_FILE(lts_log_file, ""); // 文件日志
+DEFINE_FILE(lts_pid_file, ""); // pid文件
 
 
 int lts_file_open(lts_file_t *file, int flags,
@@ -25,8 +26,8 @@ int lts_file_open(lts_file_t *file, int flags,
     file->fd = open(name, flags, mode);
     if (-1 == file->fd) {
         (void)lts_write_logger((lts_logger_t *)logger, LTS_LOG_ERROR,
-                                "open() %s failed: %s\n",
-                                name, lts_errno_desc[errno]);
+                                "%s:open() %s failed: %s\n",
+                                STR_LOCATION, name, lts_errno_desc[errno]);
         free(name);
 
         return -1;
@@ -47,8 +48,8 @@ ssize_t lts_file_read(lts_file_t *file,
     rslt = pread(file->fd, buf, sz, file->rseek);
     if (-1 == rslt) {
         (void)lts_write_logger((lts_logger_t *)logger, LTS_LOG_ERROR,
-                                "pread(%d) failed: %s\n",
-                                file->fd, lts_errno_desc[errno]);
+                                "%s:pread(%d) failed: %s\n",
+                                STR_LOCATION, file->fd, lts_errno_desc[errno]);
 
         return -1;
     }
@@ -66,8 +67,8 @@ ssize_t lts_file_write(lts_file_t *file,
     rslt = pwrite(file->fd, buf, sz, file->wseek);
     if (-1 == rslt) {
         (void)lts_write_logger((lts_logger_t *)logger, LTS_LOG_ERROR,
-                                "pwrite(%d) failed: %s\n",
-                                file->fd, lts_errno_desc[errno]);
+                                "%s:pwrite(%d) failed: %s\n",
+                                STR_LOCATION, file->fd, lts_errno_desc[errno]);
 
         return -1;
     }

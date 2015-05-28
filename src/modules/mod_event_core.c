@@ -458,8 +458,11 @@ ssize_t lts_recv(lts_socket_t *cs)
             if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
                 return -1;
             } else {
+                int lvl;
+
                 // 异常关闭
-                (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                lvl = (ECONNRESET == errno) ? LTS_LOG_NOTICE : LTS_LOG_ERROR;
+                (void)lts_write_logger(&lts_file_logger, lvl,
                                        "%s:recv() failed:%s, reset connection\n",
                                        STR_LOCATION, lts_errno_desc[errno]);
                 cs->closing = ((1 << 0) | (1 << 1));

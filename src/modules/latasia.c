@@ -751,6 +751,7 @@ int worker_main(void)
             break;
         }
 
+        ++lts_module_count;
         lstack_push(&stk, &module->s_node);
     }
     if (rslt) {
@@ -775,6 +776,7 @@ int worker_main(void)
 
         if (module->init_worker) {
             if (0 == (*module->init_worker)(module)) {
+                ++lts_module_count;
                 lstack_push(&stk, &module->s_node);
                 lts_module_event_cur = module;
             } else {
@@ -807,6 +809,7 @@ int worker_main(void)
 
         if (module->init_worker) {
             if (0 == (*module->init_worker)(module)) {
+                ++lts_module_count;
                 lstack_push(&stk, &module->s_node);
                 lts_module_app_cur = module;
             } else {
@@ -852,11 +855,13 @@ int worker_main(void)
 
 int main(int argc, char *argv[], char *env[])
 {
-    int last, rslt;
+    int rslt;
+    lstack_t *stk;
     lts_module_t *module;
 
 
     // 全局初始化
+    lts_module_count = 0;
     lts_pid = getpid(); // 初始化进程号
     lts_process_role = LTS_MASTER; // 进程角色
     lts_init_log_prefixes();
@@ -870,11 +875,12 @@ int main(int argc, char *argv[], char *env[])
         return EXIT_FAILURE;
     }
 
-    // 核心模块 {{
-    last = 0;
-    rslt = 0;
-    while (lts_modules[last]) {
-        module = lts_modules[last++];
+    // 清栈
+    lstack_set_empty(&stk);
+
+    // 构造核心模块
+    for (int i = 0; lts_modules[i]; ++i) {
+        module = lts_modules[i];
 
         if (LTS_CORE_MODULE != module->type) {
             continue;
@@ -888,27 +894,31 @@ int main(int argc, char *argv[], char *env[])
             rslt = -1;
             break;
         }
+
+        ++lts_module_count;
+        lstack_push(&stk, &module->s_node);
     }
-
-    if (0 == rslt) {
-        lts_module_count = last;
-        rslt = master_main();
-    }
-
-    while (--last > 0) {
-        module = lts_modules[last];
-
-        if (LTS_CORE_MODULE != module->type) {
-            continue;
+    if (-1 == rslt) {
+        while (! lstack_is_empty(&stk)) {
+            module = CONTAINER_OF(lstack_top(&stk), lts_module_t, s_node);
+            lstack_pop(&stk);
+            if (module->exit_master) {
+                (*module->exit_master)(module);
+            }
         }
-
-        if (NULL == module->exit_master) {
-            continue;
-        }
-
-        (*module->exit_master)(module);
+        return EXIT_FAILURE;
     }
-    // }} 核心模块
 
-    return (0 == rslt) ? EXIT_FAILURE : EXIT_SUCCESS;
+    rslt = master_main();
+
+    // 析构核心模块
+    while (! lstack_is_empty(&stk)) {
+        module = CONTAINER_OF(lstack_top(&stk), lts_module_t, s_node);
+        lstack_pop(&stk);
+        if (module->exit_master) {
+            (*module->exit_master)(module);
+        }
+    }
+
+    return (0 == rslt) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

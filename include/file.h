@@ -19,7 +19,7 @@ typedef struct lts_file_s {
     off_t wseek;
 } lts_file_t;
 
-#define DECLARE_FILE_FD(var, fd, name)      lts_file_t var = {\
+#define DEFINE_FILE_FD(var, fd, name)       lts_file_t var = {\
                                                 fd,\
                                                 {\
                                                     (uint8_t *)(name),\
@@ -27,11 +27,12 @@ typedef struct lts_file_s {
                                                 },\
                                                 0, 0,\
                                             }
-#define DECLARE_FILE(var, name)     DECLARE_FILE_FD(var, -1, name)
+#define DEFINE_FILE(var, name)              DEFINE_FILE_FD(var, -1, name)
 
 
 extern lts_file_t lts_stderr_file;
 extern lts_file_t lts_log_file;
+extern lts_file_t lts_pid_file;
 
 
 static inline void lts_file_rseek(lts_file_t *file, off_t ofst)

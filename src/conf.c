@@ -486,6 +486,7 @@ lts_conf_t lts_conf = {
     lts_string("6742"), // 监听端口
     1, // slave进程数
     MAX_CONNECTIONS, // 每个slave最大连接数
+    lts_string("/var/run/latasia/latasia.pid"), // pid文件路径
     lts_string("/var/log/latasia/latasia.log"), // 日志路径
     lts_string("--SERVER=127.0.0.1"), // 后台服务
     60, // 连接超时
