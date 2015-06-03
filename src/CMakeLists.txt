@@ -1,5 +1,10 @@
-add_subdirectory(modules)
-add_subdirectory(tests)
-add_library(utils adv_string.c mem_pool.c rbtree.c
-                  socket.c buffer.c shmem.c logger.c
-                  file.c conf.c vsignal.c rbt_timer.c)
+AUX_SOURCE_DIRECTORY(. src_utils)
+AUX_SOURCE_DIRECTORY(modules src_modules)
+ADD_EXECUTABLE(latasia ${src_utils} ${src_modules})
+TARGET_LINK_LIBRARIES(latasia z mcheck pthread)
+
+ADD_EXECUTABLE(test_lstack tests/test_lstack.c)
+TARGET_LINK_LIBRARIES(test_lstack mcheck)
+
+ADD_EXECUTABLE(test_rbt_timer rbtree.c rbt_timer.c tests/test_rbt_timer.c)
+TARGET_LINK_LIBRARIES(test_rbt_timer mcheck)
