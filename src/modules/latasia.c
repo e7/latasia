@@ -333,7 +333,7 @@ void process_post_list(void)
     // 获取app接口
     app_itfc = (lts_app_module_itfc_t *)lts_module_app_cur->itfc;
     if (NULL == app_itfc) {
-        return;
+        abort();
     }
 
     // 处理事件

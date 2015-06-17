@@ -25,6 +25,7 @@ enum {
 enum {
     LTS_CORE_MODULE = 1,
     LTS_EVENT_MODULE,
+    LTS_PROTO_MODULE,
     LTS_APP_MODULE,
 };
 

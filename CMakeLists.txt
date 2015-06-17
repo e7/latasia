@@ -2,11 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 project(latacia)
 
 set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR})
 
 add_definitions(-Wall)
 # add_definitions(-Wall -Wextra)
-add_definitions(-D_GNU_SOURCE)
+add_definitions(-D_GNU_SOURCE -DPROJECT_ROOT=${PROJECT_SOURCE_DIR})
 add_definitions(-ggdb -O0 -std=gnu99 -pipe -rdynamic)
 
 if (CMAKE_BUILD_TYPE STREQUAL Debug)

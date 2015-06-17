@@ -3,6 +3,8 @@
 
 int main(void)
 {
+    (void)fprintf(stderr, "%s\n", SRC2STR(PROJECT_ROOT));
+
     lts_rb_root_t rt = RB_ROOT;
     lts_socket_t s[1000];
     int count = ARRAY_COUNT(s);

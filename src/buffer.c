@@ -7,7 +7,8 @@
 #include "buffer.h"
 
 
-lts_buffer_t *lts_create_buffer(lts_pool_t *pool, size_t size, int exp)
+lts_buffer_t *lts_create_buffer(lts_pool_t *pool,
+                                size_t size, size_t limit)
 {
     lts_buffer_t *b;
 
@@ -22,7 +23,7 @@ lts_buffer_t *lts_create_buffer(lts_pool_t *pool, size_t size, int exp)
     }
 
     b->pool = pool;
-    b->expandable = exp;
+    b->limit = limit;
     b->seek = b->start;
     b->last = b->start;
     b->end = b->start + size;
@@ -33,21 +34,29 @@ lts_buffer_t *lts_create_buffer(lts_pool_t *pool, size_t size, int exp)
 
 int lts_buffer_append(lts_buffer_t *buffer, uint8_t *data, size_t n)
 {
-    if ((buffer->end - buffer->last) < n) { // 剩余空间不足
+    if ((buffer->end - buffer->last) < n) { // 可用空间不足
         uint8_t *tmp;
         size_t curr_size, ctx_size;
 
-        if (! buffer->expandable) {
+        curr_size = buffer->end - buffer->start;
+        if (curr_size > buffer->limit) {
+            abort();
+        }
+        if (buffer->limit - curr_size < n) { // 天花板
             return -1;
         }
 
-        curr_size = buffer->end - buffer->start;
+        // 指数增长
         curr_size = 2 * MAX(curr_size, n);
+        if (curr_size > buffer->limit) {
+            curr_size = buffer->limit;
+        }
         tmp = (uint8_t *)lts_palloc(buffer->pool, curr_size);
         if (NULL == tmp) {
             return -1;
         }
 
+        // append
         ctx_size = (size_t)(buffer->last - buffer->start);
         (void)memcpy(tmp, buffer->start, ctx_size);
 
