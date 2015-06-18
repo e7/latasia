@@ -22,6 +22,9 @@
 
 #include "rbtree.h"
 
+#define __THIS_FILE__       "src/rbtree.c"
+
+
 static void __rb_rotate_left(struct rb_node *node, struct rb_root *root)
 {
     struct rb_node *right = node->rb_right;

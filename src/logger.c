@@ -8,6 +8,8 @@
 #include "file.h"
 #include "logger.h"
 
+#define __THIS_FILE__       "src/logger.c"
+
 
 extern pid_t lts_pid;
 extern int64_t lts_current_time;

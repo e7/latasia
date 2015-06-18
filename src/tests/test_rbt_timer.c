@@ -1,5 +1,7 @@
 #include "rbt_timer.h"
 
+#define __THIS_FILE__       "test/test_rbt_timer.c"
+
 
 int main(void)
 {

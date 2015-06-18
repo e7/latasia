@@ -8,6 +8,8 @@
 
 #include "rbt_timer.h"
 
+#define __THIS_FILE__       "src/rbt_timer.c"
+
 
 static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
                                              lts_socket_t *sock,

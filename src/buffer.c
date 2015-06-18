@@ -6,6 +6,8 @@
 
 #include "buffer.h"
 
+#define __THIS_FILE__       "src/buffer.c"
+
 
 lts_buffer_t *lts_create_buffer(lts_pool_t *pool,
                                 size_t size, size_t limit)

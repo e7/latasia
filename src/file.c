@@ -8,6 +8,8 @@
 #include "file.h"
 #include "logger.h"
 
+#define __THIS_FILE__       "src/file.c"
+
 
 DEFINE_FILE_FD(lts_stderr_file, STDERR_FILENO, STDERR_NAME);
 DEFINE_FILE(lts_log_file, ""); // 文件日志

@@ -3,6 +3,8 @@
 #include "logger.h"
 #include "latasia.h"
 
+#define __THIS_FILE__       "src/modules/mod_core.c"
+
 
 static int init_core_master(lts_module_t *module);
 static void exit_core_master(lts_module_t *module);

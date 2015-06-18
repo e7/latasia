@@ -6,6 +6,8 @@
 
 #include "socket.h"
 
+#define __THIS_FILE__       "src/socket.c"
+
 
 int lts_accept_disabled;
 dlist_t lts_sock_list; // socket缓存列表

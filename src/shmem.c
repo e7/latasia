@@ -9,6 +9,8 @@
 #include <errno.h>
 #include "shmem.h"
 
+#define __THIS_FILE__       "src/shmem.c"
+
 
 int lts_shm_alloc(lts_shm_t *shm)
 {

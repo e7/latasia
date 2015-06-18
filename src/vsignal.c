@@ -7,6 +7,8 @@
 #include "latasia.h"
 #include "vsignal.h"
 
+#define __THIS_FILE__       "src/vsignal.c"
+
 
 static void sig_int_handler(int s)
 {

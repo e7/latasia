@@ -54,7 +54,7 @@ extern ssize_t lts_write_logger(lts_logger_t *log,
                                 int level, char const *fmt, ...);
 
 #if LOG_SHOW_LOC
-#define STR_LOCATION        __FILE__":"SRC2STR(__LINE__)
+#define STR_LOCATION        __THIS_FILE__":"SRC2STR(__LINE__)
 #else
 #define STR_LOCATION        "*"
 #endif // LOG_SHOW_LOC

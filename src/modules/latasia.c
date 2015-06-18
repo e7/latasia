@@ -15,6 +15,8 @@
 #include "vsignal.h"
 #include "rbt_timer.h"
 
+#define __THIS_FILE__       "src/modules/latasia.c"
+
 
 static uint8_t __lts_cwd_buf[LTS_MAX_PATH_LEN];
 static char const *__lts_errno_desc[] = {
@@ -830,6 +832,9 @@ int worker_main(void)
 
         return EXIT_FAILURE;
     }
+    (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
+                           "%s:current app module is %s\n",
+                           STR_LOCATION, lts_module_app_cur->name.data);
 
     // 事件循环
     (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,

@@ -10,6 +10,8 @@
 #include "file.h"
 #include "logger.h"
 
+#define __THIS_FILE__       "src/conf.c"
+
 
 #define CONF_FILE           "latasia.conf"
 #define MAX_KEEPALIVE       (24 * 60 * 60)

@@ -1,5 +1,7 @@
 #include "list.h"
 
+#define __THIS_FILE__       "test/test_lstack.c"
+
 
 typedef struct {
     int x;

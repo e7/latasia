@@ -8,6 +8,8 @@
 #include "vsignal.h"
 #include "rbt_timer.h"
 
+#define __THIS_FILE__       "src/modules/mod_event_epoll.c"
+
 
 static int epfd;
 static struct epoll_event *buf_epevs;

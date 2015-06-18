@@ -1,6 +1,8 @@
 #include "common.h"
 #include "mem_pool.h"
 
+#define __THIS_FILE__       "src/mem_pool.c"
+
 
 #define MIN_POOL_SIZE       4096
 

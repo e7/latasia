@@ -10,6 +10,8 @@
 #include "logger.h"
 #include "rbt_timer.h"
 
+#define __THIS_FILE__       "src/modules/mod_event_core.c"
+
 
 void lts_close_conn_orig(int fd, int reset)
 {

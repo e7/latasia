@@ -6,6 +6,8 @@
 
 #include "adv_string.h"
 
+#define __THIS_FILE__       "src/adv_string.c"
+
 
 static void reverse_region(uint8_t *data, int i, int j)
 {

@@ -9,6 +9,8 @@
 #include "logger.h"
 #include "conf.h"
 
+#define __THIS_FILE__       "src/modules/mod_app_http_core.c"
+
 
 #define DEFAULT_FILENAME        "index.html"
 #define HTTP_404_HEADER         "HTTP/1.1 404 NOT FOUND\r\n"\
