@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <sys/epoll.h>
 
+#include "atomic.h"
 #include "latasia.h"
 #include "logger.h"
 #include "conf.h"
