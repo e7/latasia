@@ -194,6 +194,8 @@ static char const *__lts_errno_desc[] = {
 char const **lts_errno_desc = __lts_errno_desc;
 lts_sm_t lts_global_sm; // 全局状态机
 lts_str_t lts_cwd = {__lts_cwd_buf, 0,}; // 当前工作目录
+int lts_cpu_conf; // cpu总核数
+int lts_cpu_onln; // 可用cpu核数
 size_t lts_sys_pagesize;
 lts_atomic_t lts_signals_mask; // 信号掩码
 
@@ -523,7 +525,7 @@ int event_loop_multi(void)
                 // 抢锁成功
                 enable_accept_events();
             } else {
-                 disable_accept_events();
+                disable_accept_events();
             }
         } else {
             disable_accept_events();
@@ -865,14 +867,15 @@ int main(int argc, char *argv[], char *env[])
     lstack_t *stk;
     lts_module_t *module;
 
-
     // 全局初始化
+    lts_cpu_conf = (int)sysconf(_SC_NPROCESSORS_CONF);
+    lts_cpu_onln = (int)sysconf(_SC_NPROCESSORS_ONLN);
+    lts_sys_pagesize = (size_t)sysconf(_SC_PAGESIZE);
     lts_module_count = 0;
     lts_pid = getpid(); // 初始化进程号
     lts_process_role = LTS_MASTER; // 进程角色
     lts_init_log_prefixes();
     lts_update_time();
-    lts_sys_pagesize = (size_t)sysconf(_SC_PAGESIZE);
 
     // 初始化信号处理
     if (-1 == lts_init_sigactions(lts_process_role)) {
