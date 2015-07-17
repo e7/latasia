@@ -157,4 +157,10 @@ void lts_free_socket(lts_socket_t *s)
 
     return;
 }
+
+#if ! HAVE_FUNCTION_ACCEPT4
+#define SOCK_NONBLOCK       (1U << 11)
+extern int accept4(int sockfd, struct sockaddr *addr,
+                   socklen_t *addrlen, int flags);
+#endif
 #endif // __LATASIA__SOCKET_H__

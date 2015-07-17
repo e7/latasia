@@ -48,7 +48,6 @@ static int echo_ibuf(lts_socket_t *s)
 
 static int echo_obuf(lts_socket_t *s)
 {
-    size_t n, n_read;
     lts_buffer_t *sb;
 
     if (NULL == s->conn) {

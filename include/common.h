@@ -66,8 +66,7 @@ enum {
 
 
 static inline
-lts_atomic_t lts_atomic_cmp_set(lts_atomic_t *lock,
-                                sig_atomic_t old, sig_atomic_t set)
+int lts_atomic_cmp_set(lts_atomic_t *lock, sig_atomic_t old, sig_atomic_t set)
 {
     uint8_t res;
 

@@ -18,3 +18,12 @@ dlist_t lts_listen_list;
 dlist_t lts_conn_list;
 dlist_t lts_post_list;
 dlist_t lts_timeout_list; // 超时列表
+
+
+#if ! HAVE_FUNCTION_ACCEPT4
+int accept4(int sockfd, struct sockaddr *addr,
+            socklen_t *addrlen, int flags)
+{
+    return 0;
+}
+#endif
