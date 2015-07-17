@@ -21,9 +21,17 @@ dlist_t lts_timeout_list; // 超时列表
 
 
 #ifndef HAVE_FUNCTION_ACCEPT4
-int accept4(int sockfd, struct sockaddr *addr,
-            socklen_t *addrlen, int flags)
+int lts_accept4(int sockfd, struct sockaddr *addr,
+                socklen_t *addrlen, int flags)
 {
-    return 0;
+    int fd;
+
+    fd = accept(sockfd, addr, addrlen);
+    if (-1 == fd) {
+        return -1;
+    }
+    (void)lts_set_nonblock(fd);
+
+    return fd;
 }
 #endif

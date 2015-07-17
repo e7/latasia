@@ -160,7 +160,9 @@ void lts_free_socket(lts_socket_t *s)
 
 #ifndef HAVE_FUNCTION_ACCEPT4
 #define SOCK_NONBLOCK       (1U << 11)
-extern int accept4(int sockfd, struct sockaddr *addr,
-                   socklen_t *addrlen, int flags);
+extern int lts_accept4(int sockfd, struct sockaddr *addr,
+                       socklen_t *addrlen, int flags);
+#else
+#define lts_accept4     accept4
 #endif
 #endif // __LATASIA__SOCKET_H__

@@ -13,7 +13,7 @@
 
 // configuration {{
 #define MAX_CONF_SIZE           65535
-#define ENABLE_IPV6             TRUE
+#define ENABLE_IPV6             FALSE
 #define MODULE_POOL_SIZE        524288
 #define CONN_POOL_SIZE          40960
 #define CONN_BUFFER_SIZE        4096

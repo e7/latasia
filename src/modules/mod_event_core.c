@@ -94,8 +94,8 @@ static ssize_t lts_accept(lts_socket_t *ls)
             break;
         }
 
-        cmnct_fd = accept4(ls->fd, (struct sockaddr *)clt,
-                           &clt_len, SOCK_NONBLOCK);
+        cmnct_fd = lts_accept4(ls->fd, (struct sockaddr *)clt,
+                               &clt_len, SOCK_NONBLOCK);
         if (-1 == cmnct_fd) {
             ls->readable = 0;
             lts_listen_list_add(ls); // post_list -> listen_list
@@ -213,8 +213,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
         lts_socket_t *ls;
 
         if ((AF_INET != iter->ai_family)
-                && ((!ENABLE_IPV6) || (AF_INET6 != iter->ai_family)))
-        {
+                && ((!ENABLE_IPV6) || (AF_INET6 != iter->ai_family))) {
             continue;
         }
 
