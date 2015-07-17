@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <sys/epoll.h>
+#include <sched.h>
 
 #include "atomic.h"
 #include "latasia.h"
@@ -738,6 +739,21 @@ int worker_main(void)
 
     rslt = 0;
     lstack_set_empty(&stk);
+
+    // 绑定cpu
+    do {
+        int cpuid;
+        cpu_set_t cpuset;
+
+        cpuid = lts_pid % lts_cpu_onln;
+        CPU_ZERO(&cpuset);
+        CPU_SET(cpuid, &cpuset);
+        if (-1 == sched_setaffinity(0, sizeof(cpuset), &cpuset)) {
+            (void)lts_write_logger(&lts_file_logger, LTS_LOG_WARN,
+                                   "%s:bind cpu faild:%s\n",
+                                   STR_LOCATION, lts_errno_desc[errno]);
+        }
+    } while (0);
 
     // 初始化核心模块
     for (int i = 0; lts_modules[i]; ++i) {
