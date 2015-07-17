@@ -70,7 +70,7 @@ static int epoll_process_events(void)
     lts_socket_t *cs;
     uintptr_t instance;
     uint32_t revents;
-#if ! HAVE_FUNCTION_EPOLL_PWAIT
+#ifndef HAVE_FUNCTION_EPOLL_PWAIT
     sigset_t orig_mask;
 #endif
     sigset_t sig_mask;
@@ -85,7 +85,7 @@ static int epoll_process_events(void)
     } else {
         timeout = -1;
     }
-#if ! HAVE_FUNCTION_EPOLL_PWAIT
+#ifndef HAVE_FUNCTION_EPOLL_PWAIT
     sigprocmask(SIG_SETMASK, &sig_mask, &orig_mask);
     nevents = epoll_wait(epfd, buf_epevs, nbuf_epevs, timeout);
     sigprocmask(SIG_SETMASK, &orig_mask, NULL);
@@ -169,12 +169,15 @@ static int init_event_epoll_worker(lts_module_t *mod)
     mod->pool = pool;
 
     // 创建epoll对象
-#if HAVE_FUNCTION_EPOLL_CREATE1
-    epfd = epoll_create1(1);
-#else
+#ifndef HAVE_FUNCTION_EPOLL_CREATE1
     epfd = epoll_create(1024);
+#else
+    epfd = epoll_create1(0);
 #endif
     if (-1 == epfd) {
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "%s:create epoll inst failed:%s\n",
+                               STR_LOCATION, lts_errno_desc[errno]);
         return LTS_E_SYS;
     }
 

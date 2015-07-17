@@ -20,7 +20,7 @@ dlist_t lts_post_list;
 dlist_t lts_timeout_list; // 超时列表
 
 
-#if ! HAVE_FUNCTION_ACCEPT4
+#ifndef HAVE_FUNCTION_ACCEPT4
 int accept4(int sockfd, struct sockaddr *addr,
             socklen_t *addrlen, int flags)
 {

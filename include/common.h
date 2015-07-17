@@ -23,6 +23,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include "build.h"
+
 
 // 布尔值
 #define FALSE           0

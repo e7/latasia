@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(latacia)
 
-include (CheckFunctionExists)
+include(CheckFunctionExists)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -23,3 +23,8 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR}/include)
 link_directories(/usr/local/lib64)
 add_subdirectory(src)
+
+configure_file(
+    "${PROJECT_SOURCE_DIR}/include/build.h.in"
+    "${PROJECT_SOURCE_DIR}/include/build.h"
+)
