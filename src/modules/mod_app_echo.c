@@ -48,12 +48,22 @@ static int echo_ibuf(lts_socket_t *s)
 
 static int echo_obuf(lts_socket_t *s)
 {
+    lts_buffer_t *rb;
     lts_buffer_t *sb;
 
     if (NULL == s->conn) {
         abort();
     }
+
+    rb = s->conn->rbuf;
     sb = s->conn->sbuf;
+
+    // 清空发送缓冲
+    lts_buffer_clear(sb);
+
+    // exchange
+    s->conn->rbuf = sb;
+    s->conn->sbuf = rb;
 
     return 0;
 }

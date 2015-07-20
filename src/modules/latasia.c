@@ -216,7 +216,7 @@ lts_module_t *lts_modules[] = {
     &lts_core_module,
     &lts_event_core_module,
     &lts_event_epoll_module,
-    &lts_app_http_core_module,
+    &lts_app_echo_module,
     NULL,
 };
 lts_module_t *lts_module_event_cur;
@@ -850,6 +850,11 @@ int worker_main(void)
         }
 
         return EXIT_FAILURE;
+    }
+    if (NULL == lts_module_app_cur) {
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_EMERGE,
+                               "%s:no app module found\n", STR_LOCATION);
+        abort();
     }
     (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                            "%s:current app module is %s\n",
