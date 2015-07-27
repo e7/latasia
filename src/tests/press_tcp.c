@@ -1,5 +1,10 @@
-#include <common.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <pthread.h>
+
+#include "common.h"
 
 
 #define MAX_THREADS     9999
@@ -7,8 +12,13 @@
 
 
 static volatile sig_atomic_t keep_running = 1;
+static pthread_spinlock_t lock_success_count;
+static size_t success_count;
+static pthread_spinlock_t lock_failed_count;
+static size_t failed_count;
 
 
+// 各种定时器
 void sec_sleep(long sec)
 {
     int err;
@@ -63,11 +73,66 @@ void usec_sleep(long usec)
     return;
 }
 
+static void incr_failed_count(void)
+{
+    if (-1 == pthread_spin_lock(&lock_failed_count)) {
+        return;
+    }
+    ++failed_count;
+    (void)pthread_spin_unlock(&lock_failed_count);
+}
+
+// 线程回调
 static void *thread_proc(void *args)
 {
-    while (keep_running) {
-        fprintf(stderr, "lalala\n");
+    char *buf;
+    struct sockaddr const *srv_name;
+    static const int BUF_SIZE = 64;
+
+    if (NULL == args) {
+        return NULL;
     }
+
+    buf = (char *)malloc(BUF_SIZE);
+    srv_name = (struct sockaddr const *)args;
+    while (keep_running) {
+        int rslt;
+        int sockfd;
+        ssize_t rssz;
+
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (-1 == sockfd) {
+            incr_failed_count();
+            continue;
+        }
+
+        rslt = connect(sockfd, srv_name, sizeof(*srv_name));
+        if (-1 == rslt) {
+            (void)close(sockfd);
+            incr_failed_count();
+            continue;
+        }
+
+        rssz = send(sockfd, buf, BUF_SIZE, 0);
+        if (-1 == rslt) {
+            (void)close(sockfd);
+            incr_failed_count();
+            continue;
+        }
+
+        while (recv(sockfd, buf, BUF_SIZE, 0) > 0) {
+            continue;
+        }
+        (void)close(sockfd);
+
+        // 统计
+        if (-1 == pthread_spin_lock(&lock_success_count)) {
+            continue;
+        }
+        ++success_count;
+        (void)pthread_spin_unlock(&lock_success_count);
+    }
+    free(buf);
 
     return NULL;
 }
@@ -81,16 +146,23 @@ int main(int argc, char *argv[], char *env[])
     int nport = 0;
     char const *srv_name = NULL;
     pthread_t *pids;
+    struct sockaddr_in si;
 
     if (1 == argc) {
         (void)fprintf(stderr, USAGE, argv[0]);
         return EXIT_SUCCESS;
     }
 
+    (void)memset(&si, 0, sizeof(si));
+    si.sin_family = AF_INET;
     while ((opt = getopt(argc, argv, "s:p:c:t:")) != -1) {
         switch (opt) {
         case 's': {
             srv_name = optarg;
+            if (! inet_aton(srv_name, &si.sin_addr)) {
+                (void)fprintf(stderr, "invalid argument for -s\n");
+                return EXIT_FAILURE;
+            }
             break;
         }
 
@@ -100,6 +172,8 @@ int main(int argc, char *argv[], char *env[])
                 (void)fprintf(stderr, "invalid argument for -p\n");
                 return EXIT_FAILURE;
             }
+
+            si.sin_port = htons(nport);
 
             break;
         }
@@ -151,9 +225,17 @@ int main(int argc, char *argv[], char *env[])
     (void)fprintf(stderr, "duration of time: %ds\n", nsec);
 
     // 创建线程组
+    if (-1 == pthread_spin_init(&lock_success_count,
+                                PTHREAD_PROCESS_PRIVATE)) {
+        abort();
+    }
+    if (-1 == pthread_spin_init(&lock_failed_count,
+                                PTHREAD_PROCESS_PRIVATE)) {
+        abort();
+    }
     pids = (pthread_t *)malloc(sizeof(pthread_t) * nthreads);
     for (int i = 0; i < nthreads; ++i) {
-        switch (pthread_create(&pids[i], NULL, thread_proc, NULL)) {
+        switch (pthread_create(&pids[i], NULL, thread_proc, &si)) {
             case 0: {
                 break;
             }
@@ -203,6 +285,14 @@ int main(int argc, char *argv[], char *env[])
         }
     }
     free(pids);
+    (void)pthread_spin_destroy(&lock_failed_count);
+    (void)pthread_spin_destroy(&lock_success_count);
+
+    // 打印统计结果
+    (void)fprintf(stderr, "********************\n");
+    (void)fprintf(stderr, "success: %u\n", success_count);
+    (void)fprintf(stderr, "failed: %u\n", failed_count);
+    (void)fprintf(stderr, "TPS: %u/sec\n", success_count/nsec);
 
     return EXIT_SUCCESS;
 }
