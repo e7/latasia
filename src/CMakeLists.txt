@@ -10,4 +10,4 @@ ADD_EXECUTABLE(test_rbt_timer rbtree.c rbt_timer.c tests/test_rbt_timer.c)
 TARGET_LINK_LIBRARIES(test_rbt_timer mcheck)
 
 ADD_EXECUTABLE(press_tcp tests/press_tcp.c)
-TARGET_LINK_LIBRARIES(press_tcp mcheck)
+TARGET_LINK_LIBRARIES(press_tcp mcheck pthread)
