@@ -217,6 +217,7 @@ lts_module_t *lts_modules[] = {
     &lts_event_core_module,
     &lts_event_epoll_module,
     &lts_app_echo_module,
+    // &lts_app_http_core_module,
     NULL,
 };
 lts_module_t *lts_module_event_cur;
@@ -396,7 +397,7 @@ void process_post_list(void)
                 cs->ev_mask &= (~EPOLLOUT);
                 (*lts_event_itfc->event_mod)(cs);
 
-                if (shutdown(cs->fd, SHUT_WR)) {
+                if (cs->shutdown && shutdown(cs->fd, SHUT_WR)) {
                     (void)lts_write_logger(
                         &lts_file_logger, LTS_LOG_ERROR,
                         "%s:shut() failed:%s\n",

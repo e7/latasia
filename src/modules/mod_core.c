@@ -88,6 +88,13 @@ int init_core_master(lts_module_t *module)
                             &lts_stderr_logger)) {
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
                                "%s:open log file failed\n", STR_LOCATION);
+
+        // 删除pid文件
+        if (-1 == unlink((char const *)lts_conf.pid_file.data)) {
+            (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
+                                   "%s:delete pid file failed\n", STR_LOCATION);
+        }
+
         return -1;
     }
 

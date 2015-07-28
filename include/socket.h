@@ -46,7 +46,8 @@ struct lts_socket_s {
     unsigned writable: 1;
     unsigned timeoutable: 1;
     unsigned more: 1;
-    unsigned closing: 2; // 请求关闭
+    unsigned reset: 1; // 重置连接
+    unsigned shutdown: 1; // 关闭连接
     unsigned instance: 1;
 
     lts_conn_t *conn;
@@ -103,7 +104,8 @@ void lts_init_socket(lts_socket_t *s)
     s->writable = 0;
     s->more = 0;
     s->timeoutable = 0;
-    s->closing = 0;
+    s->reset = 0;
+    s->shutdown = 0;
     s->instance = (!s->instance);
 
     s->conn = NULL;

@@ -89,7 +89,7 @@ extern ssize_t lts_recv(lts_socket_t *cs);
 extern ssize_t lts_send(lts_socket_t *cs);
 extern ssize_t lts_timeout(lts_socket_t *cs);
 extern void lts_close_conn_orig(int fd, int reset);
-extern void lts_close_conn(lts_socket_t *cs);
+extern void lts_close_conn(lts_socket_t *cs, int reset);
 
 
 extern lts_sm_t lts_global_sm; // 全局状态机

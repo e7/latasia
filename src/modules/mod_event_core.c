@@ -34,11 +34,11 @@ void lts_close_conn_orig(int fd, int reset)
 }
 
 
-void lts_close_conn(lts_socket_t *cs)
+void lts_close_conn(lts_socket_t *cs, int reset)
 {
     lts_timer_heap_del(&lts_timer_heap, cs);
     (*lts_event_itfc->event_del)(cs);
-    lts_close_conn_orig(cs->fd, cs->closing & (1 << 1));
+    lts_close_conn_orig(cs->fd, reset);
     if (cs->conn->pool) {
         lts_destroy_pool(cs->conn->pool);
         cs->conn = NULL;
@@ -466,15 +466,13 @@ ssize_t lts_recv(lts_socket_t *cs)
                 (void)lts_write_logger(&lts_file_logger, lvl,
                                        "%s:recv() failed:%s, reset connection\n",
                                        STR_LOCATION, lts_errno_desc[errno]);
-                cs->closing = ((1 << 0) | (1 << 1));
-                lts_close_conn(cs);
+                lts_close_conn(cs, TRUE);
                 return -1;
             }
         } else if (0 == recv_sz) {
             // 正常关闭连接
             cs->readable = 0;
-            cs->closing = (1 << 0);
-            lts_close_conn(cs);
+            lts_close_conn(cs, FALSE);
             return -1;
         } else {
             buf->last += recv_sz;
@@ -515,8 +513,7 @@ ssize_t lts_send(lts_socket_t *cs)
                                    "%s:send(%d) failed:%s, reset connection\n",
                                    STR_LOCATION, cs->fd,
                                    lts_errno_desc[errno]);
-            cs->closing = ((1 << 0) | (1 << 1));
-            lts_close_conn(cs);
+            lts_close_conn(cs, TRUE);
         }
 
         return -1;
