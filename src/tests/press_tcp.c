@@ -13,9 +13,9 @@
 
 static volatile sig_atomic_t keep_running = 1;
 static pthread_spinlock_t lock_success_count;
-static size_t success_count;
+static volatile size_t success_count;
 static pthread_spinlock_t lock_failed_count;
-static size_t failed_count;
+static volatile size_t failed_count;
 
 
 // 各种定时器
@@ -86,44 +86,37 @@ static void incr_failed_count(void)
 static void *thread_proc(void *args)
 {
     char *buf;
-    struct sockaddr const *srv_name;
+    int sockfd;
+    struct sockaddr const *srv_addr = NULL;
     static const int BUF_SIZE = 64;
 
     if (NULL == args) {
         return NULL;
     }
+    srv_addr = (struct sockaddr const *)args;
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (-1 == sockfd) {
+        return NULL;
+    }
+
+    if (-1 == connect(sockfd, srv_addr, sizeof(struct sockaddr_in))) {
+        fprintf(stderr, "connect:%d\n", errno);
+        (void)close(sockfd);
+        return NULL;
+    }
 
     buf = (char *)malloc(BUF_SIZE);
-    srv_name = (struct sockaddr const *)args;
     while (keep_running) {
-        int rslt;
-        int sockfd;
-        ssize_t rssz;
-
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (-1 == sockfd) {
+        if (-1 == send(sockfd, buf, BUF_SIZE, 0)) {
             incr_failed_count();
             continue;
         }
 
-        rslt = connect(sockfd, srv_name, sizeof(*srv_name));
-        if (-1 == rslt) {
-            (void)close(sockfd);
+        if (-1 == recv(sockfd, buf, BUF_SIZE, 0)) {
             incr_failed_count();
             continue;
         }
-
-        rssz = send(sockfd, buf, BUF_SIZE, 0);
-        if (-1 == rslt) {
-            (void)close(sockfd);
-            incr_failed_count();
-            continue;
-        }
-
-        while (recv(sockfd, buf, BUF_SIZE, 0) > 0) {
-            continue;
-        }
-        (void)close(sockfd);
 
         // 统计
         if (-1 == pthread_spin_lock(&lock_success_count)) {
@@ -133,6 +126,7 @@ static void *thread_proc(void *args)
         (void)pthread_spin_unlock(&lock_success_count);
     }
     free(buf);
+    (void)close(sockfd);
 
     return NULL;
 }
@@ -290,9 +284,9 @@ int main(int argc, char *argv[], char *env[])
 
     // 打印统计结果
     (void)fprintf(stderr, "********************\n");
-    (void)fprintf(stderr, "success: %u\n", success_count);
-    (void)fprintf(stderr, "failed: %u\n", failed_count);
-    (void)fprintf(stderr, "TPS: %u/sec\n", success_count/nsec);
+    (void)fprintf(stderr, "success: %Zd\n", success_count);
+    (void)fprintf(stderr, "failed: %Zd\n", failed_count);
+    (void)fprintf(stderr, "TPS: %Zd/sec\n", success_count/nsec);
 
     return EXIT_SUCCESS;
 }
