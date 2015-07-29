@@ -166,6 +166,7 @@ static int http_core_obuf(lts_socket_t *s)
         return -1;
     }
 
+    s->shutdown = 1; // 发送完毕后关闭连接
     n = sb->end - sb->last;
     ctx->req_file.name = ctx->req_path;
     if (-1 == ctx->req_file.fd) {
