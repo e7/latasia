@@ -83,12 +83,33 @@ static void incr_failed_count(void)
 }
 
 // 线程回调
-static void *thread_proc(void *args)
+#define BUF_SIZE        64
+#define MAX_CONN        10
+
+static void *thread_proc_short(void *args)
+{
+    char *buf;
+    int nconn;
+    int sockfd;
+    struct sockaddr const *srv_addr = NULL;
+
+    if (NULL == args) {
+        return NULL;
+    }
+    srv_addr = (struct sockaddr const *)args;
+
+    nconn = 0;
+    while (keep_running) {
+    }
+
+    return NULL;
+}
+
+static void *thread_proc_long(void *args)
 {
     char *buf;
     int sockfd;
     struct sockaddr const *srv_addr = NULL;
-    static const int BUF_SIZE = 64;
 
     if (NULL == args) {
         return NULL;
@@ -229,7 +250,7 @@ int main(int argc, char *argv[], char *env[])
     }
     pids = (pthread_t *)malloc(sizeof(pthread_t) * nthreads);
     for (int i = 0; i < nthreads; ++i) {
-        switch (pthread_create(&pids[i], NULL, thread_proc, &si)) {
+        switch (pthread_create(&pids[i], NULL, thread_proc_long, &si)) {
             case 0: {
                 break;
             }
