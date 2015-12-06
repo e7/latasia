@@ -9,6 +9,7 @@
 #define __THIS_FILE__       "src/adv_string.c"
 
 
+// 区间反转，i和j分别为起始和结束下标
 static void reverse_region(uint8_t *data, int i, int j)
 {
     uint8_t c;
@@ -190,7 +191,7 @@ size_t lts_str_filter(lts_str_t *src, uint8_t c)
     size_t i, m, j;
     size_t c_count;
 
-    // 计算c_count
+    // 计算c_count，即字符c的个数
     c_count = 0;
     for (i = 0; i < src->len; ++i) {
         if (c == src->data[i]) {
@@ -201,7 +202,7 @@ size_t lts_str_filter(lts_str_t *src, uint8_t c)
         return 0;
     }
 
-    // 初始化i
+    // 初始化i，即第一个c的位置
     for (i = 0; i < src->len; ++i) {
         if (c == src->data[i]) {
             break;
@@ -222,6 +223,7 @@ size_t lts_str_filter(lts_str_t *src, uint8_t c)
             break;
         }
 
+        // m >= i
         for (j = m; j < src->len; ++j) {
             if (c == src->data[j]) {
                 --j;
