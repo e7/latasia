@@ -6,6 +6,9 @@ TARGET_LINK_LIBRARIES(latasia z mcheck pthread)
 ADD_EXECUTABLE(test_charmap tests/test_charmap.c)
 TARGET_LINK_LIBRARIES(test_charmap mcheck)
 
+ADD_EXECUTABLE(test_adv_string adv_string.c tests/test_adv_string.c)
+TARGET_LINK_LIBRARIES(test_adv_string mcheck)
+
 ADD_EXECUTABLE(test_lstack tests/test_lstack.c)
 TARGET_LINK_LIBRARIES(test_lstack mcheck)
 

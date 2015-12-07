@@ -243,7 +243,60 @@ ssize_t lts_str_filter(lts_str_t *src, uint8_t c)
 
 ssize_t lts_str_filter_multi(lts_str_t *src, uint8_t *c, ssize_t len)
 {
-    return 0;
+    charmap_t cm;
+    ssize_t i, m, j;
+    ssize_t c_count;
+
+    charmap_clean(&cm);
+    for (ssize_t i = 0; i < len; ++i) {
+        charmap_set(&cm, c[i]);
+    }
+
+    c_count = 0;
+    for (i = 0; i < src->len; ++i) {
+        if (charmap_isset(&cm, src->data[i])) {
+            ++c_count;
+        }
+    }
+    if (0 == c_count) {
+        return 0;
+    }
+
+    for (i = 0; i < src->len; ++i) {
+        if (charmap_isset(&cm, src->data[i])) {
+            break;
+        }
+    }
+
+    while (TRUE) {
+        for (m = i; m < src->len; ++m) {
+            if (! charmap_isset(&cm, src->data[m])) {
+                break;
+            }
+        }
+        if (m == src->len) {
+            size_t tmp_len = src->len - c_count;
+
+            src->data[tmp_len] = 0;
+            src->len = tmp_len;
+            break;
+        }
+
+        // m >= i
+        for (j = m; j < src->len; ++j) {
+            if (charmap_isset(&cm, src->data[j])) {
+                --j;
+                break;
+            }
+        }
+
+        reverse_region(src->data, m, j);
+        reverse_region(src->data, i, j);
+
+        i += j - m + 1;
+    }
+
+    return c_count;
 }
 
 

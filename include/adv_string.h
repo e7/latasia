@@ -65,6 +65,7 @@ typedef struct {
 } lts_str_t;
 
 
+// 用数组初始化
 #define lts_string(str) {\
     (uint8_t *)(str), sizeof(str) - 1,\
 }
