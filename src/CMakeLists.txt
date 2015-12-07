@@ -3,6 +3,9 @@ AUX_SOURCE_DIRECTORY(modules src_modules)
 ADD_EXECUTABLE(latasia ${src_utils} ${src_modules})
 TARGET_LINK_LIBRARIES(latasia z mcheck pthread)
 
+ADD_EXECUTABLE(test_charmap tests/test_charmap.c)
+TARGET_LINK_LIBRARIES(test_charmap mcheck)
+
 ADD_EXECUTABLE(test_lstack tests/test_lstack.c)
 TARGET_LINK_LIBRARIES(test_lstack mcheck)
 

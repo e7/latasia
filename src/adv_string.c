@@ -186,10 +186,10 @@ void lts_str_reverse(lts_str_t *src)
 }
 
 
-size_t lts_str_filter(lts_str_t *src, uint8_t c)
+ssize_t lts_str_filter(lts_str_t *src, uint8_t c)
 {
-    size_t i, m, j;
-    size_t c_count;
+    ssize_t i, m, j;
+    ssize_t c_count;
 
     // 计算c_count，即字符c的个数
     c_count = 0;
@@ -238,6 +238,12 @@ size_t lts_str_filter(lts_str_t *src, uint8_t c)
     }
 
     return c_count;
+}
+
+
+ssize_t lts_str_filter_multi(lts_str_t *src, uint8_t *c, ssize_t len)
+{
+    return 0;
 }
 
 

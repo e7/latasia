@@ -11,6 +11,54 @@
 #include "common.h"
 
 
+typedef union {
+    uint8_t bytes[32];
+    uint32_t ints[8];
+} charmap_t;
+
+static inline
+int count_bit_1(uint32_t x)
+{
+    x = (x & 0x55555555U) + ((x >> 1) & 0x55555555U);
+    x = (x & 0x33333333U) + ((x >> 2) & 0x33333333U);
+    x = (x & 0x0F0F0F0FU) + ((x >> 4) & 0x0F0F0F0FU);
+    x = (x & 0x00FF00FFU) + ((x >> 8) & 0x00FF00FFU);
+    x = (x & 0x0000FFFFU) + ((x >> 16) & 0x0000FFFFU);
+
+    return x;
+}
+
+static inline
+void charmap_clean(charmap_t *cm)
+{
+    (void)memset(cm->bytes, 0, sizeof(cm->bytes));
+}
+
+static inline
+void charmap_set(charmap_t *cm, uint8_t c)
+{
+    cm->bytes[c / 8] |= (1U << cm->bytes[c % 8]);
+}
+
+static inline
+int charmap_isset(charmap_t *cm, uint8_t c)
+{
+    return (cm->bytes[c / 8] & (1U << cm->bytes[c % 8]));
+}
+
+static inline
+int charmap_count(charmap_t *cm)
+{
+    int count = 0;
+
+    for (int i = 0; i < ARRAY_COUNT(cm->ints); ++i) {
+        count += count_bit_1(cm->ints[i]);
+    }
+
+    return count;
+}
+
+
 typedef struct {
     uint8_t *data;
     size_t len;
@@ -39,7 +87,8 @@ extern void lts_str_trim(lts_str_t *str);
 extern void lts_str_reverse(lts_str_t *src);
 
 // 字符过滤
-extern size_t lts_str_filter(lts_str_t *src, uint8_t c);
+extern ssize_t lts_str_filter(lts_str_t *src, uint8_t c);
+extern ssize_t lts_str_filter_multi(lts_str_t *src, uint8_t *c, ssize_t len);
 
 // 字符串比较
 extern int lts_str_compare(lts_str_t *a, lts_str_t *b);
