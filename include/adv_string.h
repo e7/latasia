@@ -37,13 +37,13 @@ void charmap_clean(charmap_t *cm)
 static inline
 void charmap_set(charmap_t *cm, uint8_t c)
 {
-    cm->bytes[c / 8] |= (1U << cm->bytes[c % 8]);
+    cm->bytes[c / 8] |= (1U << (c % 8));
 }
 
 static inline
 int charmap_isset(charmap_t *cm, uint8_t c)
 {
-    return (cm->bytes[c / 8] & (1U << cm->bytes[c % 8]));
+    return (cm->bytes[c / 8] & (1U << (c % 8)));
 }
 
 static inline
