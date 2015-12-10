@@ -11,16 +11,12 @@
 enum {
     SJSON_EXP_START = 1,
     SJSON_EXP_K_QUOT_START_OR_END,
-    SJSON_EXP_K_QUOT_START,
     SJSON_EXP_K_QUOT_END,
+    SJSON_EXP_COLON,
     SJSON_EXP_V_QUOT_OR_BRACKET_START,
     SJSON_EXP_V_QUOT_START,
     SJSON_EXP_V_QUOT_END,
-    SJSON_EXP_V_BRACKET_END,
-    SJSON_EXP_ARRAY_START,
-    SJSON_EXP_ARRAY_END,
-    SJSON_EXP_COLON,
-    SJSON_EXP_COMMA,
+    SJSON_EXP_COMMA_OR_BRACKET_END,
     SJSON_EXP_COMMA_OR_END,
     SJSON_EXP_END,
     SJSON_EXP_NOTHING,
@@ -57,7 +53,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
                 return -1;
             }
 
-            current_stat = SJSON_EXP_K_QUOT_START_OR_END;
+            current_stat = SJSON_EXP_K_QUOT_START_OR_END; // only
             continue;
         }
 
@@ -66,17 +62,9 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_END;
             } else if ("}" == src->data[i]) {
-                current_stat = SJSON_EXP_NOTHING;
+                current_stat = SJSON_EXP_NOTHING; // only
             } else {
-                NOP;
-            }
-            continue;
-        }
-
-        case SJSON_EXP_K_QUOT_START:
-        {
-            if ('"' == src->data[i]) {
-                current_stat = SJSON_EXP_K_QUOT_END;
+                return -1;
             }
             continue;
         }
@@ -84,9 +72,14 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
         case SJSON_EXP_K_QUOT_END:
         {
             if ('"' == src->data[i]) {
-                current_stat = SJSON_EXP_COLON;
+                current_stat = SJSON_EXP_COLON; // only
             }
             continue;
+        }
+
+        case SJSON_EXP_NOTHING:
+        {
+            return -1;
         }
 
         case SJSON_EXP_COLON:
@@ -95,7 +88,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
                 return -1;
             }
 
-            current_stat = SJSON_EXP_V_QUOT_OR_BRACKET_START;
+            current_stat = SJSON_EXP_V_QUOT_OR_BRACKET_START; // only
             continue;
         }
 
@@ -104,7 +97,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_V_QUOT_END;
             } else if ('[' == src->data[i]) {
-                current_stat = SJSON_EXP_V_BRACKET_END;
+                in_bracket = TRUE;
             } else {
                 return -1;
             }
@@ -121,38 +114,39 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
 
         case SJSON_EXP_V_QUOT_END:
         {
-            if ('"' == src->data[i]) {
-                current_stat = SJSON_EXP_COMMA_OR_END;
+            if (in_bracket) {
+                current_stat = SJSON_EXP_COMMA_OR_BRACKET_END; // only
+            } else {
+                current_stat = SJSON_EXP_COMMA_OR_END; // only
             }
             continue;
         }
 
-        case SJSON_EXP_V_BRACKET_END:
+        case SJSON_EXP_COMMA_OR_BRACKET_END:
         {
-            if (']' != src->data[i]) {
+            // 必定在bracket中
+            if ('"' == src->data[i]) {
+                current_stat = SJSON_EXP_V_QUOT_START;
+            } else if (']' == src->data[i]) {
+                in_bracket = FALSE;
+                current_stat = SJSON_EXP_COMMA_OR_END; // only
+            } else {
                 return -1;
             }
-
-            current_stat = SJSON_EXP_COMMA_OR_END;
             continue;
         }
 
         case SJSON_EXP_COMMA_OR_END:
         {
-            if (',' == src->data[i]) {
-                current_stat = SJSON_EXP_K_QUOT_START;
+            // 必定不在bracket中
+            if ('"' == src->data[i]) {
+                current_stat = SJSON_EXP_V_QUOT_START;
             } else if ('}' == src->data[i]) {
                 current_stat = SJSON_EXP_NOTHING;
             } else {
                 return -1;
             }
-
             continue;
-        }
-
-        case SJSON_EXP_NOTHING:
-        {
-            return -1;
         }
 
         default:
