@@ -114,10 +114,12 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
 
         case SJSON_EXP_V_QUOT_END:
         {
-            if (in_bracket) {
-                current_stat = SJSON_EXP_COMMA_OR_BRACKET_END; // only
-            } else {
-                current_stat = SJSON_EXP_COMMA_OR_END; // only
+            if ('"' == src->data[i]) {
+                if (in_bracket) {
+                    current_stat = SJSON_EXP_COMMA_OR_BRACKET_END; // only
+                } else {
+                    current_stat = SJSON_EXP_COMMA_OR_END; // only
+                }
             }
             continue;
         }
@@ -125,7 +127,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
         case SJSON_EXP_COMMA_OR_BRACKET_END:
         {
             // 必定在bracket中
-            if ('"' == src->data[i]) {
+            if (',' == src->data[i]) {
                 current_stat = SJSON_EXP_V_QUOT_START;
             } else if (']' == src->data[i]) {
                 in_bracket = FALSE;
@@ -139,7 +141,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
         case SJSON_EXP_COMMA_OR_END:
         {
             // 必定不在bracket中
-            if ('"' == src->data[i]) {
+            if (',' == src->data[i]) {
                 current_stat = SJSON_EXP_V_QUOT_START;
             } else if ('}' == src->data[i]) {
                 current_stat = SJSON_EXP_NOTHING;
