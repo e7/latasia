@@ -11,6 +11,7 @@
 enum {
     SJSON_EXP_START = 1,
     SJSON_EXP_K_QUOT_START_OR_END,
+    SJSON_EXP_K_QUOT_START,
     SJSON_EXP_K_QUOT_END,
     SJSON_EXP_COLON,
     SJSON_EXP_V_QUOT_OR_BRACKET_START,
@@ -65,6 +66,14 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
                 current_stat = SJSON_EXP_NOTHING; // only
             } else {
                 return -1;
+            }
+            continue;
+        }
+
+        case SJSON_EXP_K_QUOT_START:
+        {
+            if ('"' == src->data[i]) {
+                current_stat = SJSON_EXP_K_QUOT_END;
             }
             continue;
         }
@@ -142,7 +151,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
         {
             // 必定不在bracket中
             if (',' == src->data[i]) {
-                current_stat = SJSON_EXP_V_QUOT_START;
+                current_stat = SJSON_EXP_K_QUOT_START;
             } else if ('}' == src->data[i]) {
                 current_stat = SJSON_EXP_NOTHING;
             } else {
