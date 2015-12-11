@@ -226,10 +226,10 @@ ssize_t lts_str_filter(lts_str_t *src, uint8_t c)
         // m >= i
         for (j = m; j < src->len; ++j) {
             if (c == src->data[j]) {
-                --j;
                 break;
             }
         }
+        --j;
 
         reverse_region(src->data, m, j);
         reverse_region(src->data, i, j);
@@ -285,10 +285,10 @@ ssize_t lts_str_filter_multi(lts_str_t *src, uint8_t *c, ssize_t len)
         // m >= i
         for (j = m; j < src->len; ++j) {
             if (charmap_isset(&cm, src->data[j])) {
-                --j;
                 break;
             }
         }
+        --j;
 
         reverse_region(src->data, m, j);
         reverse_region(src->data, i, j);

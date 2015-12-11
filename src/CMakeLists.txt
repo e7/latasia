@@ -17,3 +17,6 @@ TARGET_LINK_LIBRARIES(test_rbt_timer mcheck)
 
 ADD_EXECUTABLE(press_tcp tests/press_tcp.c)
 TARGET_LINK_LIBRARIES(press_tcp mcheck pthread)
+
+ADD_EXECUTABLE(test_sjson adv_string.c simple_json.c tests/test_sjson.c)
+TARGET_LINK_LIBRARIES(test_sjson mcheck)

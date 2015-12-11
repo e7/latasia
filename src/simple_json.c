@@ -37,7 +37,7 @@ int lts_sjon_encode(lts_sjson_t *sjson, lts_str_t *output)
 
 int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
 {
-    static const uint8_t invisible[] = {'\t', '\n', '\r', '\x20'};
+    static uint8_t invisible[] = {'\t', '\n', '\r', '\x20'};
 
     int in_bracket = FALSE;
     int current_stat = SJSON_EXP_START;
@@ -61,7 +61,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
         {
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_END;
-            } else if ("}" == src->data[i]) {
+            } else if ('}' == src->data[i]) {
                 current_stat = SJSON_EXP_NOTHING; // only
             } else {
                 return -1;
