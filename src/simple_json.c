@@ -14,7 +14,7 @@ enum {
     SJSON_EXP_K_QUOT_START,
     SJSON_EXP_K_QUOT_END,
     SJSON_EXP_COLON,
-    SJSON_EXP_V_QUOT_OR_BRACKET_START,
+    SJSON_EXP_V_MAP_OR_QUOT_OR_BRACKET_START,
     SJSON_EXP_V_QUOT_START,
     SJSON_EXP_V_QUOT_END,
     SJSON_EXP_COMMA_OR_BRACKET_END,
@@ -40,6 +40,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
 {
     static uint8_t invisible[] = {'\t', '\n', '\r', '\x20'};
 
+    int rdepth = 0; // 嵌套层次
     int in_bracket = FALSE;
     int current_stat = SJSON_EXP_START;
 
@@ -63,6 +64,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_END;
             } else if ('}' == src->data[i]) {
+                --rdepth;
                 current_stat = SJSON_EXP_NOTHING; // only
             } else {
                 return -1;
@@ -97,16 +99,20 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
                 return -1;
             }
 
-            current_stat = SJSON_EXP_V_QUOT_OR_BRACKET_START; // only
+            current_stat = SJSON_EXP_V_MAP_OR_QUOT_OR_BRACKET_START; // only
             continue;
         }
 
-        case SJSON_EXP_V_QUOT_OR_BRACKET_START:
+        case SJSON_EXP_V_MAP_OR_QUOT_OR_BRACKET_START:
         {
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_V_QUOT_END;
             } else if ('[' == src->data[i]) {
                 in_bracket = TRUE;
+                current_stat = SJSON_EXP_V_QUOT_START; // only
+            } else if ('{' == src->data[i]) {
+                ++rdepth;
+                current_stat = SJSON_EXP_K_QUOT_START_OR_END; // only
             } else {
                 return -1;
             }
@@ -115,9 +121,11 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
 
         case SJSON_EXP_V_QUOT_START:
         {
-            if ('"' == src->data[i]) {
-                current_stat = SJSON_EXP_V_QUOT_END;
+            if ('"' != src->data[i]) {
+                return -1;
             }
+
+            current_stat = SJSON_EXP_V_QUOT_END;
             continue;
         }
 
@@ -137,7 +145,7 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
         {
             // 必定在bracket中
             if (',' == src->data[i]) {
-                current_stat = SJSON_EXP_V_QUOT_START;
+                current_stat = SJSON_EXP_V_QUOT_START; // only
             } else if (']' == src->data[i]) {
                 in_bracket = FALSE;
                 current_stat = SJSON_EXP_COMMA_OR_END; // only
@@ -153,7 +161,12 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
             if (',' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_START;
             } else if ('}' == src->data[i]) {
-                current_stat = SJSON_EXP_NOTHING;
+                if (rdepth) {
+                    current_stat = SJSON_EXP_COMMA_OR_END;
+                } else {
+                    current_stat = SJSON_EXP_NOTHING;
+                }
+                --rdepth;
             } else {
                 return -1;
             }
