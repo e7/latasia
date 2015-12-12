@@ -64,8 +64,12 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_END;
             } else if ('}' == src->data[i]) {
-                --rdepth;
-                current_stat = SJSON_EXP_NOTHING; // only
+                if (rdepth) {
+                    --rdepth;
+                    current_stat = SJSON_EXP_COMMA_OR_END; // only
+                } else {
+                    current_stat = SJSON_EXP_NOTHING; // only
+                }
             } else {
                 return -1;
             }
@@ -161,12 +165,12 @@ int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
             if (',' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_START;
             } else if ('}' == src->data[i]) {
-                if (rdepth) {
+                if (rdepth > 0) {
+                    --rdepth;
                     current_stat = SJSON_EXP_COMMA_OR_END;
                 } else {
                     current_stat = SJSON_EXP_NOTHING;
                 }
-                --rdepth;
             } else {
                 return -1;
             }

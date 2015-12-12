@@ -16,6 +16,7 @@ int main(void)
     uint8_t t10[] = "{\"a\":[\"b\", \"c\"], \"d\":\"e\"}";
     uint8_t t11[] = "{\"a\":{\"b\": \"c\"}}";
     uint8_t t12[] = "{\"a\":{\"b\": {\"c\":\"d\"}}}";
+    uint8_t t13[] = "{\"a\":{}}";
 
     s = (lts_str_t)lts_string(t1);
     assert(0 == lts_sjon_decode(&s, NULL));
@@ -51,6 +52,9 @@ int main(void)
     assert(0 == lts_sjon_decode(&s, NULL));
 
     s = (lts_str_t)lts_string(t12);
+    assert(0 == lts_sjon_decode(&s, NULL));
+
+    s = (lts_str_t)lts_string(t13);
     assert(0 == lts_sjon_decode(&s, NULL));
 
     return 0;
