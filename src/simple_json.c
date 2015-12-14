@@ -30,13 +30,13 @@ ssize_t lts_sjon_encode_size(lts_sjson_t *sjson)
 }
 
 
-int lts_sjon_encode(lts_sjson_t *sjson, lts_str_t *output)
+int lts_sjon_encode(lts_sjson_t *sjson, lts_pool_t *pool, lts_str_t *output)
 {
     return 0;
 }
 
 
-int lts_sjon_decode(lts_str_t *src, lts_sjson_t *output)
+int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
 {
     static uint8_t invisible[] = {'\t', '\n', '\r', '\x20'};
 

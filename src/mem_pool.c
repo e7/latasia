@@ -31,7 +31,8 @@ static void *lts_memalign(size_t alignment, size_t size)
 
     tmp_err = posix_memalign(&p, alignment, size);
     if (tmp_err) {
-        errno = ENOMEM;
+        errno = tmp_err;
+        return NULL;
     }
 
     return p;
