@@ -11,6 +11,7 @@
 #define __THIS_FILE__       "src/rbt_timer.c"
 
 
+// link，节点不存在时是否挂到树上
 static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
                                              lts_socket_t *sock,
                                              int link)
@@ -41,6 +42,7 @@ static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
     return sock;
 }
 
+
 int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
 {
     if (! RB_EMPTY_NODE(&s->rbnode)) {
@@ -54,6 +56,7 @@ int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
     return 0;
 }
 
+
 void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
 {
     if (RB_EMPTY_NODE(&s->rbnode)) {
@@ -65,6 +68,7 @@ void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
 
     return;
 }
+
 
 lts_socket_t *lts_timer_heap_min(lts_rb_root_t *root)
 {
@@ -98,6 +102,7 @@ lts_socket_t *lts_timer_heap_min(lts_rb_root_t *root)
 
 #endif
 }
+
 
 void lts_update_time(void)
 {

@@ -24,6 +24,40 @@ enum {
 };
 
 
+// link，节点不存在时是否挂到树上
+static lts_sjson_key_t *__lts_sjon_search(lts_rb_root_t *root,
+                                          lts_sjson_key_t *key,
+                                          int link)
+{
+    lts_sjson_key_t *s;
+    lts_rb_node_t *parent, **iter;
+
+    parent = NULL;
+    iter = &root->rb_node;
+    while (*iter) {
+        int balance;
+        parent = *iter;
+        s = rb_entry(parent, lts_sjson_key_t, rb_node);
+
+        balance = lts_str_compare(&key->key, &s->key);
+        if (balance < 0) {
+            iter = &(parent->rb_left);
+        } else if (balance > 0) {
+            iter = &(parent->rb_right);
+        } else {
+            return s;
+        }
+    }
+
+    if (link) {
+        rb_link_node(&key->rb_node, parent, iter);
+        rb_insert_color(&key->rb_node, root);
+    }
+
+    return key;
+}
+
+
 ssize_t lts_sjon_encode_size(lts_sjson_t *sjson)
 {
     return 0;

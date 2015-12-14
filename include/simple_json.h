@@ -15,6 +15,25 @@
 
 
 // simple json表示键值对均为字符串
+enum {
+    STRING_VALUE = 1,
+    LIST_VALUE,
+    OBJ_VALUE,
+};
+
+typedef union {
+    lts_str_t str_val;
+    list_t list_val;
+    lts_rb_root_t obj_val;
+} lts_sjson_val_t;
+
+typedef struct {
+    int val_type; // 值类型
+    lts_str_t key;
+    lts_rb_node_t rb_node;
+    lts_sjson_val_t val;
+} lts_sjson_key_t;
+
 typedef struct {
     lts_rb_root_t obj; // json对象
 } lts_sjson_t;
