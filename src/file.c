@@ -5,6 +5,7 @@
 
 
 #include "common.h"
+#include "extra_errno.h"
 #include "file.h"
 #include "logger.h"
 

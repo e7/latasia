@@ -189,6 +189,29 @@ static char const *__lts_errno_desc[] = {
     NULL,
     NULL,
     NULL,
+
+    // 140 ~ 149
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+
+    // 150 ~ 159
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+
+    // 160 ~ 169
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+
+    // 170 ~ 179
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+
+    // 180 ~ 189
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+
+    // 190 ~ 199
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+
+    // 200 ~ 209
+    "system api error [200]",
+    "format error [201]",
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
 
@@ -719,7 +742,7 @@ int master_main(void)
                 --workers;
             }
             if (-1 == child) {
-                assert(ECHILD == errno);
+                assert(LTS_E_CHILD == errno);
                 (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                                        "%s:master ready to exit\n",
                                        STR_LOCATION);

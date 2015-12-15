@@ -105,7 +105,7 @@ static int epoll_process_events(void)
         if (EINTR == tmp_err) { // 信号中断
             return 0;
         } else {
-            return LTS_E_SYS;
+            return -1;
         }
     }
 
@@ -178,7 +178,7 @@ static int init_event_epoll_worker(lts_module_t *mod)
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "%s:create epoll inst failed:%s\n",
                                STR_LOCATION, lts_errno_desc[errno]);
-        return LTS_E_SYS;
+        return -1;
     }
 
     // 创建epoll_event缓存

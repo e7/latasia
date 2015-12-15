@@ -20,6 +20,11 @@ enum {
     LIST_VALUE,
     OBJ_VALUE,
 };
+typedef union {
+    lts_str_t str_val;
+    list_t *list_val;
+    lts_rb_root_t obj_val;
+} lts_sjon_val_t;
 
 typedef struct {
     list_t *l_node;
@@ -30,7 +35,7 @@ typedef struct {
     int val_type; // 值类型
     lts_str_t key;
     lts_rb_node_t rb_node;
-    void *val;
+    lts_sjon_val_t val;
 } lts_sjson_key_t;
 
 typedef struct {

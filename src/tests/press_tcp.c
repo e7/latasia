@@ -5,6 +5,7 @@
 #include <pthread.h>
 
 #include "common.h"
+#include "extra_errno.h"
 
 
 #define MAX_THREADS     9999
@@ -32,7 +33,7 @@ void sec_sleep(long sec)
     tv.tv_usec = 0;
     do {
         err = select(0, NULL, NULL, NULL, &tv);
-    } while (err < 0 && errno == EINTR);
+    } while (err < 0 && errno == LTS_E_INTR);
 
     return;
 }
@@ -50,7 +51,7 @@ void msec_sleep(long msec)
     tv.tv_usec = (msec % 1000) * 1000;
     do {
         err = select(0, NULL, NULL, NULL, &tv);
-    } while (err < 0 && errno == EINTR);
+    } while (err < 0 && errno == LTS_E_INTR);
 
     return;
 }
@@ -68,7 +69,7 @@ void usec_sleep(long usec)
     tv.tv_usec = usec % 1000000;
     do {
         err = select(0, NULL, NULL, NULL, &tv);
-    } while (err < 0 && errno == EINTR);
+    } while (err < 0 && errno == LTS_E_INTR);
 
     return;
 }
@@ -255,15 +256,15 @@ int main(int argc, char *argv[], char *env[])
                 break;
             }
 
-            case EAGAIN: {
+            case LTS_E_AGAIN: {
                 break;
             }
 
-            case EINVAL: {
+            case LTS_E_INVAL: {
                 break;
             }
 
-            case EPERM: {
+            case LTS_E_PERM: {
                 break;
             }
 
@@ -285,11 +286,11 @@ int main(int argc, char *argv[], char *env[])
                 break;
             }
 
-            case EINVAL: {
+            case LTS_E_INVAL: {
                 break;
             }
 
-            case ESRCH: {
+            case LTS_E_SRCH: {
                 break;
             }
 

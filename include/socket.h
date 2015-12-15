@@ -9,6 +9,8 @@
 
 
 #include <sys/socket.h>
+
+#include "extra_errno.h"
 #include "list.h"
 #include "rbtree.h"
 #include "buffer.h"
@@ -134,7 +136,7 @@ lts_socket_t *lts_alloc_socket(void)
 
     if (dlist_empty(&lts_sock_list)) {
         assert(0 == lts_sock_cache_n);
-        errno = ENOMEM;
+        errno = LTS_E_NOMEM;
         return NULL;
     }
 

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "extra_errno.h"
 #include "mem_pool.h"
 
 #define __THIS_FILE__       "src/mem_pool.c"

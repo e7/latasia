@@ -9,6 +9,7 @@
 #include "conf.h"
 #include "logger.h"
 #include "rbt_timer.h"
+#include "extra_errno.h"
 
 #define __THIS_FILE__       "src/modules/mod_event_core.c"
 
@@ -100,11 +101,11 @@ static ssize_t lts_accept(lts_socket_t *ls)
             ls->readable = 0;
             lts_listen_list_add(ls); // post_list -> listen_list
 
-            if (ECONNABORTED == errno) {
+            if (LTS_E_CONNABORTED == errno) {
                 continue;
             }
 
-            if ((EAGAIN != errno) && (EWOULDBLOCK != errno)) {
+            if ((LTS_E_AGAIN != errno) && (LTS_E_WOULDBLOCK != errno)) {
                 (void)lts_write_logger(
                     &lts_file_logger, LTS_LOG_ERROR,
                     "%s:accept4() failed:%s\n",
@@ -178,17 +179,16 @@ static int alloc_listen_sockets(lts_pool_t *pool)
     lts_socket_t *sock_cache;
     struct addrinfo hint, *records, *iter;
 
-    rslt = 0;
-
     // 获取本地地址
     memset(&hint, 0, sizeof(hint));
     hint.ai_family = AF_UNSPEC;
     hint.ai_socktype = SOCK_STREAM;
     hint.ai_flags = AI_PASSIVE;
     conf_port = (char const *)lts_conf.port.data;
-    if (0 != getaddrinfo(NULL, conf_port, &hint, &records)) {
-        // log
-        return LTS_E_SYS;
+    rslt = getaddrinfo(NULL, conf_port, &hint, &records);
+    if (rslt) {
+        errno = LTS_E_SYS;
+        return -1;
     }
 
     // 统计监听套接字数目
@@ -207,6 +207,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
     }
 
     // 地址列表初始化
+    rslt = 0;
     dlist_init(&lts_addr_list);
     for (iter = records; NULL != iter; iter = iter->ai_next) {
         struct sockaddr *a;
@@ -264,8 +265,6 @@ static int init_event_core_master(lts_module_t *mod)
     int rslt, ipv6_only, reuseaddr;
     lts_pool_t *pool;
 
-    rslt = 0;
-
     // 全局初始化
     if (NULL == getcwd((char *)lts_cwd.data, LTS_MAX_PATH_LEN)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
@@ -299,6 +298,7 @@ static int init_event_core_master(lts_module_t *mod)
     }
 
     // 打开监听套接字
+    rslt = 0;
     ipv6_only = 1;
     reuseaddr = 1;
     dlist_init(&lts_listen_list);
@@ -309,9 +309,8 @@ static int init_event_core_master(lts_module_t *mod)
         ls = CONTAINER_OF(pos_node, lts_socket_t, dlnode);
         fd = socket(ls->family, SOCK_STREAM, 0);
         if (-1 == fd) {
-            //log
-            rslt = LTS_E_SYS;
-            break;
+            // log
+            return -1;
         }
 
         if (ls->family == AF_INET6) { // 仅ipv6
@@ -319,24 +318,18 @@ static int init_event_core_master(lts_module_t *mod)
                               IPV6_V6ONLY, &ipv6_only, sizeof(ipv6_only));
             if (-1 == rslt) {
                 // log
-                rslt = LTS_E_SYS;
-                break;
             }
         }
 
         rslt = lts_set_nonblock(fd);
         if (-1 == rslt) {
             // log
-            rslt = LTS_E_SYS;
-            break;
         }
 
         rslt = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
                           (const void *) &reuseaddr, sizeof(int));
         if (-1 == rslt) {
             // log
-            rslt = LTS_E_SYS;
-            break;
         }
 
         rslt = bind(fd, ls->local_addr, ls->addr_len);
@@ -345,14 +338,13 @@ static int init_event_core_master(lts_module_t *mod)
                                    "%s:bind() failed:%s\n",
                                    STR_LOCATION,
                                    lts_errno_desc[errno]);
-            rslt = LTS_E_SYS;
+            (void)close(fd);
             break;
         }
 
         rslt = listen(fd, SOMAXCONN);
         if (-1 == rslt) {
-            // log
-            rslt = LTS_E_SYS;
+            (void)close(fd);
             break;
         }
 
@@ -456,13 +448,15 @@ ssize_t lts_recv(lts_socket_t *cs)
                        (uintptr_t)buf->end - (uintptr_t)buf->last, 0);
         if (-1 == recv_sz) {
             cs->readable = 0;
-            if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
+            if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
                 return -1;
             } else {
                 int lvl;
 
                 // 异常关闭
-                lvl = (ECONNRESET == errno) ? LTS_LOG_NOTICE : LTS_LOG_ERROR;
+                lvl = (
+                    (LTS_E_CONNRESET == errno) ? LTS_LOG_NOTICE : LTS_LOG_ERROR
+                );
                 (void)lts_write_logger(&lts_file_logger, lvl,
                                        "%s:recv() failed:%s, reset connection\n",
                                        STR_LOCATION, lts_errno_desc[errno]);
@@ -506,7 +500,7 @@ ssize_t lts_send(lts_socket_t *cs)
                    (uintptr_t)buf->last - (uintptr_t)buf->seek, 0);
 
     if (-1 == sent_sz) {
-        if ((EAGAIN == errno) || (EWOULDBLOCK == errno)) {
+        if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
             return 0;
         } else {
             (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,

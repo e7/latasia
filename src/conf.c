@@ -6,6 +6,7 @@
 
 #include <sys/mman.h>
 
+#include "extra_errno.h"
 #include "conf.h"
 #include "file.h"
 #include "logger.h"

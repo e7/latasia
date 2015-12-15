@@ -6,7 +6,8 @@
 
 #include <sys/types.h>
 #include <sys/mman.h>
-#include <errno.h>
+
+#include "extra_errno.h"
 #include "shmem.h"
 
 #define __THIS_FILE__       "src/shmem.c"
@@ -29,6 +30,7 @@ int lts_shm_alloc(lts_shm_t *shm)
 void lts_shm_free(lts_shm_t *shm)
 {
     if (-1 == munmap(shm->addr, shm->size)) {
+        // log
     }
 
     return;

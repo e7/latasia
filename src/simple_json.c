@@ -5,6 +5,7 @@
 
 
 #include "simple_json.h"
+#include "extra_errno.h"
 
 
 // 状态机
@@ -77,6 +78,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
     int rdepth = 0; // 嵌套层次
     int in_bracket = FALSE;
     int current_stat = SJSON_EXP_START;
+    lts_sjson_key_t *newkey;
 
     // 过滤不可见字符
     (void)lts_str_filter_multi(src, invisible, ARRAY_COUNT(invisible));
@@ -86,6 +88,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
         case SJSON_EXP_START:
         {
             if ('{' != src->data[i]) {
+                errno = LTS_E_INVALID_FORMAT;
                 return -1;
             }
 
@@ -97,6 +100,17 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
         {
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_END;
+
+                newkey = (lts_sjson_key_t *)lts_palloc(
+                    pool, sizeof(lts_sjson_key_t)
+                );
+                if (NULL == newkey) {
+                    errno = LTS_E_NOMEM;
+                    return -1;
+                }
+
+                newkey->key.data = &src->data[i + 1];
+                newkey->key.len = 0;
             } else if ('}' == src->data[i]) {
                 if (rdepth) {
                     --rdepth;
@@ -105,6 +119,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                     current_stat = SJSON_EXP_NOTHING; // only
                 }
             } else {
+                errno = LTS_E_INVALID_FORMAT;
                 return -1;
             }
             continue;
@@ -128,12 +143,14 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
 
         case SJSON_EXP_NOTHING:
         {
+            errno = LTS_E_INVALID_FORMAT;
             return -1;
         }
 
         case SJSON_EXP_COLON:
         {
             if (':' != src->data[i]) {
+                errno = LTS_E_INVALID_FORMAT;
                 return -1;
             }
 
@@ -152,6 +169,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 ++rdepth;
                 current_stat = SJSON_EXP_K_QUOT_START_OR_END; // only
             } else {
+                errno = LTS_E_INVALID_FORMAT;
                 return -1;
             }
             continue;
@@ -160,6 +178,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
         case SJSON_EXP_V_QUOT_START:
         {
             if ('"' != src->data[i]) {
+                errno = LTS_E_INVALID_FORMAT;
                 return -1;
             }
 
@@ -188,6 +207,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 in_bracket = FALSE;
                 current_stat = SJSON_EXP_COMMA_OR_END; // only
             } else {
+                errno = LTS_E_INVALID_FORMAT;
                 return -1;
             }
             continue;
@@ -206,6 +226,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                     current_stat = SJSON_EXP_NOTHING;
                 }
             } else {
+                errno = LTS_E_INVALID_FORMAT;
                 return -1;
             }
             continue;

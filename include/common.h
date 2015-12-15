@@ -9,7 +9,6 @@
 
 
 #include <unistd.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -61,11 +60,6 @@
 
 typedef volatile sig_atomic_t lts_atomic_t;
 typedef struct timeval lts_timeval_t;
-
-
-enum {
-    LTS_E_SYS = 65536, // 系统错误
-};
 
 
 static inline
