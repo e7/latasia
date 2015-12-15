@@ -82,11 +82,13 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
 {
     static uint8_t invisible[] = {'\t', '\n', '\r', '\x20'};
 
+    DEFINE_LSTACK(obj_stack);
     int rdepth = 0; // 嵌套层次
     int in_bracket = FALSE;
     int current_stat = SJSON_EXP_START;
     lts_sjson_key_t *newkey;
     lts_strlist_t *newsl;
+    lts_sjson_t *current_obj;
 
     // 过滤不可见字符
     (void)lts_str_filter_multi(src, invisible, ARRAY_COUNT(invisible));
@@ -195,7 +197,10 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 current_stat = SJSON_EXP_K_QUOT_START_OR_END; // only
                 ++rdepth;
                 newkey->val_type = OBJ_VALUE;
-                newkey->val.obj_val = RB_ROOT;
+                newkey->val.obj_val.obj = RB_ROOT;
+
+                // 压栈
+                lstack_push(&obj_stack, &newkey->val.obj_val._stk_node);
             } else {
                 errno = LTS_E_INVALID_FORMAT;
                 return -1;
@@ -240,7 +245,17 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
             } else {
                 if ('"' == src->data[i]) {
                     current_stat = SJSON_EXP_COMMA_OR_END; // only
-                    __lts_sjon_search(&output->obj, newkey, TRUE);
+
+                    if (lstack_is_empty(&obj_stack)) {
+                        current_obj = output;
+                    } else {
+                        current_obj = CONTAINER_OF(
+                            lstack_top(&obj_stack), lts_sjson_t, _stk_node
+                        );
+                        lstack_pop(&obj_stack);
+                    }
+
+                    __lts_sjon_search(&current_obj->obj, newkey, TRUE);
                     newkey = NULL;
                 } else {
                     ++newkey->val.str_val.len;
@@ -261,7 +276,17 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
             } else if (']' == src->data[i]) {
                 in_bracket = FALSE;
                 current_stat = SJSON_EXP_COMMA_OR_END; // only
-                __lts_sjon_search(&output->obj, newkey, TRUE);
+
+                if (lstack_is_empty(&obj_stack)) {
+                    current_obj = output;
+                } else {
+                    current_obj = CONTAINER_OF(
+                        lstack_top(&obj_stack), lts_sjson_t, _stk_node
+                    );
+                    lstack_pop(&obj_stack);
+                }
+
+                __lts_sjon_search(&current_obj->obj, newkey, TRUE);
                 newkey = NULL;
             } else {
                 errno = LTS_E_INVALID_FORMAT;

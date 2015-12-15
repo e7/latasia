@@ -15,10 +15,15 @@
 
 
 // simple json表示键值对均为字符串
+typedef struct {
+    lstack_t _stk_node; // 内部所用栈节点
+    lts_rb_root_t obj; // json对象
+} lts_sjson_t;
+
 typedef union {
     lts_str_t str_val;
     list_t *list_val;
-    lts_rb_root_t obj_val;
+    lts_sjson_t obj_val;
 } lts_sjon_val_t;
 
 typedef struct {
@@ -32,10 +37,6 @@ typedef struct {
     lts_rb_node_t rb_node;
     lts_sjon_val_t val;
 } lts_sjson_key_t;
-
-typedef struct {
-    lts_rb_root_t obj; // json对象
-} lts_sjson_t;
 
 
 extern ssize_t lts_sjon_encode_size(lts_sjson_t *sjson);
