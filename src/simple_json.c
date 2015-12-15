@@ -8,6 +8,13 @@
 #include "extra_errno.h"
 
 
+// 值类型
+enum {
+    STRING_VALUE = 1,
+    LIST_VALUE,
+    OBJ_VALUE,
+};
+
 // 状态机
 enum {
     SJSON_EXP_START = 1,
@@ -79,6 +86,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
     int in_bracket = FALSE;
     int current_stat = SJSON_EXP_START;
     lts_sjson_key_t *newkey;
+    lts_strlist_t *newsl;
 
     // 过滤不可见字符
     (void)lts_str_filter_multi(src, invisible, ARRAY_COUNT(invisible));
@@ -129,6 +137,17 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
         {
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_END;
+
+                newkey = (lts_sjson_key_t *)lts_palloc(
+                    pool, sizeof(lts_sjson_key_t)
+                );
+                if (NULL == newkey) {
+                    errno = LTS_E_NOMEM;
+                    return -1;
+                }
+
+                newkey->key.data = &src->data[i + 1];
+                newkey->key.len = 0;
             }
             continue;
         }
@@ -137,6 +156,8 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
         {
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_COLON; // only
+            } else {
+                ++newkey->key.len;
             }
             continue;
         }
@@ -162,12 +183,19 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
         {
             if ('"' == src->data[i]) {
                 current_stat = SJSON_EXP_V_QUOT_END;
+                newkey->val_type = STRING_VALUE;
+                newkey->val.str_val.data = &src->data[i + 1];
+                newkey->val.str_val.len = 0;
             } else if ('[' == src->data[i]) {
-                in_bracket = TRUE;
                 current_stat = SJSON_EXP_V_QUOT_START; // only
+                in_bracket = TRUE;
+                newkey->val_type = LIST_VALUE;
+                list_set_empty(&newkey->val.list_val);
             } else if ('{' == src->data[i]) {
-                ++rdepth;
                 current_stat = SJSON_EXP_K_QUOT_START_OR_END; // only
+                ++rdepth;
+                newkey->val_type = OBJ_VALUE;
+                newkey->val.obj_val = RB_ROOT;
             } else {
                 errno = LTS_E_INVALID_FORMAT;
                 return -1;
@@ -182,17 +210,40 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 return -1;
             }
 
+            if (! in_bracket) {
+                abort();
+            }
+
             current_stat = SJSON_EXP_V_QUOT_END;
+
+            newsl = (lts_strlist_t *)lts_palloc(pool, sizeof(lts_strlist_t));
+            if (NULL == newsl) {
+                errno = LTS_E_NOMEM;
+                return -1;
+            }
+            newsl->val.data = &src->data[i + 1];
+            newsl->val.len = 0;
+
             continue;
         }
 
         case SJSON_EXP_V_QUOT_END:
         {
-            if ('"' == src->data[i]) {
-                if (in_bracket) {
+            if (in_bracket) {
+                if ('"' == src->data[i]) {
                     current_stat = SJSON_EXP_COMMA_OR_BRACKET_END; // only
+                    list_add_node(&newkey->val.list_val, &newsl->l_node);
+                    newsl = NULL;
                 } else {
+                    ++newsl->val.len;
+                }
+            } else {
+                if ('"' == src->data[i]) {
                     current_stat = SJSON_EXP_COMMA_OR_END; // only
+                    __lts_sjon_search(&output->obj, newkey, TRUE);
+                    newkey = NULL;
+                } else {
+                    ++newkey->val.str_val.len;
                 }
             }
             continue;
@@ -201,11 +252,17 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
         case SJSON_EXP_COMMA_OR_BRACKET_END:
         {
             // 必定在bracket中
+            if (! in_bracket) {
+                abort();
+            }
+
             if (',' == src->data[i]) {
                 current_stat = SJSON_EXP_V_QUOT_START; // only
             } else if (']' == src->data[i]) {
                 in_bracket = FALSE;
                 current_stat = SJSON_EXP_COMMA_OR_END; // only
+                __lts_sjon_search(&output->obj, newkey, TRUE);
+                newkey = NULL;
             } else {
                 errno = LTS_E_INVALID_FORMAT;
                 return -1;
@@ -216,6 +273,10 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
         case SJSON_EXP_COMMA_OR_END:
         {
             // 必定不在bracket中
+            if (in_bracket) {
+                abort();
+            }
+
             if (',' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_START;
             } else if ('}' == src->data[i]) {

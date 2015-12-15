@@ -15,11 +15,6 @@
 
 
 // simple json表示键值对均为字符串
-enum {
-    STRING_VALUE = 1,
-    LIST_VALUE,
-    OBJ_VALUE,
-};
 typedef union {
     lts_str_t str_val;
     list_t *list_val;
@@ -27,7 +22,7 @@ typedef union {
 } lts_sjon_val_t;
 
 typedef struct {
-    list_t *l_node;
+    list_t l_node;
     lts_str_t val;
 } lts_strlist_t;
 

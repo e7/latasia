@@ -19,32 +19,20 @@ typedef intptr_t list_t;
 #define DEFINE_SINGLE_LIST(name) list_t *name = NULL
 
 
-static inline void list_add(list_t **head, list_t *node)
+static inline
+void list_add_node(list_t **head, list_t *node)
 {
     *node = (list_t)*head;
     *head = node;
 }
 
 
-static inline void list_remove(list_t **node)
+static inline void __list_do_remove(list_t **node)
 {
     list_t *p_del = *node;
 
     *node = (list_t *)**node;
     *p_del = 0;
-}
-
-
-static inline
-void add_node(list_t **pp_list, list_t *p_node)
-{
-    list_t *p_tmp = NULL;
-
-    p_tmp = *pp_list;
-    *p_node = (list_t)p_tmp;
-    *pp_list = p_node;
-
-    return;
 }
 
 
@@ -63,15 +51,14 @@ void list_set_empty(list_t **pp_list)
 
 
 static inline
-void rm_node(list_t **pp_list, list_t *p_node)
+void list_rm_node(list_t **pp_list, list_t *p_node)
 {
     list_t **pp_curr;
 
     pp_curr = pp_list;
     while (*pp_curr) {
         if (p_node == *pp_curr) {
-            *pp_curr = (list_t *)*p_node;
-            *p_node = 0;
+            __list_do_remove(pp_curr);
             break;
         }
 
@@ -88,8 +75,8 @@ typedef list_t lstack_t;
 #define lstack_top(stack)           (*(stack))
 #define lstack_is_empty(stack)      (NULL == (*(stack)))
 #define lstack_set_empty(stack)     ((*(stack)) = NULL)
-#define lstack_push(stack, node)    add_node(stack, node)
-#define lstack_pop(stack)           rm_node(stack, *stack)
+#define lstack_push(stack, node)    list_add_node(stack, node)
+#define lstack_pop(stack)           list_rm_node(stack, *stack)
 
 
 // 双链表
