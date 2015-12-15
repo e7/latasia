@@ -54,7 +54,7 @@ struct lts_socket_s {
     dlist_t dlnode;
 
     int64_t timeout; // 超时时间
-    lts_rb_node_t rbnode; // timer heap
+    lts_rb_node_t rb_node; // timer heap
 
     lts_handle_event_pt on_readable;
     lts_handle_event_pt do_read;
@@ -112,8 +112,8 @@ void lts_init_socket(lts_socket_t *s)
     dlist_init(&s->dlnode);
 
     s->timeout = 0;
-    s->rbnode = RB_NODE;
-    RB_CLEAR_NODE(&s->rbnode);
+    s->rb_node = RB_NODE;
+    RB_CLEAR_NODE(&s->rb_node);
 
     s->on_readable = NULL;
     s->do_read = NULL;

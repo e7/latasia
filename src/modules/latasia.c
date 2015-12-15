@@ -735,11 +735,10 @@ int master_main(void)
 int worker_main(void)
 {
     int rslt;
-    lstack_t *stk;
+    DEFINE_LSTACK(stk);
     lts_module_t *module;
 
     rslt = 0;
-    lstack_set_empty(&stk);
 
     // 绑定cpu
     do {

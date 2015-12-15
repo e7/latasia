@@ -13,14 +13,18 @@
 extern "C" {
 #endif // __cplusplus
 
+
 // 单链表
 typedef intptr_t list_t;
+#define DEFINE_SINGLE_LIST(name) list_t *name = NULL
+
 
 static inline void list_add(list_t **head, list_t *node)
 {
     *node = (list_t)*head;
     *head = node;
 }
+
 
 static inline void list_remove(list_t **node)
 {
@@ -29,6 +33,7 @@ static inline void list_remove(list_t **node)
     *node = (list_t *)**node;
     *p_del = 0;
 }
+
 
 static inline
 void add_node(list_t **pp_list, list_t *p_node)
@@ -42,32 +47,44 @@ void add_node(list_t **pp_list, list_t *p_node)
     return;
 }
 
+
 static inline
-int rm_node(list_t **pp_list, list_t *p_node)
+int list_is_empty(list_t **pp_list)
 {
-    int rslt;
+    return (NULL == *pp_list);
+}
+
+
+static inline
+void list_set_empty(list_t **pp_list)
+{
+    *pp_list = NULL;
+}
+
+
+static inline
+void rm_node(list_t **pp_list, list_t *p_node)
+{
     list_t **pp_curr;
 
-    rslt = -1;
     pp_curr = pp_list;
     while (*pp_curr) {
         if (p_node == *pp_curr) {
             *pp_curr = (list_t *)*p_node;
             *p_node = 0;
-            rslt = 0;
-
             break;
         }
 
         pp_curr = (list_t **)*pp_curr;
     }
 
-    return rslt;
+    return;
 }
 
 
 // 栈
 typedef list_t lstack_t;
+#define DEFINE_LSTACK(name) lstack_t *name = NULL
 #define lstack_top(stack)           (*(stack))
 #define lstack_is_empty(stack)      (NULL == (*(stack)))
 #define lstack_set_empty(stack)     ((*(stack)) = NULL)
