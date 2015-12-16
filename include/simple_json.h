@@ -14,29 +14,33 @@
 #include "mem_pool.h"
 
 
-// simple json表示键值对均为字符串
+// simple json表示键值叶子类型均为字符串
 typedef struct {
-    lstack_t _stk_node; // 内部所用栈节点
-    lts_rb_root_t obj; // json对象
-} lts_sjson_t;
-
-typedef union {
-    lts_str_t str_val;
-    list_t *list_val;
-    lts_sjson_t obj_val;
-} lts_sjon_val_t;
-
-typedef struct {
-    list_t l_node;
-    lts_str_t val;
-} lts_strlist_t;
-
-typedef struct {
-    int val_type; // 值类型
+    int node_type;
     lts_str_t key;
     lts_rb_node_t rb_node;
-    lts_sjon_val_t val;
-} lts_sjson_key_t;
+} lts_sjson_obj_node_t;
+
+typedef struct {
+    lts_rb_root_t val;
+    lts_sjson_obj_node_t obj_node;
+    lstack_t _stk_node; // 内部所用栈节点
+} lts_sjson_t;
+
+typedef struct {
+    list_t node;
+    lts_str_t val;
+} lts_sjson_li_node_t;
+
+typedef struct {
+    list_t *val;
+    lts_sjson_obj_node_t obj_node;
+} lts_sjson_list_t;
+
+typedef struct {
+    lts_str_t val;
+    lts_sjson_obj_node_t obj_node;
+} lts_sjson_kv_t;
 
 
 extern ssize_t lts_sjon_encode_size(lts_sjson_t *sjson);

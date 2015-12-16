@@ -80,6 +80,13 @@ void lts_str_init(lts_str_t *str, uint8_t *data, size_t len)
     str->len = len;
 }
 
+static inline
+void lts_str_copy(lts_str_t *dst, lts_str_t *src)
+{
+    dst->data = src->data;
+    dst->len = src->len;
+}
+
 
 // 去除字符串前后空格
 extern void lts_str_trim(lts_str_t *str);

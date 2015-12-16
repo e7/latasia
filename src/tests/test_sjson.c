@@ -31,55 +31,55 @@ int main(void)
     }
 
     s = (lts_str_t)lts_string(t1);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t2);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t3);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(-1 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t4);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t5);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(-1 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t6);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t7);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t8);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(-1 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t9);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(-1 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t10);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t11);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t12);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t13);
-    output.obj = RB_ROOT;
+    output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
 
     lts_destroy_pool(pool);
