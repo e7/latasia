@@ -8,13 +8,6 @@
 #include "extra_errno.h"
 
 
-// 值类型
-enum {
-    STRING_VALUE = 1,
-    LIST_VALUE,
-    OBJ_VALUE,
-};
-
 // 状态机
 enum {
     SJSON_EXP_START = 1,
@@ -215,6 +208,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
 
                 // 压栈
                 lstack_push(&obj_stack, &json_obj->_stk_node);
+                json_obj = NULL;
             } else {
                 errno = LTS_E_INVALID_FORMAT;
                 return -1;
@@ -325,8 +319,21 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
             } else if ('}' == src->data[i]) {
                 if (rdepth > 0) {
                     --rdepth;
-                    lstack_pop(&obj_stack);
                     current_stat = SJSON_EXP_COMMA_OR_END;
+
+                    json_obj = CONTAINER_OF(
+                       lstack_top(&obj_stack), lts_sjson_t, _stk_node
+                    );
+                    lstack_pop(&obj_stack);
+
+                    if (lstack_is_empty(&obj_stack)) {
+                        __lts_sjon_search(&output->val, &json_obj->obj_node, TRUE);
+                    } else {
+                        lts_sjson_t *parent = CONTAINER_OF(
+                            lstack_top(&obj_stack), lts_sjson_t, _stk_node
+                        );
+                        __lts_sjon_search(&parent->val, &json_obj->obj_node, TRUE);
+                    }
                 } else {
                     current_stat = SJSON_EXP_NOTHING;
                 }

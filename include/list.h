@@ -37,6 +37,13 @@ static inline void __list_do_remove(list_t **node)
 
 
 static inline
+list_t *list_top(list_t **head)
+{
+    return *head;
+}
+
+
+static inline
 int list_is_empty(list_t **pp_list)
 {
     return (NULL == *pp_list);

@@ -15,6 +15,13 @@
 
 
 // simple json表示键值叶子类型均为字符串
+// 值类型
+enum {
+    STRING_VALUE = 1,
+    LIST_VALUE,
+    OBJ_VALUE,
+};
+
 typedef struct {
     int node_type;
     lts_str_t key;
