@@ -107,11 +107,13 @@ int main(void)
     s = (lts_str_t)lts_string(t1);
     output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t1\n");
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t2);
     output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t2\n");
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t3);
@@ -121,6 +123,7 @@ int main(void)
     s = (lts_str_t)lts_string(t4);
     output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t3\n");
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t5);
@@ -130,11 +133,13 @@ int main(void)
     s = (lts_str_t)lts_string(t6);
     output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t6\n");
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t7);
     output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t7\n");
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t8);
@@ -148,21 +153,25 @@ int main(void)
     s = (lts_str_t)lts_string(t10);
     output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t10\n");
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t11);
     output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t11\n");
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t12);
     output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t12\n");
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t13);
     output.val = RB_ROOT;
     assert(0 == lts_sjon_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t13\n");
     dump_sjson(&output);
 
     lts_destroy_pool(pool);
