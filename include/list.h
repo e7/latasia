@@ -37,9 +37,16 @@ static inline void __list_do_remove(list_t **node)
 
 
 static inline
-list_t *list_top(list_t **head)
+list_t *list_first(list_t **head)
 {
     return *head;
+}
+
+
+static inline
+list_t *list_next(list_t *node)
+{
+    return (list_t *)(*node);
 }
 
 
@@ -79,7 +86,7 @@ void list_rm_node(list_t **pp_list, list_t *p_node)
 // 栈
 typedef list_t lstack_t;
 #define DEFINE_LSTACK(name) lstack_t *name = NULL
-#define lstack_top(stack)           (*(stack))
+#define lstack_top(stack)           list_first(stack)
 #define lstack_is_empty(stack)      (NULL == (*(stack)))
 #define lstack_set_empty(stack)     ((*(stack)) = NULL)
 #define lstack_push(stack, node)    list_add_node(stack, node)

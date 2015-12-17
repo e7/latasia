@@ -50,11 +50,11 @@ typedef struct {
 } lts_sjson_kv_t;
 
 
-extern ssize_t lts_sjon_encode_size(lts_sjson_t *sjson);
-extern int lts_sjon_encode(lts_sjson_t *sjson,
-                           lts_pool_t *pool,
-                           lts_str_t *output);
-extern int lts_sjon_decode(lts_str_t *src,
-                           lts_pool_t *pool,
-                           lts_sjson_t *output);
+extern ssize_t lts_sjson_encode_size(lts_sjson_t *sjson);
+extern int lts_sjson_encode(lts_sjson_t *sjson,
+                            lts_pool_t *pool,
+                            lts_str_t *output);
+extern int lts_sjson_decode(lts_str_t *src,
+                            lts_pool_t *pool,
+                            lts_sjson_t *output);
 #endif // __LATASIA__SIMPLE_JSON_H__

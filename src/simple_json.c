@@ -25,8 +25,9 @@ enum {
 };
 
 
-// link，节点不存在时是否挂到树上
-static lts_sjson_obj_node_t *__lts_sjon_search(lts_rb_root_t *root,
+// 查询或添加结点
+// link，结点不存在时是否挂到树上
+static lts_sjson_obj_node_t *__lts_sjson_search(lts_rb_root_t *root,
                                                lts_sjson_obj_node_t *obj_node,
                                                int link)
 {
@@ -59,24 +60,174 @@ static lts_sjson_obj_node_t *__lts_sjon_search(lts_rb_root_t *root,
 }
 
 
-ssize_t lts_sjon_encode_size(lts_sjson_t *sjson)
+ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
 {
+    ssize_t sz;
+    lts_rb_node_t *p;
+
+    sz = 2; // {}
+    p = rb_first(&sjson->val);
+    while (p) {
+        lts_sjson_obj_node_t *node = CONTAINER_OF(
+            p, lts_sjson_obj_node_t, rb_node
+        );
+
+        if (STRING_VALUE == node->node_type) {
+            lts_sjson_kv_t *kv = CONTAINER_OF(node, lts_sjson_kv_t, obj_node);
+
+            sz += node->key.len + 2; // ""
+            ++sz; // :
+            sz += kv->val.len + 2; // ""
+        } else if (LIST_VALUE == node->node_type) {
+            list_t *it;
+            lts_sjson_list_t *lv = CONTAINER_OF(
+                node, lts_sjson_list_t, obj_node
+            );
+
+            sz += 2; // []
+            sz += node->key.len + 2; // ""
+            ++sz; // :
+            it = list_first(&lv->val);
+            while (it) {
+                lts_sjson_li_node_t *ln = CONTAINER_OF(
+                    it, lts_sjson_li_node_t, node
+                );
+
+                sz += ln->val.len + 2; // ""
+                ++sz; // ,
+
+                it = list_next(it);
+            }
+        } else if (OBJ_VALUE == node->node_type) {
+            lts_sjson_t *ov = CONTAINER_OF(node, lts_sjson_t, obj_node);
+
+            sz += node->key.len + 2; // ""
+            ++sz; // :
+            sz += lts_sjson_encode_size(ov);
+        } else {
+            return -1;
+        }
+        ++sz; // ,
+
+        p = rb_next(p);
+    }
+
+    return ++sz; // harmless extra size
+}
+
+
+int lts_sjson_encode(lts_sjson_t *sjson, lts_pool_t *pool, lts_str_t *output)
+{
+    size_t i;
+    uint8_t *data;
+    ssize_t data_sz;
+    lts_rb_node_t *p;
+
+    data_sz = lts_sjson_encode_size(sjson);
+    if (-1 == data_sz) {
+        return -1;
+    }
+
+    // 初始化缓冲区
+    data = (uint8_t *)lts_palloc(pool, data_sz);
+    (void)memset(data, 0, data_sz);
+    output->data = data;
+    output->len = 0;
+    i = 0;
+
+    // 序列化
+    output->data[i++] = '{';
+    ++output->len;
+    p = rb_first(&sjson->val);
+    while (p) {
+        lts_rb_node_t *next;
+        lts_sjson_obj_node_t *node = CONTAINER_OF(
+            p, lts_sjson_obj_node_t, rb_node
+        );
+
+        if (STRING_VALUE == node->node_type) {
+            lts_sjson_kv_t *kv = CONTAINER_OF(node, lts_sjson_kv_t, obj_node);
+
+            // key
+            output->data[i++] = '"';
+            ++output->len;
+            (void)memcpy(&output->data[i], node->key.data, node->key.len);
+            i += node->key.len;
+            output->len += node->key.len;
+            output->data[i++] = '"';
+            ++output->len;
+
+            output->data[i++] = ':';
+            ++output->len;
+
+            // val
+            output->data[i++] = '"';
+            ++output->len;
+            (void)memcpy(&output->data[i], kv->val.data, kv->val.len);
+            i += kv->val.len;
+            output->len += kv->val.len;
+            output->data[i++] = '"';
+            ++output->len;
+        } else if (LIST_VALUE == node->node_type) {
+            output->data[i++] = '[';
+            ++output->len;
+
+            // key
+            output->data[i++] = '"';
+            ++output->len;
+            (void)memcpy(&output->data[i], node->key.data, node->key.len);
+            i += node->key.len;
+            output->len += node->key.len;
+            output->data[i++] = '"';
+            ++output->len;
+
+            output->data[i++] = ':';
+            ++output->len;
+
+            // val
+            output->data[i++] = '"';
+            ++output->len;
+            output->data[i++] = '"';
+            ++output->len;
+
+            output->data[i++] = ']';
+            ++output->len;
+        } else if (OBJ_VALUE == node->node_type) {
+
+            // key
+            output->data[i++] = '"';
+            ++output->len;
+            (void)memcpy(&output->data[i], node->key.data, node->key.len);
+            i += node->key.len;
+            output->len += node->key.len;
+            output->data[i++] = '"';
+            ++output->len;
+
+            output->data[i++] = ':';
+            ++output->len;
+        } else {
+            abort();
+        }
+
+        next = rb_next(p);
+        if (next) {
+            output->data[i++] = ',';
+            ++output->len;
+        }
+        p = next;
+    }
+    output->data[i++] = '}';
+    ++output->len;
+
     return 0;
 }
 
 
-int lts_sjon_encode(lts_sjson_t *sjson, lts_pool_t *pool, lts_str_t *output)
-{
-    return 0;
-}
-
-
-int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
+int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
 {
     static uint8_t invisible[] = {'\t', '\n', '\r', '\x20'};
 
     DEFINE_LSTACK(obj_stack);
-    int rdepth = 0; // 嵌套层次
     int in_bracket = FALSE;
     int current_stat = SJSON_EXP_START;
     lts_str_t current_key = (lts_str_t)lts_null_string;
@@ -110,12 +261,11 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 current_key.len = 0;
             } else if ('}' == src->data[i]) {
                 // 空对象
-                if (rdepth) {
-                    --rdepth;
+                if (lstack_is_empty(&obj_stack)) {
+                    current_stat = SJSON_EXP_NOTHING; // only
+                } else {
                     current_stat = SJSON_EXP_COMMA_OR_END; // only
                     lstack_pop(&obj_stack);
-                } else {
-                    current_stat = SJSON_EXP_NOTHING; // only
                 }
             } else {
                 errno = LTS_E_INVALID_FORMAT;
@@ -197,7 +347,6 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 lts_sjson_t *new_obj;
 
                 current_stat = SJSON_EXP_K_QUOT_START_OR_END; // only
-                ++rdepth;
 
                 new_obj = (lts_sjson_t *)lts_palloc(pool, sizeof(*json_obj));
                 if (NULL == new_obj) {
@@ -218,7 +367,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                         lstack_top(&obj_stack), lts_sjson_t, _stk_node
                     );
                 }
-                __lts_sjon_search(&json_obj->val, &new_obj->obj_node, TRUE);
+                __lts_sjson_search(&json_obj->val, &new_obj->obj_node, TRUE);
 
                 // 压栈
                 lstack_push(&obj_stack, &new_obj->_stk_node);
@@ -279,7 +428,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                         );
                     }
 
-                    __lts_sjon_search(&json_obj->val,
+                    __lts_sjson_search(&json_obj->val,
                                       &json_kv->obj_node,
                                       TRUE);
                     json_kv = NULL;
@@ -311,7 +460,7 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                     );
                 }
 
-                __lts_sjon_search(&json_obj->val,
+                __lts_sjson_search(&json_obj->val,
                                   &json_list->obj_node,
                                   TRUE);
                 json_list = NULL;
@@ -332,13 +481,11 @@ int lts_sjon_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
             if (',' == src->data[i]) {
                 current_stat = SJSON_EXP_K_QUOT_START;
             } else if ('}' == src->data[i]) {
-                if (rdepth > 0) {
-                    --rdepth;
-                    current_stat = SJSON_EXP_COMMA_OR_END;
-
-                    lstack_pop(&obj_stack);
-                } else {
+                if (lstack_is_empty(&obj_stack)) {
                     current_stat = SJSON_EXP_NOTHING;
+                } else {
+                    current_stat = SJSON_EXP_COMMA_OR_END;
+                    lstack_pop(&obj_stack);
                 }
             } else {
                 errno = LTS_E_INVALID_FORMAT;
