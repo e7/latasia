@@ -41,13 +41,13 @@ void dump_sjson(lts_sjson_t *output)
     (void)fputc('{', stderr);
     while ((it = lts_sjson_pop_min(&output->val))) {
         if (STRING_VALUE == it->node_type) {
-            lts_sjson_kv_t *kv = CONTAINER_OF(it, lts_sjson_kv_t, obj_node);
+            lts_sjson_kv_t *kv = CONTAINER_OF(it, lts_sjson_kv_t, _obj_node);
             dump_string(&it->key);
             fprintf(stderr, ":");
             dump_string(&kv->val);
         } else if (LIST_VALUE == it->node_type) {
             lts_sjson_list_t *lv = CONTAINER_OF(
-                it, lts_sjson_list_t, obj_node
+                it, lts_sjson_list_t, _obj_node
             );
             dump_string(&it->key);
             (void)fprintf(stderr, ":[");
@@ -63,7 +63,7 @@ void dump_sjson(lts_sjson_t *output)
             (void)fprintf(stderr, "]");
         } else if (OBJ_VALUE == it->node_type) {
             lts_sjson_t *ov = CONTAINER_OF(
-                it, lts_sjson_t, obj_node
+                it, lts_sjson_t, _obj_node
             );
             dump_string(&it->key);
             (void)fprintf(stderr, ":");
@@ -98,89 +98,134 @@ int main(void)
     uint8_t t12[] = "{\"a\":{\"b\": {\"c\":\"d\"}}}";
     uint8_t t13[] = "{\"a\":{}}";
 
-    pool = lts_create_pool(40960);
+    pool = lts_create_pool(256);
     if (NULL == pool) {
         fprintf(stderr, "errno:%d\n", errno);
         return EXIT_FAILURE;
     }
 
-    s = (lts_str_t)lts_string(t1);
-    output.val = RB_ROOT;
+    s = lts_string(t1);
+    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t1\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
     dump_sjson(&output);
 
-    s = (lts_str_t)lts_string(t2);
-    output.val = RB_ROOT;
+    s = lts_string(t2);
+    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t2\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
     dump_sjson(&output);
 
-    s = (lts_str_t)lts_string(t3);
-    output.val = RB_ROOT;
+    s = lts_string(t3);
+    output = lts_empty_json;
     assert(-1 == lts_sjson_decode(&s, pool, &output));
 
-    s = (lts_str_t)lts_string(t4);
-    output.val = RB_ROOT;
+    s = lts_string(t4);
+    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
-    (void)fprintf(stderr, "======== t3\n");
+    (void)fprintf(stderr, "======== t4\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
     dump_sjson(&output);
 
-    s = (lts_str_t)lts_string(t5);
-    output.val = RB_ROOT;
+    s = lts_string(t5);
+    output = lts_empty_json;
     assert(-1 == lts_sjson_decode(&s, pool, &output));
 
-    s = (lts_str_t)lts_string(t6);
-    output.val = RB_ROOT;
+    s = lts_string(t6);
+    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t6\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
     dump_sjson(&output);
 
-    s = (lts_str_t)lts_string(t7);
-    output.val = RB_ROOT;
+    s = lts_string(t7);
+    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t7\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
     dump_sjson(&output);
 
-    s = (lts_str_t)lts_string(t8);
-    output.val = RB_ROOT;
+    s = lts_string(t8);
+    output = lts_empty_json;
     assert(-1 == lts_sjson_decode(&s, pool, &output));
 
-    s = (lts_str_t)lts_string(t9);
-    output.val = RB_ROOT;
+    s = lts_string(t9);
+    output = lts_empty_json;
     assert(-1 == lts_sjson_decode(&s, pool, &output));
 
-    s = (lts_str_t)lts_string(t10);
-    output.val = RB_ROOT;
+    s = lts_string(t10);
+    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t10\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
     dump_sjson(&output);
 
-    s = (lts_str_t)lts_string(t11);
-    output.val = RB_ROOT;
+    s = lts_string(t11);
+    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t11\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
     dump_sjson(&output);
 
-    s = (lts_str_t)lts_string(t12);
-    output.val = RB_ROOT;
+    s = lts_string(t12);
+    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t12\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
     dump_sjson(&output);
 
-    s = (lts_str_t)lts_string(t13);
-    output.val = RB_ROOT;
+    s = lts_string(t13);
+    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t13\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
     dump_sjson(&output);
 
     lts_destroy_pool(pool);

@@ -25,6 +25,7 @@ struct lts_pool_s {
 };
 
 
+// 分配内存，以alignment对齐，大小为size
 static void *lts_memalign(size_t alignment, size_t size)
 {
     void *p;
@@ -47,8 +48,9 @@ static void *lts_palloc_block(lts_pool_t *pool, size_t size)
     size_t psize;
     lts_pool_data_t *new_block, *iter;
 
-    psize = (size_t)LTS_ALIGN(sizeof(lts_pool_data_t), lts_sys_pagesize);
-    psize += pool->max_size;
+    psize  = (size_t)LTS_ALIGN(
+        sizeof(lts_pool_data_t) + pool->max_size, LTS_WORD
+    );
     p = (uint8_t *)lts_memalign(lts_sys_pagesize, psize);
     if (NULL == p) {
         // log
@@ -57,8 +59,7 @@ static void *lts_palloc_block(lts_pool_t *pool, size_t size)
 
     // 初始化新块
     new_block = (lts_pool_data_t *)p;
-    new_block->last = p + sizeof(lts_pool_t);
-    new_block->last = (uint8_t *)LTS_ALIGN(new_block->last, lts_sys_pagesize);
+    new_block->last = (uint8_t *)LTS_ALIGN(p + sizeof(lts_pool_t), LTS_WORD);
     new_block->end = p + psize;
     new_block->failed = 0;
     new_block->next = NULL;
@@ -66,7 +67,7 @@ static void *lts_palloc_block(lts_pool_t *pool, size_t size)
     // 分配内存
     m = new_block->last;
     new_block->last += size;
-    new_block->last = (uint8_t *)LTS_ALIGN(new_block->last, lts_sys_pagesize);
+    new_block->last = (uint8_t *)LTS_ALIGN(new_block->last, LTS_WORD);
 
     // 挂载内存块
     for (iter = pool->current; NULL != iter->next; iter = iter->next) {
@@ -107,7 +108,7 @@ lts_pool_t *lts_create_pool(size_t size)
     pool = (lts_pool_t *)p;
     pool->current = &pool->data;
     pool->data.last = p + sizeof(lts_pool_t);
-    pool->data.last = (uint8_t *)LTS_ALIGN(pool->data.last, lts_sys_pagesize);
+    pool->data.last = (uint8_t *)LTS_ALIGN(pool->data.last, LTS_WORD);
     pool->data.end = p + size;
     pool->max_size = pool->data.end - pool->data.last;
     pool->data.failed = 0;
@@ -135,7 +136,7 @@ void *lts_palloc(lts_pool_t *pool, size_t size)
             m = p->last;
             p->last += size;
             pool->data.last = (uint8_t *)(
-                LTS_ALIGN(pool->data.last, lts_sys_pagesize)
+                LTS_ALIGN(pool->data.last, LTS_WORD)
             );
 
             return m;

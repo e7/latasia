@@ -73,7 +73,7 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
         );
 
         if (STRING_VALUE == node->node_type) {
-            lts_sjson_kv_t *kv = CONTAINER_OF(node, lts_sjson_kv_t, obj_node);
+            lts_sjson_kv_t *kv = CONTAINER_OF(node, lts_sjson_kv_t, _obj_node);
 
             sz += node->key.len + 2; // ""
             ++sz; // :
@@ -81,7 +81,7 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
         } else if (LIST_VALUE == node->node_type) {
             list_t *it;
             lts_sjson_list_t *lv = CONTAINER_OF(
-                node, lts_sjson_list_t, obj_node
+                node, lts_sjson_list_t, _obj_node
             );
 
             sz += 2; // []
@@ -99,7 +99,7 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
                 it = list_next(it);
             }
         } else if (OBJ_VALUE == node->node_type) {
-            lts_sjson_t *ov = CONTAINER_OF(node, lts_sjson_t, obj_node);
+            lts_sjson_t *ov = CONTAINER_OF(node, lts_sjson_t, _obj_node);
 
             sz += node->key.len + 2; // ""
             ++sz; // :
@@ -116,28 +116,14 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
 }
 
 
-int lts_sjson_encode(lts_sjson_t *sjson, lts_pool_t *pool, lts_str_t *output)
+static void __lts_sjson_encode(lts_sjson_t *sjson,
+                               lts_str_t *output,
+                               ssize_t i)
 {
-    size_t i;
-    uint8_t *data;
-    ssize_t data_sz;
     lts_rb_node_t *p;
-
-    data_sz = lts_sjson_encode_size(sjson);
-    if (-1 == data_sz) {
-        return -1;
-    }
-
-    // 初始化缓冲区
-    data = (uint8_t *)lts_palloc(pool, data_sz);
-    (void)memset(data, 0, data_sz);
-    output->data = data;
-    output->len = 0;
-    i = 0;
 
     // 序列化
     output->data[i++] = '{';
-    ++output->len;
     p = rb_first(&sjson->val);
     while (p) {
         lts_rb_node_t *next;
@@ -146,65 +132,69 @@ int lts_sjson_encode(lts_sjson_t *sjson, lts_pool_t *pool, lts_str_t *output)
         );
 
         if (STRING_VALUE == node->node_type) {
-            lts_sjson_kv_t *kv = CONTAINER_OF(node, lts_sjson_kv_t, obj_node);
+            lts_sjson_kv_t *kv = CONTAINER_OF(node, lts_sjson_kv_t, _obj_node);
 
             // key
             output->data[i++] = '"';
-            ++output->len;
             (void)memcpy(&output->data[i], node->key.data, node->key.len);
             i += node->key.len;
-            output->len += node->key.len;
             output->data[i++] = '"';
-            ++output->len;
 
             output->data[i++] = ':';
-            ++output->len;
 
             // val
             output->data[i++] = '"';
-            ++output->len;
             (void)memcpy(&output->data[i], kv->val.data, kv->val.len);
             i += kv->val.len;
-            output->len += kv->val.len;
             output->data[i++] = '"';
-            ++output->len;
         } else if (LIST_VALUE == node->node_type) {
-            output->data[i++] = '[';
-            ++output->len;
+            list_t *it;
+            lts_sjson_list_t *lv = CONTAINER_OF(
+                node, lts_sjson_list_t, _obj_node
+            );
 
             // key
             output->data[i++] = '"';
-            ++output->len;
             (void)memcpy(&output->data[i], node->key.data, node->key.len);
             i += node->key.len;
-            output->len += node->key.len;
             output->data[i++] = '"';
-            ++output->len;
 
             output->data[i++] = ':';
-            ++output->len;
 
             // val
-            output->data[i++] = '"';
-            ++output->len;
-            output->data[i++] = '"';
-            ++output->len;
+            output->data[i++] = '[';
+            it = list_first(&lv->val);
+            while (it) {
+                list_t *next;
+                lts_sjson_li_node_t *ln = CONTAINER_OF(
+                    it, lts_sjson_li_node_t, node
+                );
 
+                output->data[i++] = '"';
+                (void)memcpy(&output->data[i], ln->val.data, ln->val.len);
+                i += ln->val.len;
+                output->data[i++] = '"';
+
+                next = list_next(it);
+                if (next) {
+                    output->data[i++] = ',';
+                }
+                it = next;
+            }
             output->data[i++] = ']';
-            ++output->len;
         } else if (OBJ_VALUE == node->node_type) {
+            lts_sjson_t *ov = CONTAINER_OF(node, lts_sjson_t, _obj_node);
 
             // key
             output->data[i++] = '"';
-            ++output->len;
             (void)memcpy(&output->data[i], node->key.data, node->key.len);
             i += node->key.len;
-            output->len += node->key.len;
             output->data[i++] = '"';
-            ++output->len;
 
             output->data[i++] = ':';
-            ++output->len;
+
+            __lts_sjson_encode(ov, output, i);
+            i = output->len + 1;
         } else {
             abort();
         }
@@ -212,15 +202,41 @@ int lts_sjson_encode(lts_sjson_t *sjson, lts_pool_t *pool, lts_str_t *output)
         next = rb_next(p);
         if (next) {
             output->data[i++] = ',';
-            ++output->len;
         }
         p = next;
     }
     output->data[i++] = '}';
-    ++output->len;
+    output->len = i; // 回写长度
+
+    return;
+}
+
+int lts_sjson_encode(lts_sjson_t *sjson, lts_pool_t *pool, lts_str_t *output)
+{
+    uint8_t *data;
+    ssize_t data_sz;
+
+    data_sz = lts_sjson_encode_size(sjson);
+    if (-1 == data_sz) {
+        return -1;
+    }
+
+    // 初始化缓冲区
+    data = (uint8_t *)lts_palloc(pool, data_sz);
+    if (NULL == data) {
+        return -1;
+    }
+
+    (void)memset(data, 0, data_sz);
+    output->data = data;
+    output->len = 0;
+
+    __lts_sjson_encode(sjson, output, 0);
+    assert(output->len < data_sz);
 
     return 0;
 }
+
 
 
 int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
@@ -230,7 +246,7 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
     DEFINE_LSTACK(obj_stack);
     int in_bracket = FALSE;
     int current_stat = SJSON_EXP_START;
-    lts_str_t current_key = (lts_str_t)lts_null_string;
+    lts_str_t current_key = lts_null_string;
     lts_sjson_kv_t *json_kv = NULL;
     lts_sjson_li_node_t *li_node = NULL;
     lts_sjson_list_t *json_list = NULL;
@@ -323,11 +339,11 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                     return -1;
                 }
 
-                lts_str_copy(&json_kv->obj_node.key, &current_key);
+                lts_str_copy(&json_kv->_obj_node.key, &current_key);
                 json_kv->val.data = &src->data[i + 1];
                 json_kv->val.len = 0;
-                json_kv->obj_node.node_type = STRING_VALUE;
-                json_kv->obj_node.rb_node = RB_NODE;
+                json_kv->_obj_node.node_type = STRING_VALUE;
+                json_kv->_obj_node.rb_node = RB_NODE;
             } else if ('[' == src->data[i]) {
                 in_bracket = TRUE;
                 current_stat = SJSON_EXP_V_QUOT_START; // only
@@ -339,10 +355,10 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                     return -1;
                 }
 
-                lts_str_copy(&json_list->obj_node.key, &current_key);
+                lts_str_copy(&json_list->_obj_node.key, &current_key);
                 list_set_empty(&json_list->val);
-                json_list->obj_node.node_type = LIST_VALUE;
-                json_list->obj_node.rb_node = RB_NODE;
+                json_list->_obj_node.node_type = LIST_VALUE;
+                json_list->_obj_node.rb_node = RB_NODE;
             } else if ('{' == src->data[i]) {
                 lts_sjson_t *new_obj;
 
@@ -354,10 +370,10 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                     return -1;
                 }
 
-                lts_str_copy(&new_obj->obj_node.key, &current_key);
+                lts_str_copy(&new_obj->_obj_node.key, &current_key);
                 new_obj->val = RB_ROOT;
-                new_obj->obj_node.node_type = OBJ_VALUE;
-                new_obj->obj_node.rb_node = RB_NODE;
+                new_obj->_obj_node.node_type = OBJ_VALUE;
+                new_obj->_obj_node.rb_node = RB_NODE;
 
                 // 挂到树上
                 if (lstack_is_empty(&obj_stack)) {
@@ -367,7 +383,7 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                         lstack_top(&obj_stack), lts_sjson_t, _stk_node
                     );
                 }
-                __lts_sjson_search(&json_obj->val, &new_obj->obj_node, TRUE);
+                __lts_sjson_search(&json_obj->val, &new_obj->_obj_node, TRUE);
 
                 // 压栈
                 lstack_push(&obj_stack, &new_obj->_stk_node);
@@ -429,8 +445,8 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                     }
 
                     __lts_sjson_search(&json_obj->val,
-                                      &json_kv->obj_node,
-                                      TRUE);
+                                       &json_kv->_obj_node,
+                                       TRUE);
                     json_kv = NULL;
                 } else {
                     ++json_kv->val.len;
@@ -461,7 +477,7 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 }
 
                 __lts_sjson_search(&json_obj->val,
-                                  &json_list->obj_node,
+                                  &json_list->_obj_node,
                                   TRUE);
                 json_list = NULL;
             } else {

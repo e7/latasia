@@ -36,7 +36,7 @@
 // 平台字长
 #define LTS_WORD                sizeof(unsigned long)
 #define LTS_ALIGN(d, a) (\
-    ((uintptr_t)(d) + ((uintptr_t)a - 1)) & (~((uintptr_t)a - 1))\
+    ((uintptr_t)(d) + ((uintptr_t)(a) - 1)) & (~((uintptr_t)(a) - 1))\
 )
 
 #define ARRAY_COUNT(a)      ((int)(sizeof(a) / sizeof(a[0])))

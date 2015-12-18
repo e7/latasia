@@ -30,9 +30,14 @@ typedef struct {
 
 typedef struct {
     lts_rb_root_t val;
-    lts_sjson_obj_node_t obj_node;
-    lstack_t _stk_node; // 内部所用栈节点
+    lts_sjson_obj_node_t _obj_node; // 内部所用红黑树结点
+    lstack_t _stk_node; // 内部所用栈结点
 } lts_sjson_t;
+#define lts_empty_json (lts_sjson_t){\
+    RB_ROOT, (lts_sjson_obj_node_t){\
+        0, lts_null_string, RB_NODE,\
+    }\
+}
 
 typedef struct {
     list_t node;
@@ -41,12 +46,12 @@ typedef struct {
 
 typedef struct {
     list_t *val;
-    lts_sjson_obj_node_t obj_node;
+    lts_sjson_obj_node_t _obj_node; // 内部所用红黑树结点
 } lts_sjson_list_t;
 
 typedef struct {
     lts_str_t val;
-    lts_sjson_obj_node_t obj_node;
+    lts_sjson_obj_node_t _obj_node; // 内部所用红黑树结点
 } lts_sjson_kv_t;
 
 
