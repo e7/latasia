@@ -46,6 +46,7 @@ static int echo_ibuf(lts_socket_t *s)
     return 0;
 }
 
+
 static int echo_obuf(lts_socket_t *s)
 {
     lts_buffer_t *rb;
@@ -67,6 +68,7 @@ static int echo_obuf(lts_socket_t *s)
 
     return 0;
 }
+
 
 static lts_app_module_itfc_t echo_itfc = {
     &echo_ibuf,

@@ -95,7 +95,7 @@ int main(void)
     uint8_t t9[] = "{}{}";
     uint8_t t10[] = "{\"a\":[\"b\", \"c\"], \"d\":\"e\"}";
     uint8_t t11[] = "{\"a\":{\"b\": \"c\"}}";
-    uint8_t t12[] = "{\"a\":{\"b\": {\"c\":\"d\"}}}";
+    uint8_t t12[] = "{\"a\":{\"b\": {\"c\":\"d\"}}, \"e\":{\"f\":\"g\"}}";
     uint8_t t13[] = "{\"a\":{}}";
 
     pool = lts_create_pool(256);
@@ -114,6 +114,7 @@ int main(void)
         (void)fputc(s.data[i], stderr);
     }
     (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
     dump_sjson(&output);
 
     s = lts_string(t2);
@@ -126,6 +127,7 @@ int main(void)
         (void)fputc(s.data[i], stderr);
     }
     (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
     dump_sjson(&output);
 
     s = lts_string(t3);
@@ -142,6 +144,7 @@ int main(void)
         (void)fputc(s.data[i], stderr);
     }
     (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
     dump_sjson(&output);
 
     s = lts_string(t5);
@@ -158,6 +161,7 @@ int main(void)
         (void)fputc(s.data[i], stderr);
     }
     (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
     dump_sjson(&output);
 
     s = lts_string(t7);
@@ -170,6 +174,7 @@ int main(void)
         (void)fputc(s.data[i], stderr);
     }
     (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
     dump_sjson(&output);
 
     s = lts_string(t8);
@@ -190,6 +195,7 @@ int main(void)
         (void)fputc(s.data[i], stderr);
     }
     (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
     dump_sjson(&output);
 
     s = lts_string(t11);
@@ -202,6 +208,7 @@ int main(void)
         (void)fputc(s.data[i], stderr);
     }
     (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
     dump_sjson(&output);
 
     s = lts_string(t12);
@@ -214,6 +221,7 @@ int main(void)
         (void)fputc(s.data[i], stderr);
     }
     (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
     dump_sjson(&output);
 
     s = lts_string(t13);
@@ -226,6 +234,7 @@ int main(void)
         (void)fputc(s.data[i], stderr);
     }
     (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
     dump_sjson(&output);
 
     lts_destroy_pool(pool);
