@@ -94,7 +94,7 @@ static int http_core_ibuf(lts_socket_t *s)
     // 获取请求第一行
     idata.data = rb->start;
     idata.len = (size_t)(rb->last - rb->start);
-    pattern = lts_string("\r\n");
+    pattern = (lts_str_t)lts_string("\r\n");
     pattern_s = lts_str_find(&idata, &pattern, 0);
     if (-1 == pattern_s) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,

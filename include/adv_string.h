@@ -66,8 +66,8 @@ typedef struct {
 
 
 // 用数组初始化
-#define lts_string(str) (lts_str_t){(uint8_t *)(str), sizeof(str) - 1,}
-#define lts_null_string (lts_str_t){NULL, 0,}
+#define lts_string(str)         {(uint8_t *)(str), sizeof(str) - 1,}
+#define lts_null_string         {NULL, 0,}
 
 static inline
 void lts_str_init(lts_str_t *str, uint8_t *data, size_t len)

@@ -48,7 +48,7 @@ static lts_str_t *split_str(lts_str_t *text, char delemiter, lts_pool_t *pool)
     rslt[0].data = text->data;
     rslt[0].len = text->len;
     for (int i = 1; i < nitems; ++i) {
-        rslt[i] = lts_null_string;
+        rslt[i] = (lts_str_t)lts_null_string;
     }
 
     // split

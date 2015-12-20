@@ -35,14 +35,14 @@ typedef struct lts_logger_s {
 
 extern lts_str_t LTS_LOG_PREFIXES[LTS_LOG_MAX];
 #define lts_init_log_prefixes() do {\
-    LTS_LOG_PREFIXES[LTS_LOG_DEBUG] = lts_string("DEBUG");\
-    LTS_LOG_PREFIXES[LTS_LOG_INFO] = lts_string("INFO");\
-    LTS_LOG_PREFIXES[LTS_LOG_NOTICE] = lts_string("NOTICE");\
-    LTS_LOG_PREFIXES[LTS_LOG_WARN] = lts_string("WARN");\
-    LTS_LOG_PREFIXES[LTS_LOG_ERROR] = lts_string("ERROR");\
-    LTS_LOG_PREFIXES[LTS_LOG_CRIT] = lts_string("CRIT");\
-    LTS_LOG_PREFIXES[LTS_LOG_ALERT] = lts_string("ALERT");\
-    LTS_LOG_PREFIXES[LTS_LOG_EMERGE] = lts_string("EMERGE");\
+    LTS_LOG_PREFIXES[LTS_LOG_DEBUG]     = (lts_str_t)lts_string("DEBUG");\
+    LTS_LOG_PREFIXES[LTS_LOG_INFO]      = (lts_str_t)lts_string("INFO");\
+    LTS_LOG_PREFIXES[LTS_LOG_NOTICE]    = (lts_str_t)lts_string("NOTICE");\
+    LTS_LOG_PREFIXES[LTS_LOG_WARN]      = (lts_str_t)lts_string("WARN");\
+    LTS_LOG_PREFIXES[LTS_LOG_ERROR]     = (lts_str_t)lts_string("ERROR");\
+    LTS_LOG_PREFIXES[LTS_LOG_CRIT]      = (lts_str_t)lts_string("CRIT");\
+    LTS_LOG_PREFIXES[LTS_LOG_ALERT]     = (lts_str_t)lts_string("ALERT");\
+    LTS_LOG_PREFIXES[LTS_LOG_EMERGE]    = (lts_str_t)lts_string("EMERGE");\
 } while (0)
 extern lts_logger_t lts_stderr_logger;
 extern lts_logger_t lts_file_logger;
