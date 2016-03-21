@@ -1,11 +1,14 @@
 # listen port
-port = 6742
+port = 0
 
 # cache servers
 servers = 127.0.0.1 # localhost only by default
 
+# pid file
+pid_file = latasia.pid
+
 # log file
-log_file = /var/log/latasia/latasia.log
+log_file = latasia.log
 
 # workers
 workers = 1

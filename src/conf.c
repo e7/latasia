@@ -27,6 +27,7 @@ typedef struct {
 } conf_item_t;
 
 
+// 分割字符串
 static lts_str_t *split_str(lts_str_t *text, char delemiter, lts_pool_t *pool)
 {
     int dlm_count, nitems;
@@ -93,6 +94,27 @@ cb_port_match(lts_conf_t *conf, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
 
     return;
 }
+
+
+static void cb_pid_file_match(lts_conf_t *conf,
+                              lts_str_t *k,
+                              lts_str_t *v,
+                              lts_pool_t *pool)
+{
+    uint8_t *pid_file_buf;
+    size_t pid_file_buf_size = MAX(v->len, 8) + 1;
+
+    // 缓冲value
+    pid_file_buf  = (uint8_t *)lts_palloc(pool, pid_file_buf_size);
+    (void)memcpy(pid_file_buf, v->data, v->len);
+    pid_file_buf[v->len] = 0;
+
+    // 更新配置
+    lts_str_init(&conf->pid_file, pid_file_buf, v->len);
+
+    return;
+}
+
 
 static void cb_log_file_match(lts_conf_t *conf,
                               lts_str_t *k,
@@ -234,6 +256,7 @@ static void cb_http_cwd_match(lts_conf_t *conf,
 static conf_item_t conf_items[] = {
     {lts_string("port"), &cb_port_match},
     {lts_string("workers"), &cb_workers_match},
+    {lts_string("pid_file"), &cb_pid_file_match},
     {lts_string("log_file"), &cb_log_file_match},
     {lts_string("servers"), &cb_servers_match},
     {lts_string("keepalive"), &cb_keepalive_match},
@@ -489,8 +512,8 @@ lts_conf_t lts_conf = {
     lts_string("6742"), // 监听端口
     1, // slave进程数
     MAX_CONNECTIONS, // 每个slave最大连接数
-    lts_string("/var/run/latasia/latasia.pid"), // pid文件路径
-    lts_string("/var/log/latasia/latasia.log"), // 日志路径
+    lts_string("latasia.pid"), // pid文件路径
+    lts_string("latasia.log"), // 日志路径
     lts_string("--SERVER=127.0.0.1"), // 后台服务
     60, // 连接超时
 
