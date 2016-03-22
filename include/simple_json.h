@@ -25,7 +25,7 @@ enum {
 typedef struct {
     int node_type;
     lts_str_t key;
-    lts_rb_node_t rb_node;
+    lts_rb_node_t tnode;
 } lts_sjson_obj_node_t;
 
 typedef struct {
@@ -70,4 +70,33 @@ extern int lts_sjson_decode(lts_str_t *src,
 
 // 弹出最小的元素
 extern lts_sjson_obj_node_t *lts_sjson_pop_min(lts_sjson_t *obj);
+
+// 遍历
+static inline lts_sjson_obj_node_t *lts_sjson_first(lts_sjson_t *obj)
+{
+    lts_rb_node_t *p = rb_first(&obj->val);
+
+    return p ? CONTAINER_OF(p, lts_sjson_obj_node_t, tnode) : NULL;
+}
+
+static inline lts_sjson_obj_node_t *lts_sjson_last(lts_sjson_t *obj)
+{
+    lts_rb_node_t *p = rb_last(&obj->val);
+
+    return p ? CONTAINER_OF(p, lts_sjson_obj_node_t, tnode) : NULL;
+}
+
+static inline lts_sjson_obj_node_t *lts_sjson_prev(lts_sjson_obj_node_t *node)
+{
+    lts_rb_node_t *p = rb_prev(&node->tnode);
+
+    return p ? CONTAINER_OF(p, lts_sjson_obj_node_t, tnode) : NULL;
+}
+
+static inline lts_sjson_obj_node_t *lts_sjson_next(lts_sjson_obj_node_t *node)
+{
+    lts_rb_node_t *p = rb_next(&node->tnode);
+
+    return p ? CONTAINER_OF(p, lts_sjson_obj_node_t, tnode) : NULL;
+}
 #endif // __LATASIA__SIMPLE_JSON_H__

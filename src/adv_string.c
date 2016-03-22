@@ -75,6 +75,7 @@ void lts_str_trim(lts_str_t *str)
 }
 
 
+// 子串查询
 /*
 int lts_str_find(lts_str_t *text, lts_str_t *pattern)
 {

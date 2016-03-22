@@ -39,7 +39,7 @@ static lts_sjson_obj_node_t *__lts_sjson_search(lts_rb_root_t *root,
     while (*iter) {
         int balance;
         parent = *iter;
-        s = rb_entry(parent, lts_sjson_obj_node_t, rb_node);
+        s = rb_entry(parent, lts_sjson_obj_node_t, tnode);
 
         balance = lts_str_compare(&obj_node->key, &s->key);
         if (balance < 0) {
@@ -52,8 +52,8 @@ static lts_sjson_obj_node_t *__lts_sjson_search(lts_rb_root_t *root,
     }
 
     if (link) {
-        rb_link_node(&obj_node->rb_node, parent, iter);
-        rb_insert_color(&obj_node->rb_node, root);
+        rb_link_node(&obj_node->tnode, parent, iter);
+        rb_insert_color(&obj_node->tnode, root);
     }
 
     return obj_node;
@@ -69,7 +69,7 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
     p = rb_first(&sjson->val);
     while (p) {
         lts_sjson_obj_node_t *node = CONTAINER_OF(
-            p, lts_sjson_obj_node_t, rb_node
+            p, lts_sjson_obj_node_t, tnode
         );
 
         if (STRING_VALUE == node->node_type) {
@@ -127,7 +127,7 @@ lts_sjson_obj_node_t *lts_sjson_pop_min(lts_sjson_t *obj)
         return NULL;
     }
 
-    obj_node = CONTAINER_OF(p, lts_sjson_obj_node_t, rb_node);
+    obj_node = CONTAINER_OF(p, lts_sjson_obj_node_t, tnode);
     rb_erase(p, root);
 
     return obj_node;
@@ -146,7 +146,7 @@ static void __lts_sjson_encode(lts_sjson_t *sjson,
     while (p) {
         lts_rb_node_t *next;
         lts_sjson_obj_node_t *node = CONTAINER_OF(
-            p, lts_sjson_obj_node_t, rb_node
+            p, lts_sjson_obj_node_t, tnode
         );
 
         if (STRING_VALUE == node->node_type) {
@@ -362,7 +362,7 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 json_kv->val.data = &src->data[i + 1];
                 json_kv->val.len = 0;
                 json_kv->_obj_node.node_type = STRING_VALUE;
-                json_kv->_obj_node.rb_node = RB_NODE;
+                json_kv->_obj_node.tnode = RB_NODE;
             } else if ('[' == src->data[i]) {
                 in_bracket = TRUE;
                 current_stat = SJSON_EXP_V_QUOT_START; // only
@@ -377,7 +377,7 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 lts_str_copy(&json_list->_obj_node.key, &current_key);
                 list_set_empty(&json_list->val);
                 json_list->_obj_node.node_type = LIST_VALUE;
-                json_list->_obj_node.rb_node = RB_NODE;
+                json_list->_obj_node.tnode = RB_NODE;
             } else if ('{' == src->data[i]) {
                 lts_sjson_t *new_obj;
 
@@ -392,7 +392,7 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
                 lts_str_copy(&new_obj->_obj_node.key, &current_key);
                 new_obj->val = RB_ROOT;
                 new_obj->_obj_node.node_type = OBJ_VALUE;
-                new_obj->_obj_node.rb_node = RB_NODE;
+                new_obj->_obj_node.tnode = RB_NODE;
 
                 // 挂到树上
                 if (lstack_is_empty(&obj_stack)) {

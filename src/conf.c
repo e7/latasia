@@ -237,23 +237,6 @@ static void cb_keepalive_match(lts_conf_t *conf,
 }
 
 
-// http_cwd配置
-static void cb_http_cwd_match(lts_conf_t *conf,
-                              lts_str_t *k,
-                              lts_str_t *v,
-                              lts_pool_t *pool)
-{
-    uint8_t *p;
-
-    p = lts_palloc(pool, v->len + 1);
-    (void)memcpy(p, v->data, v->len);
-    p[v->len] = 0;
-    lts_str_init(&conf->http_cwd, p, v->len);
-
-    return;
-}
-
-
 static conf_item_t conf_items[] = {
     {lts_string("port"), &cb_port_match},
     {lts_string("workers"), &cb_workers_match},
@@ -261,7 +244,6 @@ static conf_item_t conf_items[] = {
     {lts_string("log_file"), &cb_log_file_match},
     {lts_string("servers"), &cb_servers_match},
     {lts_string("keepalive"), &cb_keepalive_match},
-    {lts_string("http_cwd"), &cb_http_cwd_match},
 };
 
 static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
@@ -320,6 +302,8 @@ static void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz)
     return;
 }
 
+
+/*
 static void log_invalid_conf(lts_str_t *item, lts_pool_t *pool)
 {
     char *tmp;
@@ -334,6 +318,7 @@ static void log_invalid_conf(lts_str_t *item, lts_pool_t *pool)
 
     return;
 }
+*/
 
 
 // json配置解析
@@ -342,15 +327,40 @@ static int parse_conf(lts_conf_t *conf,
                       off_t sz,
                       lts_pool_t *pool)
 {
-    lts_str_t *iter;
-    lts_str_t conf_text = {addr, sz};
     lts_sjson_t conf_json;
+    lts_sjson_obj_node_t *iter;
+    lts_str_t conf_text = {addr, sz};
 
     if (lts_sjson_decode(&conf_text, pool, &conf_json)) {
         (void)lts_write_logger(
             &lts_stderr_logger, LTS_LOG_WARN, "%s:invalid json\n", STR_LOCATION
         );
         return -1;
+    }
+
+    for (iter = lts_sjson_first(&conf_json);
+         iter; iter = lts_sjson_next(iter)) {
+        lts_sjson_kv_t *kv;
+
+        // 忽略复杂类型的结点
+        if (STRING_VALUE != iter->node_type) {
+            continue;
+        }
+
+        kv = CONTAINER_OF(iter, lts_sjson_kv_t, _obj_node);
+
+        for (int j = 0; j < (int)ARRAY_COUNT(conf_items); ++j) {
+            if (lts_str_compare(&conf_items[j].name, &iter->key)) {
+                continue;
+            }
+
+            if (NULL == conf_items[j].match_handler) {
+                abort();
+            }
+
+            conf_items[j].match_handler(conf, &iter->key, &kv->val, pool);
+            break;
+        }
     }
 
     return 0;
