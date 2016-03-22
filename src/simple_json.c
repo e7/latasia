@@ -116,6 +116,24 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
 }
 
 
+lts_sjson_obj_node_t *lts_sjson_pop_min(lts_sjson_t *obj)
+{
+    lts_rb_node_t *p;
+    lts_sjson_obj_node_t *obj_node;
+    lts_rb_root_t *root = &obj->val;
+
+    p = rb_first(root);
+    if (NULL == p) {
+        return NULL;
+    }
+
+    obj_node = CONTAINER_OF(p, lts_sjson_obj_node_t, rb_node);
+    rb_erase(p, root);
+
+    return obj_node;
+}
+
+
 static void __lts_sjson_encode(lts_sjson_t *sjson,
                                lts_str_t *output,
                                ssize_t *offset)
@@ -255,6 +273,7 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
     // 过滤不可见字符
     (void)lts_str_filter_multi(src, invisible, ARRAY_COUNT(invisible));
 
+    *output = lts_empty_json;
     for (size_t i = 0; i < src->len; ++i) {
         switch (current_stat) {
         case SJSON_EXP_START:

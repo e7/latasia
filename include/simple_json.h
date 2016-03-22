@@ -55,11 +55,19 @@ typedef struct {
 } lts_sjson_kv_t;
 
 
+// 计算编码后的大小
 extern ssize_t lts_sjson_encode_size(lts_sjson_t *sjson);
+
+// 编码
 extern int lts_sjson_encode(lts_sjson_t *sjson,
                             lts_pool_t *pool,
                             lts_str_t *output);
+
+// 解码
 extern int lts_sjson_decode(lts_str_t *src,
                             lts_pool_t *pool,
                             lts_sjson_t *output);
+
+// 弹出最小的元素
+extern lts_sjson_obj_node_t *lts_sjson_pop_min(lts_sjson_t *obj);
 #endif // __LATASIA__SIMPLE_JSON_H__

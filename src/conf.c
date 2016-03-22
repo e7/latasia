@@ -9,6 +9,7 @@
 #include "extra_errno.h"
 #include "conf.h"
 #include "file.h"
+#include "simple_json.h"
 #include "logger.h"
 
 #define __THIS_FILE__       "src/conf.c"
@@ -334,6 +335,30 @@ static void log_invalid_conf(lts_str_t *item, lts_pool_t *pool)
     return;
 }
 
+
+// json配置解析
+static int parse_conf(lts_conf_t *conf,
+                      uint8_t *addr,
+                      off_t sz,
+                      lts_pool_t *pool)
+{
+    lts_str_t *iter;
+    lts_str_t conf_text = {addr, sz};
+    lts_sjson_t conf_json;
+
+    if (lts_sjson_decode(&conf_text, pool, &conf_json)) {
+        (void)lts_write_logger(
+            &lts_stderr_logger, LTS_LOG_WARN, "%s:invalid json\n", STR_LOCATION
+        );
+        return -1;
+    }
+
+    return 0;
+}
+
+
+// 键值对型配置解析
+/*
 static int parse_conf(lts_conf_t *conf,
                       uint8_t *addr,
                       off_t sz,
@@ -398,6 +423,8 @@ static int parse_conf(lts_conf_t *conf,
 
     return 0;
 }
+*/
+
 
 /*
  * 配置解析早期实现

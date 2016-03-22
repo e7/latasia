@@ -5,23 +5,6 @@
 size_t lts_sys_pagesize = 4096;
 
 
-static lts_sjson_obj_node_t *lts_sjson_pop_min(lts_rb_root_t *root)
-{
-    lts_rb_node_t *p;
-    lts_sjson_obj_node_t *obj_node;
-
-    p = rb_first(root);
-    if (NULL == p) {
-        return NULL;
-    }
-
-    obj_node = CONTAINER_OF(p, lts_sjson_obj_node_t, rb_node);
-    rb_erase(p, root);
-
-    return obj_node;
-}
-
-
 void dump_string(lts_str_t *str)
 {
     (void)fputc('"', stderr);
@@ -39,7 +22,7 @@ void dump_sjson(lts_sjson_t *output)
     lts_sjson_obj_node_t *it;
 
     (void)fputc('{', stderr);
-    while ((it = lts_sjson_pop_min(&output->val))) {
+    while ((it = lts_sjson_pop_min(output))) {
         if (STRING_VALUE == it->node_type) {
             lts_sjson_kv_t *kv = CONTAINER_OF(it, lts_sjson_kv_t, _obj_node);
             dump_string(&it->key);
@@ -105,7 +88,6 @@ int main(void)
     }
 
     s = (lts_str_t)lts_string(t1);
-    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t1\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
@@ -118,7 +100,6 @@ int main(void)
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t2);
-    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t2\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
@@ -131,11 +112,9 @@ int main(void)
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t3);
-    output = lts_empty_json;
     assert(-1 == lts_sjson_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t4);
-    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t4\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
@@ -148,11 +127,9 @@ int main(void)
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t5);
-    output = lts_empty_json;
     assert(-1 == lts_sjson_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t6);
-    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t6\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
@@ -165,7 +142,6 @@ int main(void)
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t7);
-    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t7\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
@@ -178,15 +154,12 @@ int main(void)
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t8);
-    output = lts_empty_json;
     assert(-1 == lts_sjson_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t9);
-    output = lts_empty_json;
     assert(-1 == lts_sjson_decode(&s, pool, &output));
 
     s = (lts_str_t)lts_string(t10);
-    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t10\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
@@ -199,7 +172,6 @@ int main(void)
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t11);
-    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t11\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
@@ -212,7 +184,6 @@ int main(void)
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t12);
-    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t12\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
@@ -225,7 +196,6 @@ int main(void)
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t13);
-    output = lts_empty_json;
     assert(0 == lts_sjson_decode(&s, pool, &output));
     (void)fprintf(stderr, "======== t13\n");
     (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
