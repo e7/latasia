@@ -514,7 +514,7 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
             }
 
             if (',' == src->data[i]) {
-                current_stat = SJSON_EXP_K_QUOT_START;
+                current_stat = SJSON_EXP_K_QUOT_START_OR_END;
             } else if ('}' == src->data[i]) {
                 if (lstack_is_empty(&obj_stack)) {
                     current_stat = SJSON_EXP_NOTHING;

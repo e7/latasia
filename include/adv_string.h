@@ -11,11 +11,14 @@
 #include "common.h"
 
 
+
+// start of charmap {{
 typedef union {
     uint8_t bytes[32];
     uint32_t ints[8];
 } charmap_t;
 
+// 统计整数中比特位为1的个数
 static inline
 int count_bit_1(uint32_t x)
 {
@@ -57,6 +60,7 @@ int charmap_count(charmap_t *cm)
 
     return count;
 }
+// }} end of charmap
 
 
 typedef struct {

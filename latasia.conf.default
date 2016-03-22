@@ -1,1 +1,9 @@
-{"port":"0","servers":"127.0.0.1","pid_file":"latasia.pid","log_file":"latasia.log","workers":"1","keepalive":"60"}
+{
+    "port": "0",
+    "servers": "127.0.0.1",
+    "pid_file": "latasia.pid",
+    "log_file": "latasia.log",
+    "workers":"1",
+    "keepalive":"60",
+    "http": {}
+}
