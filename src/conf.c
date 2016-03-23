@@ -70,6 +70,25 @@ static lts_str_t *split_str(lts_str_t *text, char delemiter, lts_pool_t *pool)
     return rslt;
 }
 
+
+// match of daemon
+static void
+cb_daemon_match(lts_conf_t *conf, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
+{
+    uint8_t *item_buf;
+    size_t item_buf_size = MAX(v->len, 8) + 1;
+
+    // 缓冲value
+    item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
+    (void)memcpy(item_buf, v->data, v->len);
+    item_buf[v->len] = 0;
+
+    conf->daemon = atoi((char const *)item_buf);
+
+    return;
+}
+
+
 // match of port
 static void
 cb_port_match(lts_conf_t *conf, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
@@ -137,54 +156,6 @@ static void cb_log_file_match(lts_conf_t *conf,
 }
 
 
-// 缓存配置
-static void cb_servers_match(lts_conf_t *conf,
-                             lts_str_t *k,
-                             lts_str_t *v,
-                             lts_pool_t *pool)
-{
-    int cache_count = 1;
-    size_t last = 0;
-    uint8_t *backends_buf;
-    size_t backends_buf_size;
-    lts_str_t prefix = lts_string("--SERVER=");
-
-    if ((',' == v->data[0]) || (',' == v->data[v->len - 1])) {
-        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
-                               "%s:invalid cache server configuration\n",
-                               STR_LOCATION);
-        return;
-    }
-
-    for (size_t i = 0; i < v->len; ++i) {
-        if (',' == v->data[i]) {
-            ++cache_count;
-        }
-    }
-    backends_buf_size = (v->len + prefix.len * cache_count + 1);
-    backends_buf = (uint8_t *)lts_palloc(pool, backends_buf_size);
-    for (size_t i = 0, j = 0; TRUE; ++j) {
-        if ((',' == v->data[j]) || (j == v->len)) {
-            (void)memcpy(&backends_buf[last], prefix.data, prefix.len);
-            last += prefix.len;
-            (void)memcpy(&backends_buf[last], &v->data[i], j - i);
-            last += j - i;
-            i = ++j;
-            backends_buf[last] = 0x20;
-            ++last;
-        }
-        if (j > v->len) {
-            break;
-        }
-    }
-    backends_buf[backends_buf_size - 1] = 0;
-    lts_str_init(&conf->backends,
-                 backends_buf, backends_buf_size - 1);
-
-    return;
-}
-
-
 // 工作进程配置
 static void cb_workers_match(lts_conf_t *conf,
                              lts_str_t *k,
@@ -238,11 +209,11 @@ static void cb_keepalive_match(lts_conf_t *conf,
 
 
 static conf_item_t conf_items[] = {
+    {lts_string("daemon"), &cb_daemon_match},
     {lts_string("port"), &cb_port_match},
     {lts_string("workers"), &cb_workers_match},
     {lts_string("pid_file"), &cb_pid_file_match},
     {lts_string("log_file"), &cb_log_file_match},
-    {lts_string("servers"), &cb_servers_match},
     {lts_string("keepalive"), &cb_keepalive_match},
 };
 
@@ -571,7 +542,6 @@ lts_conf_t lts_conf = {
     MAX_CONNECTIONS, // 每个slave最大连接数
     lts_string("latasia.pid"), // pid文件路径
     lts_string("latasia.log"), // 日志路径
-    lts_string("--SERVER=127.0.0.1"), // 后台服务
     60, // 连接超时
 
     lts_string("/"),

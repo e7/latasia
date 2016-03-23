@@ -1,4 +1,5 @@
 {
+    "daemon": "1", # 守护进程
     "port": "0", # 端口
     "pid_file": "run/latasia.pid", # pid文件
     "log_file": "run/latasia.log", # 日志文件

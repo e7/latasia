@@ -24,8 +24,59 @@ lts_module_t lts_core_module = {
 };
 
 
+static int daemonize(const char *wd)
+{
+    switch (fork()) {
+    case -1:
+        return -1;
+    case 0:
+        break;
+    default:
+        exit(0);
+    }
+
+    if (-1 == setsid()) {
+        exit(0);
+    }
+
+    if (wd) {
+        if (-1 == chdir(wd)) {
+            exit(0);
+        }
+    }
+
+    if (-1 == close(STDIN_FILENO)) {
+        exit(0);
+    }
+    if (-1 == close(STDOUT_FILENO)) {
+        exit(0);
+    }
+    if (-1 == close(STDERR_FILENO)) {
+        exit(0);
+    }
+
+    int fd = open("/dev/null", O_RDWR, 0);
+    if (-1 == fd) {
+        exit(0);
+    }
+
+    if(-1 == dup2(fd, STDIN_FILENO)) {
+        exit(0);
+    }
+    if(-1 == dup2(fd, STDOUT_FILENO)) {
+        exit(0);
+    }
+    if(-1 == dup2(fd, STDERR_FILENO)) {
+        exit(0);
+    }
+
+    return 0;
+}
+
+
 int init_core_master(lts_module_t *module)
 {
+    char const *wd = "./";
     lts_pool_t *pool;
     lts_str_t strpid = {NULL, 32};
 
@@ -44,7 +95,30 @@ int init_core_master(lts_module_t *module)
                                STR_LOCATION);
     }
 
+    // 初始化日志
+    lts_str_init(&lts_log_file.name,
+                 lts_conf.log_file.data, lts_conf.log_file.len);
+    if (-1 == lts_file_open(&lts_log_file, O_RDWR | O_CREAT | O_APPEND,
+                            S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH,
+                            &lts_stderr_logger)) {
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
+                               "%s:open log file failed\n", STR_LOCATION);
+
+        return -1;
+    }
+
+    // 守护进程
+    if (lts_conf.daemon && (-1 == daemonize(wd))) {
+        (void)lts_write_logger(
+            &lts_file_logger, LTS_LOG_INFO,
+            "%s:fall into daemon failed\n", STR_LOCATION
+        );
+
+        return -1;
+    }
+
     // 创建pid文件
+    lts_pid = getpid(); // 初始化进程号
     lts_str_init(&lts_pid_file.name,
                  lts_conf.pid_file.data, lts_conf.pid_file.len);
     if (-1 == lts_file_open(&lts_pid_file, O_RDWR | O_CREAT | O_EXCL,
@@ -53,22 +127,30 @@ int init_core_master(lts_module_t *module)
         switch (errno) {
         case EEXIST:
             {
-                (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
-                                       "%s:pid file exists\n", STR_LOCATION);
+                (void)lts_write_logger(
+                    &lts_file_logger, LTS_LOG_EMERGE,
+                    "%s:pid file %s%s exists\n", STR_LOCATION,
+                    wd, lts_pid_file.name.data
+                );
                 break;
             }
         case ENOENT:
             {
                 (void)lts_write_logger(
-                    &lts_stderr_logger, LTS_LOG_EMERGE,
+                    &lts_file_logger, LTS_LOG_EMERGE,
                     "%s:plese ensure the directories where "
-                       "the pid file located exists\n",
-                    STR_LOCATION
+                       "the pid file %s%s located exists\n",
+                    STR_LOCATION, wd, lts_pid_file.name.data
                 );
                 break;
             }
         default:
             {
+                (void)lts_write_logger(
+                    &lts_file_logger, LTS_LOG_EMERGE,
+                    "%s:open pid file %s%s failed:%d\n",
+                    STR_LOCATION, wd, lts_pid_file.name.data, errno
+                );
                 break;
             }
         }
@@ -79,24 +161,6 @@ int init_core_master(lts_module_t *module)
     lts_l2str(&strpid, lts_pid);
     (void)lts_file_write(&lts_pid_file,
                          strpid.data, strpid.len, &lts_stderr_logger);
-
-    // 初始化日志
-    lts_str_init(&lts_log_file.name,
-                 lts_conf.log_file.data, lts_conf.log_file.len);
-    if (-1 == lts_file_open(&lts_log_file, O_RDWR | O_CREAT | O_APPEND,
-                            S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH,
-                            &lts_stderr_logger)) {
-        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_EMERGE,
-                               "%s:open log file failed\n", STR_LOCATION);
-
-        // 删除pid文件
-        if (-1 == unlink((char const *)lts_conf.pid_file.data)) {
-            (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_ERROR,
-                                   "%s:delete pid file failed\n", STR_LOCATION);
-        }
-
-        return -1;
-    }
 
     // 进程组信息初始化
     for (int i = 0; i < ARRAY_COUNT(lts_processes); ++i) {

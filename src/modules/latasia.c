@@ -623,11 +623,6 @@ int master_main(void)
     int workers, slot;
     sigset_t tmp_mask;
 
-    // 守护进程
-    if (lts_conf.daemon && (-1 == daemon(FALSE, FALSE))) {
-        return -1;
-    }
-
     // 事件循环
     workers = 0; // 当前工作进程数
     if (lts_conf.workers > 1) {
@@ -916,7 +911,6 @@ int main(int argc, char *argv[], char *env[])
     lts_cpu_onln = (int)sysconf(_SC_NPROCESSORS_ONLN);
     lts_sys_pagesize = (size_t)sysconf(_SC_PAGESIZE);
     lts_module_count = 0;
-    lts_pid = getpid(); // 初始化进程号
     lts_process_role = LTS_MASTER; // 进程角色
     lts_init_log_prefixes();
     lts_update_time();
