@@ -8,6 +8,10 @@ int main(void)
     lts_str_t str = lts_string(s);
 
     fprintf(stderr, "[%s]\n", s);
+
+    lts_str_hollow(&str, 1, 2);
+    fprintf(stderr, "hollow: [%s]\n", s);
+
     lts_str_filter(&str, 'f');
     fprintf(stderr, "[%s]\n", s);
     lts_str_filter_multi(&str, target, sizeof(target));

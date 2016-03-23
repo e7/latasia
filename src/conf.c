@@ -331,6 +331,26 @@ static int parse_conf(lts_conf_t *conf,
     lts_sjson_obj_node_t *iter;
     lts_str_t conf_text = {addr, sz};
 
+    // 过滤注释
+    for (size_t i = 0; i < conf_text.len; ++i) {
+        size_t start, len;
+
+        if ('#' != conf_text.data[i]) {
+            continue;
+        }
+
+        start = i;
+        for (len = i + 1; len < conf_text.len; ++len) {
+            if ('\n' == conf_text.data[len]) {
+                break;
+            }
+        }
+        len -= start;
+
+        lts_str_hollow(&conf_text, start, len);
+    }
+
+    // 解码json
     if (lts_sjson_decode(&conf_text, pool, &conf_json)) {
         (void)lts_write_logger(
             &lts_stderr_logger, LTS_LOG_WARN, "%s:invalid json\n", STR_LOCATION

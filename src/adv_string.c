@@ -10,7 +10,7 @@
 
 
 // 区间反转，i和j分别为起始和结束下标
-static void reverse_region(uint8_t *data, int i, int j)
+static void __reverse_region(uint8_t *data, int i, int j)
 {
     uint8_t c;
 
@@ -23,7 +23,7 @@ static void reverse_region(uint8_t *data, int i, int j)
     }
 }
 
-static void kmp_next(lts_str_t *str, int *next, size_t sz)
+static void __kmp_next(lts_str_t *str, int *next, size_t sz)
 {
     int i = 0;
     int j = 1;
@@ -75,6 +75,22 @@ void lts_str_trim(lts_str_t *str)
 }
 
 
+void lts_str_hollow(lts_str_t *src, size_t start, size_t len)
+{
+    if ((start + len) > src->len) {
+        abort();
+    }
+
+    (void)memmove(
+        &src->data[start], &src->data[start + len], src->len - start - len
+    );
+    src->len -= len;
+    src->data[src->len] = '\0';
+
+    return;
+}
+
+
 // 子串查询
 /*
 int lts_str_find(lts_str_t *text, lts_str_t *pattern)
@@ -87,7 +103,7 @@ int lts_str_find(lts_str_t *text, lts_str_t *pattern)
         return;
     }
 
-    kmp_next(pattern, next, next_sz);
+    __kmp_next(pattern, next, next_sz);
 
     do {
         int i = 0;
@@ -127,7 +143,7 @@ int lts_str_find(lts_str_t *text, lts_str_t *pattern, int offset)
 
     region.data = text->data + offset;
     region.len = text->len - offset;
-    kmp_next(pattern, next, next_sz);
+    __kmp_next(pattern, next, next_sz);
 
     do {
         int i = 0;
@@ -183,7 +199,7 @@ int lts_str_compare(lts_str_t *a, lts_str_t *b)
 
 void lts_str_reverse(lts_str_t *src)
 {
-    reverse_region(src->data, 0, src->len - 1);
+    __reverse_region(src->data, 0, src->len - 1);
 }
 
 
@@ -232,8 +248,8 @@ ssize_t lts_str_filter(lts_str_t *src, uint8_t c)
         }
         --j;
 
-        reverse_region(src->data, m, j);
-        reverse_region(src->data, i, j);
+        __reverse_region(src->data, m, j);
+        __reverse_region(src->data, i, j);
 
         i += j - m + 1;
     }
@@ -291,8 +307,8 @@ ssize_t lts_str_filter_multi(lts_str_t *src, uint8_t *c, ssize_t len)
         }
         --j;
 
-        reverse_region(src->data, m, j);
-        reverse_region(src->data, i, j);
+        __reverse_region(src->data, m, j);
+        __reverse_region(src->data, i, j);
 
         i += j - m + 1;
     }
@@ -331,7 +347,7 @@ int lts_l2str(lts_str_t *str, long x)
     if (x < 0) {
         str->data[last++] = '-';
     }
-    reverse_region(str->data, 0, last - 1);
+    __reverse_region(str->data, 0, last - 1);
     str->data[last] = 0;
     str->len = last;
 

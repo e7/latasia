@@ -1,9 +1,8 @@
 {
-    "port": "0",
-    "servers": "127.0.0.1",
-    "pid_file": "run/latasia.pid",
-    "log_file": "run/latasia.log",
-    "workers":"1",
-    "keepalive":"60",
-    "http": {}
+    "port": "0", # 端口
+    "pid_file": "run/latasia.pid", # pid文件
+    "log_file": "run/latasia.log", # 日志文件
+    "workers":"1", # 工作进程数
+    "keepalive":"60", # 长连接保持时间
+    "http": {} # http应用模块配置
 }

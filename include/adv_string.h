@@ -94,6 +94,9 @@ extern void lts_str_trim(lts_str_t *str);
 // 反转字符串
 extern void lts_str_reverse(lts_str_t *src);
 
+// 移除子串
+extern void lts_str_hollow(lts_str_t *src, size_t start, size_t len);
+
 // 字符过滤
 extern ssize_t lts_str_filter(lts_str_t *src, uint8_t c);
 extern ssize_t lts_str_filter_multi(lts_str_t *src, uint8_t *c, ssize_t len);
