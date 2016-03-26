@@ -263,7 +263,7 @@ static int http_core_obuf(lts_socket_t *s)
         } else {
             n_read = snprintf((char *)sb->last, n,
                               HTTP_200_HEADER, st.st_size,
-                              "pplication/octet-stream");
+                              "application/octet-stream");
         }
         if (n_read > 0) {
             sb->last += n_read;

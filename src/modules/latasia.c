@@ -239,8 +239,9 @@ lts_module_t *lts_modules[] = {
     &lts_core_module,
     &lts_event_core_module,
     &lts_event_epoll_module,
-    &lts_app_echo_module,
-    // &lts_app_http_core_module,
+    // &lts_app_asyn_backend_module,
+    // &lts_app_echo_module,
+    &lts_app_http_core_module,
     NULL,
 };
 lts_module_t *lts_module_event_cur;
@@ -459,7 +460,7 @@ int event_loop_single(void)
         if (LTS_CHANNEL_SIGEXIT == lts_global_sm.channel_signal) {
             (void)lts_write_logger(
                 &lts_file_logger, LTS_LOG_INFO,
-                "%s:slave ready to exit\n", STR_LOCATION
+                "%s:worker ready to exit\n", STR_LOCATION
             );
             break;
         }

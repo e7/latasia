@@ -101,8 +101,9 @@ extern int lts_module_count; // 模块计数
 extern lts_module_t lts_core_module; // 核心模块
 extern lts_module_t lts_event_core_module; // 事件核心模块
 extern lts_module_t lts_event_epoll_module; // epoll事件模块
-extern lts_module_t lts_app_http_core_module; // http core模块
+extern lts_module_t lts_app_asyn_backend_module; // 异步后端框架模块
 extern lts_module_t lts_app_echo_module; // echo模块
+extern lts_module_t lts_app_http_core_module; // http core模块
 extern lts_module_t *lts_module_event_cur;
 extern lts_module_t *lts_module_app_cur;
 
