@@ -1,9 +1,9 @@
 {
-    "daemon": "1", # 守护进程
+    "daemon": "0", # 守护进程
     "port": "0", # 端口
     "pid_file": "run/latasia.pid", # pid文件
     "log_file": "run/latasia.log", # 日志文件
     "workers":"1", # 工作进程数
     "keepalive":"60", # 长连接保持时间
-    "http": {} # http应用模块配置
+    "app_mod_conf": "run/mod_http.conf" # 应用模块配置文件
 }

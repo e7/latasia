@@ -30,11 +30,10 @@ struct lts_conf_s {
     lts_str_t port; // 监听端口
     int workers; // 工作进程数
     int max_connections; // 单进程最大连接数
+    int keepalive; // 连接超时时间
     lts_str_t pid_file; // pid文件
     lts_str_t log_file; // 日志
-    int keepalive; // 连接超时时间
-
-    lts_str_t http_cwd;
+    lts_str_t app_mod_conf; // 应用模块配置文件
 };
 
 

@@ -43,9 +43,25 @@
 
 
 typedef struct {
+    lts_str_t cwd; // 工作目录
+} http_conf_t;
+
+typedef struct {
+    http_conf_t mod_conf; // 应用模块配置
+} http_core_ctx_t;
+
+typedef struct {
     lts_str_t req_path;
     lts_file_t req_file;
-} http_core_ctx_t;
+} http_req_t;
+
+
+static http_core_ctx_t s_ctx = {
+    {
+        // 默认配置
+        lts_string("/"),
+    },
+};
 
 
 void dump_mem_to_file(char const *filepath, uint8_t *data, size_t n)
@@ -58,6 +74,7 @@ void dump_mem_to_file(char const *filepath, uint8_t *data, size_t n)
 
 static int init_http_core_module(lts_module_t *module)
 {
+    fprintf(stderr, "conf file:%s\n", lts_conf.app_mod_conf.data);
     return 0;
 }
 
@@ -76,7 +93,7 @@ static int http_core_ibuf(lts_socket_t *s)
     lts_str_t pattern;
     lts_str_t uri, *http_cwd;
     lts_pool_t *pool;
-    http_core_ctx_t *ctx;
+    http_req_t *req;
 
     if (NULL == s->conn) {
         return -1;
@@ -126,26 +143,26 @@ static int http_core_ibuf(lts_socket_t *s)
     }
 
     // 生成绝对路径
-    http_cwd = &lts_conf.http_cwd;
-    ctx = (http_core_ctx_t *)lts_palloc(pool, sizeof(http_core_ctx_t));
-    ctx->req_path.len = http_cwd->len + uri.len;
+    http_cwd = &s_ctx.mod_conf.cwd;
+    req = (http_req_t *)lts_palloc(pool, sizeof(http_req_t));
+    req->req_path.len = http_cwd->len + uri.len;
     if ('/' == uri.data[uri.len - 1]) {
-        ctx->req_path.len += sizeof(DEFAULT_FILENAME) - 1;
+        req->req_path.len += sizeof(DEFAULT_FILENAME) - 1;
     }
-    ctx->req_path.data = lts_palloc(pool, ctx->req_path.len + 1);
-    (void)memcpy(ctx->req_path.data, http_cwd->data, http_cwd->len);
-    (void)memcpy(ctx->req_path.data + http_cwd->len, uri.data, uri.len);
+    req->req_path.data = lts_palloc(pool, req->req_path.len + 1);
+    (void)memcpy(req->req_path.data, http_cwd->data, http_cwd->len);
+    (void)memcpy(req->req_path.data + http_cwd->len, uri.data, uri.len);
     if ('/' == uri.data[uri.len - 1]) {
-        (void)memcpy(ctx->req_path.data + http_cwd->len + uri.len,
+        (void)memcpy(req->req_path.data + http_cwd->len + uri.len,
                      DEFAULT_FILENAME, sizeof(DEFAULT_FILENAME) - 1);
     }
-    ctx->req_path.data[ctx->req_path.len] = 0;
-    ctx->req_file.fd = -1;
+    req->req_path.data[req->req_path.len] = 0;
+    req->req_file.fd = -1;
 
     // 清空接收缓冲
     lts_buffer_clear(rb);
 
-    s->app_ctx = ctx;
+    s->app_ctx = req;
 
     return 0;
 }
@@ -154,27 +171,27 @@ static int http_core_obuf(lts_socket_t *s)
 {
     size_t n, n_read;
     lts_buffer_t *sb;
-    http_core_ctx_t *ctx;
+    http_req_t *req;
 
     if (NULL == s->conn) {
         abort();
     }
     sb = s->conn->sbuf;
 
-    ctx = s->app_ctx;
-    if ((NULL == ctx) || (0 == ctx->req_path.len)) {
+    req = s->app_ctx;
+    if ((NULL == req) || (0 == req->req_path.len)) {
         return -1;
     }
 
     s->shutdown = 1; // 发送完毕后关闭连接
     n = sb->end - sb->last;
-    ctx->req_file.name = ctx->req_path;
-    if (-1 == ctx->req_file.fd) {
+    req->req_file.name = req->req_path;
+    if (-1 == req->req_file.fd) {
         struct stat st;
         lts_str_t ftype;
 
         // 打开文件
-        if (-1 == lts_file_open(&ctx->req_file, O_RDONLY, S_IWUSR | S_IRUSR,
+        if (-1 == lts_file_open(&req->req_file, O_RDONLY, S_IWUSR | S_IRUSR,
                                 &lts_file_logger)) {
             // 404
             n = sizeof(HTTP_404_HEADER) - 1;
@@ -188,13 +205,13 @@ static int http_core_obuf(lts_socket_t *s)
         }
 
         // 获取文件大小
-        (void)fstat(ctx->req_file.fd, &st);
+        (void)fstat(req->req_file.fd, &st);
 
         // 获取文件类型
-        for (int i = ctx->req_path.len - 1; i >= 0; --i) {
-            if ('.' == ctx->req_path.data[i]) {
-                ftype.data = &ctx->req_path.data[i + 1];
-                ftype.len = ctx->req_path.len - 1 - i;
+        for (int i = req->req_path.len - 1; i >= 0; --i) {
+            if ('.' == req->req_path.data[i]) {
+                ftype.data = &req->req_path.data[i + 1];
+                ftype.len = req->req_path.len - 1 - i;
                 break;
             }
         }
@@ -278,7 +295,7 @@ static int http_core_obuf(lts_socket_t *s)
 static int http_core_more(lts_socket_t *s)
 {
     size_t n, n_read;
-    http_core_ctx_t *ctx;
+    http_req_t *req;
     lts_buffer_t *sb;
 
     if (NULL == s->conn) {
@@ -286,8 +303,8 @@ static int http_core_more(lts_socket_t *s)
     }
     sb = s->conn->sbuf;
 
-    ctx = s->app_ctx;
-    if ((NULL == ctx) || (0 == ctx->req_path.len)) {
+    req = s->app_ctx;
+    if ((NULL == req) || (0 == req->req_path.len)) {
         abort();
     }
 
@@ -296,7 +313,7 @@ static int http_core_more(lts_socket_t *s)
         return 0;
     }
     n = sb->end - sb->last;
-    n_read = lts_file_read(&ctx->req_file, sb->last, n, &lts_file_logger);
+    n_read = lts_file_read(&req->req_file, sb->last, n, &lts_file_logger);
     if (n_read > 0) {
         sb->last += n_read;
         return 0;
@@ -304,9 +321,9 @@ static int http_core_more(lts_socket_t *s)
 
     // 完毕
     s->more = 0;
-    lts_file_close(&ctx->req_file);
-    ctx->req_path.len = 0;
-    ctx->req_file.fd = -1;
+    lts_file_close(&req->req_file);
+    req->req_path.len = 0;
+    req->req_file.fd = -1;
 
     return 0;
 }
@@ -323,10 +340,12 @@ lts_module_t lts_app_http_core_module = {
     LTS_APP_MODULE,
     &http_core_itfc,
     NULL,
-    NULL,
-    // interfaces
+    &s_ctx,
+
+    // module interfaces {{
     NULL,
     &init_http_core_module,
     &exit_http_core_module,
     NULL,
+    // }} module interfaces
 };

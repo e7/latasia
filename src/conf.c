@@ -208,6 +208,27 @@ static void cb_keepalive_match(lts_conf_t *conf,
 }
 
 
+// 应用模块配置文件
+static void cb_app_mod_conf_match(lts_conf_t *conf,
+                                  lts_str_t *k,
+                                  lts_str_t *v,
+                                  lts_pool_t *pool)
+{
+    uint8_t *item_buf;
+    size_t item_buf_size = MAX(v->len, 8) + 1;
+
+    // 缓冲value
+    item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
+    (void)memcpy(item_buf, v->data, v->len);
+    item_buf[v->len] = 0;
+
+    // 更新配置
+    lts_str_init(&conf->app_mod_conf, item_buf, v->len);
+
+    return;
+}
+
+
 static conf_item_t conf_items[] = {
     {lts_string("daemon"), &cb_daemon_match},
     {lts_string("port"), &cb_port_match},
@@ -215,6 +236,7 @@ static conf_item_t conf_items[] = {
     {lts_string("pid_file"), &cb_pid_file_match},
     {lts_string("log_file"), &cb_log_file_match},
     {lts_string("keepalive"), &cb_keepalive_match},
+    {lts_string("app_mod_conf"), &cb_app_mod_conf_match},
 };
 
 static int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
@@ -540,11 +562,10 @@ lts_conf_t lts_conf = {
     lts_string("6742"), // 监听端口
     1, // slave进程数
     MAX_CONNECTIONS, // 每个slave最大连接数
+    60, // 连接超时
     lts_string("latasia.pid"), // pid文件路径
     lts_string("latasia.log"), // 日志路径
-    60, // 连接超时
-
-    lts_string("/"),
+    lts_string("appconf.conf"), // 应用模块配置文件路径
 };
 
 int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
