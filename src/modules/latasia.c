@@ -373,31 +373,51 @@ void process_post_list(void)
 
         cs = CONTAINER_OF(pos, lts_socket_t, dlnode);
 
-        // 监听套接字
-        if (NULL == cs->conn) {
-            if (cs->readable && cs->do_read) {
-                (*cs->do_read)(cs);
+        // 超时事件
+        if (cs->timeoutable) {
+            if (! cs->do_timeout) {
+                abort();
             }
+
+            (void)(*cs->do_timeout)(cs);
+        }
+
+        // 读事件
+        while (cs->readable) { // loop only once
+            if (! cs->do_read) {
+                abort();
+            }
+
+            if ((-1 == (*cs->do_read)(cs)) || (cs->family)) {
+                break;
+            }
+
+            // 处理接收缓冲
+            if (! app_itfc->handle_ibuf) {
+                abort();
+            }
+            if (-1 == (*app_itfc->handle_ibuf)(cs)) {
+                break;
+            }
+
+            // 处理发送缓冲
+            if (! app_itfc->handle_obuf) {
+                abort();
+            }
+            (void)(*app_itfc->handle_obuf)(cs);
+
+            break;
+        }
+
+        // 监听套接字
+        if (cs->family) {
             continue;
         }
 
-        if (cs->readable && cs->do_read) {
-            if (-1 == (*cs->do_read)(cs)) {
-                continue;
-            }
+        if (! cs->conn) {
+            // 连接已关闭
+            continue;
         }
-
-        if (lts_buffer_has_pending(cs->conn->rbuf)) {
-            if (app_itfc->handle_ibuf
-                    && (-1 == (*app_itfc->handle_ibuf)(cs))) {
-                // log
-            }
-            if (app_itfc->handle_obuf
-                    && (-1 == (*app_itfc->handle_obuf)(cs))) {
-                // log
-            }
-        }
-
         if (! cs->writable) {
             if (lts_buffer_has_pending(cs->conn->sbuf)
                     && (0 == (cs->ev_mask & EPOLLOUT))) {
@@ -432,12 +452,11 @@ void process_post_list(void)
         } else {
             abort();
         }
+    }
 
-        if (cs->timeoutable && cs->do_timeout) {
-            if (-1 == (*cs->do_timeout)(cs)) {
-                continue;
-            }
-        }
+    // 清理post链
+    dlist_for_each_f_safe(pos, cur_next, &lts_post_list) {
+        lts_socket_t *cs = CONTAINER_OF(pos, lts_socket_t, dlnode);
 
         // 移出post链
         if ((! cs->readable) && (! cs->writable) && (! cs->timeoutable)) {

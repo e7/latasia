@@ -429,6 +429,8 @@ static void exit_event_core_master(lts_module_t *mod)
 }
 
 
+// 接收数据到连接缓冲
+// 返回值：本次接收到的数据size，或者-1表示本次未接收到任何数据
 ssize_t lts_recv(lts_socket_t *cs)
 {
     ssize_t recv_sz;
@@ -436,43 +438,38 @@ ssize_t lts_recv(lts_socket_t *cs)
 
     buf = cs->conn->rbuf;
 
-    if (lts_buffer_full(buf)) { // 无法接受数据
+    if (lts_buffer_full(buf)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_WARN,
                                "%s:recv buffer is full\n", STR_LOCATION);
-        return 0;
+        abort(); // 要求应用模块一定要处理缓冲
     }
 
-    recv_sz = 0;
-    if ((uintptr_t)buf->last < (uintptr_t)buf->end) {
-        recv_sz = recv(cs->fd, buf->last,
-                       (uintptr_t)buf->end - (uintptr_t)buf->last, 0);
-        if (-1 == recv_sz) {
-            cs->readable = 0;
-            if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
-                return -1;
-            } else {
-                int lvl;
+    recv_sz = recv(cs->fd, buf->last,
+                   (uintptr_t)buf->end - (uintptr_t)buf->last, 0);
+    if (-1 == recv_sz) {
+        cs->readable = 0;
+        if ((LTS_E_AGAIN != errno) && (LTS_E_WOULDBLOCK != errno)) {
+            int lvl;
 
-                // 异常关闭
-                lvl = (
-                    (LTS_E_CONNRESET == errno) ? LTS_LOG_NOTICE : LTS_LOG_ERROR
-                );
-                (void)lts_write_logger(&lts_file_logger, lvl,
-                                       "%s:recv() failed:%s, reset connection\n",
-                                       STR_LOCATION, lts_errno_desc[errno]);
-                lts_close_conn(cs, TRUE);
-                return -1;
-            }
-        } else if (0 == recv_sz) {
-            // 正常关闭连接
-            cs->readable = 0;
-            lts_close_conn(cs, FALSE);
-            return -1;
-        } else {
-            buf->last += recv_sz;
+            // 异常关闭
+            lvl = (
+                (LTS_E_CONNRESET == errno) ? LTS_LOG_NOTICE : LTS_LOG_ERROR
+            );
+            (void)lts_write_logger(&lts_file_logger, lvl,
+                                   "%s:recv() failed:%s, reset connection\n",
+                                   STR_LOCATION, lts_errno_desc[errno]);
+            lts_close_conn(cs, TRUE);
         }
+
+        return -1;
+    } else if (0 == recv_sz) {
+        // 正常关闭连接
+        cs->readable = 0;
+        lts_close_conn(cs, FALSE);
+
+        return -1;
     } else {
-        abort();
+        buf->last += recv_sz;
     }
 
     return recv_sz;
