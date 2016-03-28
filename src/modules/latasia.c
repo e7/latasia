@@ -369,9 +369,13 @@ void process_post_list(void)
 
     // 处理事件
     dlist_for_each_f_safe(pos, cur_next, &lts_post_list) {
-        lts_socket_t *cs;
+        lts_socket_t *cs = CONTAINER_OF(pos, lts_socket_t, dlnode);
 
-        cs = CONTAINER_OF(pos, lts_socket_t, dlnode);
+        // 监听套接字
+        if (cs->family) {
+            (void)(*cs->do_read)(cs);
+            continue;
+        }
 
         // 超时事件
         if (cs->timeoutable) {
@@ -388,7 +392,7 @@ void process_post_list(void)
                 abort();
             }
 
-            if ((-1 == (*cs->do_read)(cs)) || (cs->family)) {
+            if (-1 == (*cs->do_read)(cs)) {
                 break;
             }
 
@@ -409,48 +413,28 @@ void process_post_list(void)
             break;
         }
 
-        // 监听套接字
-        if (cs->family) {
-            continue;
-        }
-
         if (! cs->conn) {
             // 连接已关闭
             continue;
         }
-        if (! cs->writable) {
-            if (lts_buffer_has_pending(cs->conn->sbuf)
-                    && (0 == (cs->ev_mask & EPOLLOUT))) {
-                cs->ev_mask |= EPOLLOUT;
-                (*lts_event_itfc->event_mod)(cs);
-            }
-        } else if (cs->do_write) {
-            if (lts_buffer_has_pending(cs->conn->sbuf)) {
-                // 有数据待发
-                if (-1 == (*cs->do_write)(cs)) {
-                    continue;
-                }
-            } else if (cs->more) {
-                if (app_itfc->handle_more
-                        && (-1 == (*app_itfc->handle_more)(cs))) {
-                    // log
-                }
-            } else {
-                // 发送完毕
-                cs->writable = 0;
-                cs->ev_mask &= (~EPOLLOUT);
-                (*lts_event_itfc->event_mod)(cs);
 
-                if (cs->shutdown && shutdown(cs->fd, SHUT_WR)) {
-                    (void)lts_write_logger(
-                        &lts_file_logger, LTS_LOG_ERROR,
-                        "%s:shut() failed:%s\n",
-                        STR_LOCATION, lts_errno_desc[errno]
-                    );
+        while (cs->writable) { // loop only once
+            // 有数据待发
+            if (-1 == (*cs->do_write)(cs)) {
+                break;
+            }
+
+            if (cs->more) {
+                if (! app_itfc->handle_more) {
+                    abort();
+                }
+
+                if (-1 == (*app_itfc->handle_more)(cs)) {
+                    break;
                 }
             }
-        } else {
-            abort();
+
+            break;
         }
     }
 

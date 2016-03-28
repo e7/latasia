@@ -448,7 +448,13 @@ ssize_t lts_recv(lts_socket_t *cs)
                    (uintptr_t)buf->end - (uintptr_t)buf->last, 0);
     if (-1 == recv_sz) {
         cs->readable = 0;
-        if ((LTS_E_AGAIN != errno) && (LTS_E_WOULDBLOCK != errno)) {
+        if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
+            // 开启写事件监视
+            if (0 == (cs->ev_mask & EPOLLOUT)) {
+                cs->ev_mask |= EPOLLOUT;
+                (*lts_event_itfc->event_mod)(cs);
+            }
+        } else {
             int lvl;
 
             // 异常关闭
@@ -499,13 +505,13 @@ ssize_t lts_send(lts_socket_t *cs)
     if (-1 == sent_sz) {
         if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
             return 0;
-        } else {
-            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                   "%s:send(%d) failed:%s, reset connection\n",
-                                   STR_LOCATION, cs->fd,
-                                   lts_errno_desc[errno]);
-            lts_close_conn(cs, TRUE);
         }
+
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "%s:send(%d) failed:%s, reset connection\n",
+                               STR_LOCATION, cs->fd,
+                               lts_errno_desc[errno]);
+        lts_close_conn(cs, TRUE);
 
         return -1;
     }
@@ -517,7 +523,9 @@ ssize_t lts_send(lts_socket_t *cs)
     if (buf->seek == buf->last) {
         lts_buffer_clear(buf);
 
+        // 关闭写事件监视
         if (! cs->more) {
+            cs->writable = 0;
             cs->ev_mask &= (~EPOLLOUT);
             (*lts_event_itfc->event_mod)(cs);
         }
