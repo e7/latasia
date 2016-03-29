@@ -50,33 +50,6 @@ void lts_close_conn(lts_socket_t *cs, int reset)
 }
 
 
-static ssize_t handle_input(lts_socket_t *s)
-{
-    lts_post_list_add(s);
-    s->readable = 1;
-
-    return 0;
-}
-
-
-static ssize_t handle_output(lts_socket_t *s)
-{
-    lts_post_list_add(s);
-    s->writable = 1;
-
-    return 0;
-}
-
-
-static ssize_t handle_timeout(lts_socket_t *s)
-{
-    lts_post_list_add(s);
-    s->timeoutable = 1;
-
-    return 0;
-}
-
-
 static ssize_t lts_accept(lts_socket_t *ls)
 {
     int cmnct_fd, nodelay, count;
@@ -149,11 +122,8 @@ static ssize_t lts_accept(lts_socket_t *ls)
         cs->fd = cmnct_fd;
         cs->ev_mask = (EPOLLET | EPOLLIN);
         cs->conn = c;
-        cs->on_readable = &handle_input;
         cs->do_read = &lts_recv;
-        cs->on_writable = &handle_output;
         cs->do_write = &lts_send;
-        cs->on_timeoutable = &handle_timeout;
         cs->do_timeout = &lts_timeout;
         cs->timeout = lts_current_time + lts_conf.keepalive * 10;
 
@@ -233,7 +203,6 @@ static int alloc_listen_sockets(lts_pool_t *pool)
         ls->local_addr = a;
         ls->addr_len = iter->ai_addrlen;
         ls->ev_mask = (EPOLLET | EPOLLIN);
-        ls->on_readable = &handle_input;
         ls->do_read = &lts_accept;
         lts_addr_list_add(ls); // 添加到地址列表
     }
@@ -394,9 +363,7 @@ static int init_event_core_worker(lts_module_t *mod)
     lts_channels[lts_ps_slot] = lts_alloc_socket();
     lts_channels[lts_ps_slot]->fd = lts_processes[lts_ps_slot].channel[1];
     lts_channels[lts_ps_slot]->ev_mask = (EPOLLET | EPOLLIN);
-    lts_channels[lts_ps_slot]->on_readable = &handle_input;
     lts_channels[lts_ps_slot]->do_read = &channel_do_read;
-    lts_channels[lts_ps_slot]->on_writable = &handle_output;
     lts_channels[lts_ps_slot]->do_write = NULL;
 
     return 0;

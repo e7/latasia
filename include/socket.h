@@ -58,11 +58,8 @@ struct lts_socket_s {
     int64_t timeout; // 超时时间
     lts_rb_node_t rb_node; // timer heap
 
-    lts_handle_event_pt on_readable;
     lts_handle_event_pt do_read;
-    lts_handle_event_pt on_writable;
     lts_handle_event_pt do_write;
-    lts_handle_event_pt on_timeoutable;
     lts_handle_event_pt do_timeout;
 
     void *app_ctx; // 应用上下文
@@ -118,11 +115,8 @@ void lts_init_socket(lts_socket_t *s)
     s->rb_node = RB_NODE;
     RB_CLEAR_NODE(&s->rb_node);
 
-    s->on_readable = NULL;
     s->do_read = NULL;
-    s->on_writable = NULL;
     s->do_write = NULL;
-    s->on_timeoutable = NULL;
     s->do_timeout = NULL;
 
     s->app_ctx = NULL;

@@ -115,8 +115,8 @@ static int epoll_process_events(void)
         instance = ((uintptr_t)cs & (uintptr_t)1);
         cs = (lts_socket_t *)((uintptr_t)cs & (uintptr_t)~1);
 
-        if ((-1 == cs->fd) || (instance != cs->instance)) {
-            // 过期事件
+        if (instance != cs->instance) {
+            // 忽略过期事件
             continue;
         }
 
@@ -127,12 +127,14 @@ static int epoll_process_events(void)
             revents |= (EPOLLIN | EPOLLOUT);
         }
 
-        if ((revents & EPOLLIN) && (cs->on_readable)) {
-            (*cs->on_readable)(cs);
+        if (revents & EPOLLIN) {
+            lts_post_list_add(cs);
+            cs->readable = 1;
         }
 
-        if ((revents & EPOLLOUT) && (cs->on_writable)) {
-            (*cs->on_writable)(cs);
+        if (revents & EPOLLOUT) {
+            lts_post_list_add(cs);
+            cs->writable = 1;
         }
     }
 
@@ -141,10 +143,10 @@ static int epoll_process_events(void)
         if (cs->timeout > lts_current_time) {
             break;
         }
+
         lts_timer_heap_del(&lts_timer_heap, cs);
-        if (cs->on_timeoutable) {
-            (*cs->on_timeoutable)(cs);
-        }
+        lts_post_list_add(cs);
+        cs->timeoutable = 1;
     }
 
     return 0;
