@@ -24,18 +24,18 @@ static void exit_asyn_backend_module(lts_module_t *module)
 }
 
 
-static int asyn_backend_ibuf(lts_socket_t *s)
+static void asyn_backend_ibuf(lts_socket_t *s)
 {
     lts_buffer_t *rb;
     lts_pool_t *pool;
 
     if (NULL == s->conn) {
-        return -1;
+        return;
     }
 
     pool = s->conn->pool;
     if (NULL == pool) {
-        return -1;
+        return;
     }
 
     rb = s->conn->rbuf;
@@ -43,11 +43,11 @@ static int asyn_backend_ibuf(lts_socket_t *s)
         abort();
     }
 
-    return 0;
+    return;
 }
 
 
-static int asyn_backend_obuf(lts_socket_t *s)
+static void asyn_backend_obuf(lts_socket_t *s)
 {
     lts_buffer_t *rb;
     lts_buffer_t *sb;
@@ -66,7 +66,7 @@ static int asyn_backend_obuf(lts_socket_t *s)
     s->conn->rbuf = sb;
     s->conn->sbuf = rb;
 
-    return 0;
+    return;
 }
 
 

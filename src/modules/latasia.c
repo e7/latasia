@@ -371,70 +371,23 @@ void process_post_list(void)
     dlist_for_each_f_safe(pos, cur_next, &lts_post_list) {
         lts_socket_t *cs = CONTAINER_OF(pos, lts_socket_t, dlnode);
 
-        // 监听套接字
-        if (cs->family) {
-            (void)(*cs->do_read)(cs);
-            continue;
-        }
-
         // 超时事件
-        if (cs->timeoutable) {
-            if (! cs->do_timeout) {
-                abort();
-            }
-
+        if (cs->timeoutable && cs->do_timeout) {
             (void)(*cs->do_timeout)(cs);
         }
 
         // 读事件
-        while (cs->readable) { // loop only once
-            if (! cs->do_read) {
-                abort();
-            }
-
-            if (-1 == (*cs->do_read)(cs)) {
-                break;
-            }
-
-            // 处理接收缓冲
-            if (! app_itfc->handle_ibuf) {
-                abort();
-            }
-            if (-1 == (*app_itfc->handle_ibuf)(cs)) {
-                break;
-            }
-
-            // 处理发送缓冲
-            if (! app_itfc->handle_obuf) {
-                abort();
-            }
-            (void)(*app_itfc->handle_obuf)(cs);
-
-            break;
+        if (cs->readable && cs->do_read) {
+            (*cs->do_read)(cs);
         }
 
-        if (! cs->conn) {
-            // 连接已关闭
-            continue;
-        }
-
-        while (cs->writable) { // loop only once
+        if (cs->writable && cs->do_write) {
             // 有数据待发
-            if (-1 == (*cs->do_write)(cs)) {
-                break;
+            (*cs->do_write)(cs);
+
+            if (cs->more && app_itfc->handle_more) {
+                (*app_itfc->handle_more)(cs);
             }
-
-            if (cs->more) {
-                if (! app_itfc->handle_more) {
-                    abort();
-                }
-
-                if (-1 == (*app_itfc->handle_more)(cs)) {
-                    break;
-                }
-            }
-
-            break;
         }
     }
 

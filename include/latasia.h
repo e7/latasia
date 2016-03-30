@@ -79,15 +79,15 @@ struct lts_event_module_itfc_s {
 
 // app模块接口
 struct lts_app_module_itfc_s {
-    int (*handle_ibuf)(lts_socket_t *);
-    int (*handle_obuf)(lts_socket_t *);
-    int (*handle_more)(lts_socket_t *);
+    void (*handle_ibuf)(lts_socket_t *);
+    void (*handle_obuf)(lts_socket_t *);
+    void (*handle_more)(lts_socket_t *);
 };
 
 
-extern ssize_t lts_recv(lts_socket_t *cs);
-extern ssize_t lts_send(lts_socket_t *cs);
-extern ssize_t lts_timeout(lts_socket_t *cs);
+extern void lts_recv(lts_socket_t *cs);
+extern void lts_send(lts_socket_t *cs);
+extern void lts_timeout(lts_socket_t *cs);
 extern void lts_close_conn_orig(int fd, int reset);
 extern void lts_close_conn(lts_socket_t *cs, int reset);
 

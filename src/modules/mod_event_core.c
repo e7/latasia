@@ -37,20 +37,30 @@ void lts_close_conn_orig(int fd, int reset)
 
 void lts_close_conn(lts_socket_t *cs, int reset)
 {
+    // 移除定时器
     lts_timer_heap_del(&lts_timer_heap, cs);
+
+    // 清事件标识移除事件监视
+    cs->readable = 0;
+    cs->writable = 0;
+    cs->timeoutable = 0;
     (*lts_event_itfc->event_del)(cs);
+
+    // 关闭连接
     lts_close_conn_orig(cs->fd, reset);
     if (cs->conn->pool) {
         lts_destroy_pool(cs->conn->pool);
         cs->conn = NULL;
     }
+
+    // 回收套接字
     lts_free_socket(cs);
 
     return;
 }
 
 
-static ssize_t lts_accept(lts_socket_t *ls)
+static void lts_accept(lts_socket_t *ls)
 {
     int cmnct_fd, nodelay, count;
     uint8_t clt[LTS_SOCKADDRLEN];
@@ -137,7 +147,7 @@ static ssize_t lts_accept(lts_socket_t *ls)
         lts_conn_list_add(cs); // 纳入活动连接
     }
 
-    return 0;
+    return;
 }
 
 
@@ -325,7 +335,7 @@ static int init_event_core_master(lts_module_t *mod)
     return rslt;
 }
 
-static ssize_t channel_do_read(lts_socket_t *s)
+static void channel_do_read(lts_socket_t *s)
 {
     uint32_t sig = 0;
 
@@ -333,12 +343,12 @@ static ssize_t channel_do_read(lts_socket_t *s)
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "%s:recv() failed:%s\n",
                                STR_LOCATION, lts_errno_desc[errno]);
-        return -1;
+        return;
     }
 
     lts_global_sm.channel_signal = sig;
 
-    return 0;
+    return;
 }
 static int init_event_core_worker(lts_module_t *mod)
 {
@@ -397,11 +407,11 @@ static void exit_event_core_master(lts_module_t *mod)
 
 
 // 接收数据到连接缓冲
-// 返回值：本次接收到的数据size，或者-1表示本次未接收到任何数据
-ssize_t lts_recv(lts_socket_t *cs)
+void lts_recv(lts_socket_t *cs)
 {
     ssize_t recv_sz;
     lts_buffer_t *buf;
+    lts_app_module_itfc_t *app_itfc;
 
     buf = cs->conn->rbuf;
 
@@ -434,22 +444,30 @@ ssize_t lts_recv(lts_socket_t *cs)
             lts_close_conn(cs, TRUE);
         }
 
-        return -1;
+        return;
     } else if (0 == recv_sz) {
         // 正常关闭连接
         cs->readable = 0;
         lts_close_conn(cs, FALSE);
 
-        return -1;
+        return;
     } else {
         buf->last += recv_sz;
     }
 
-    return recv_sz;
+    // 获取app接口
+    app_itfc = (lts_app_module_itfc_t *)lts_module_app_cur->itfc;
+    if (NULL == app_itfc) {
+        abort();
+    }
+    (*app_itfc->handle_ibuf)(cs);
+    (*app_itfc->handle_obuf)(cs);
+
+    return;
 }
 
 
-ssize_t lts_send(lts_socket_t *cs)
+void lts_send(lts_socket_t *cs)
 {
     ssize_t sent_sz;
     lts_buffer_t *buf;
@@ -458,7 +476,7 @@ ssize_t lts_send(lts_socket_t *cs)
 
     if (lts_buffer_empty(buf)) { // 无数据可发
         cs->writable = 0;
-        return 0;
+        return;
     }
 
     if ((uintptr_t)buf->seek >= (uintptr_t)buf->last) {
@@ -471,7 +489,7 @@ ssize_t lts_send(lts_socket_t *cs)
 
     if (-1 == sent_sz) {
         if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
-            return 0;
+            return;
         }
 
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
@@ -480,7 +498,7 @@ ssize_t lts_send(lts_socket_t *cs)
                                lts_errno_desc[errno]);
         lts_close_conn(cs, TRUE);
 
-        return -1;
+        return;
     }
 
     // assert(sent_sz > 0);
@@ -498,15 +516,15 @@ ssize_t lts_send(lts_socket_t *cs)
         }
     }
 
-    return sent_sz;
+    return;
 }
 
 
-ssize_t lts_timeout(lts_socket_t *cs)
+void lts_timeout(lts_socket_t *cs)
 {
     cs->timeoutable = 0;
 
-    return 0;
+    return;
 }
 
 

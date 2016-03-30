@@ -27,7 +27,7 @@
 
 typedef struct lts_socket_s lts_socket_t;
 typedef struct lts_conn_s lts_conn_t;
-typedef ssize_t (*lts_handle_event_pt)(lts_socket_t *);
+typedef void (*lts_handle_event_pt)(lts_socket_t *);
 
 
 struct lts_conn_s {

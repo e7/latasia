@@ -85,7 +85,7 @@ static void exit_http_core_module(lts_module_t *module)
 }
 
 
-static int http_core_ibuf(lts_socket_t *s)
+static void http_core_ibuf(lts_socket_t *s)
 {
     lts_buffer_t *rb;
     lts_str_t idata, req_line;
@@ -96,12 +96,12 @@ static int http_core_ibuf(lts_socket_t *s)
     http_req_t *req;
 
     if (NULL == s->conn) {
-        return -1;
+        return;
     }
 
     pool = s->conn->pool;
     if (NULL == pool) {
-        return -1;
+        return;
     }
     rb = s->conn->rbuf;
     if (lts_buffer_empty(rb)) {
@@ -116,7 +116,7 @@ static int http_core_ibuf(lts_socket_t *s)
     if (-1 == pattern_s) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "%s:bad request, no enter\n", STR_LOCATION);
-        return -1;
+        return;
     }
     req_line.data = idata.data;
     req_line.len = pattern_s;
@@ -139,7 +139,7 @@ static int http_core_ibuf(lts_socket_t *s)
     if (0 == uri.len) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "%s:bad request, no slash\n", STR_LOCATION);
-        return -1;
+        return;
     }
 
     // 生成绝对路径
@@ -164,10 +164,10 @@ static int http_core_ibuf(lts_socket_t *s)
 
     s->app_ctx = req;
 
-    return 0;
+    return;
 }
 
-static int http_core_obuf(lts_socket_t *s)
+static void http_core_obuf(lts_socket_t *s)
 {
     size_t n, n_read;
     lts_buffer_t *sb;
@@ -180,7 +180,7 @@ static int http_core_obuf(lts_socket_t *s)
 
     req = s->app_ctx;
     if ((NULL == req) || (0 == req->req_path.len)) {
-        return -1;
+        return;
     }
 
     s->shutdown = 1; // 发送完毕后关闭连接
@@ -201,7 +201,7 @@ static int http_core_obuf(lts_socket_t *s)
             (void)memcpy(sb->last, HTTP_404_BODY, n);
             sb->last += n;
 
-            return 0;
+            return;
         }
 
         // 获取文件大小
@@ -289,10 +289,10 @@ static int http_core_obuf(lts_socket_t *s)
         s->more = 1;
     }
 
-    return 0;
+    return;
 }
 
-static int http_core_more(lts_socket_t *s)
+static void http_core_more(lts_socket_t *s)
 {
     size_t n, n_read;
     http_req_t *req;
@@ -310,13 +310,13 @@ static int http_core_more(lts_socket_t *s)
 
     // 读文件数据
     if (lts_buffer_full(sb)) {
-        return 0;
+        return;
     }
     n = sb->end - sb->last;
     n_read = lts_file_read(&req->req_file, sb->last, n, &lts_file_logger);
     if (n_read > 0) {
         sb->last += n_read;
-        return 0;
+        return;
     }
 
     // 完毕
@@ -325,7 +325,7 @@ static int http_core_more(lts_socket_t *s)
     req->req_path.len = 0;
     req->req_file.fd = -1;
 
-    return 0;
+    return;
 }
 
 
