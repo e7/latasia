@@ -240,8 +240,8 @@ lts_module_t *lts_modules[] = {
     &lts_event_core_module,
     &lts_event_epoll_module,
     // &lts_app_asyn_backend_module,
-    // &lts_app_echo_module,
-    &lts_app_http_core_module,
+    &lts_app_echo_module,
+    // &lts_app_http_core_module,
     NULL,
 };
 lts_module_t *lts_module_event_cur;
@@ -381,13 +381,9 @@ void process_post_list(void)
             (*cs->do_read)(cs);
         }
 
+        // 写事件
         if (cs->writable && cs->do_write) {
-            // 有数据待发
             (*cs->do_write)(cs);
-
-            if (cs->more && app_itfc->handle_more) {
-                (*app_itfc->handle_more)(cs);
-            }
         }
     }
 

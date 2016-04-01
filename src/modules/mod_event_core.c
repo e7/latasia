@@ -411,7 +411,9 @@ void lts_recv(lts_socket_t *cs)
 {
     ssize_t recv_sz;
     lts_buffer_t *buf;
-    lts_app_module_itfc_t *app_itfc;
+    lts_app_module_itfc_t *app_itfc = (lts_app_module_itfc_t *)(
+        lts_module_app_cur->itfc
+    );
 
     buf = cs->conn->rbuf;
 
@@ -424,10 +426,16 @@ void lts_recv(lts_socket_t *cs)
     recv_sz = recv(cs->fd, buf->last,
                    (uintptr_t)buf->end - (uintptr_t)buf->last, 0);
     if (-1 == recv_sz) {
-        cs->readable = 0;
         if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
-            // 开启写事件监视
-            if (0 == (cs->ev_mask & EPOLLOUT)) {
+            // 本次数据读完
+            cs->readable = 0;
+
+            // 应用模块处理
+            (*app_itfc->handle_ibuf)(cs);
+
+            if ((! lts_buffer_empty(cs->conn->sbuf))
+                && (! (cs->ev_mask & EPOLLOUT))) {
+                // 开启写事件监视
                 cs->ev_mask |= EPOLLOUT;
                 (*lts_event_itfc->event_mod)(cs);
             }
@@ -447,21 +455,12 @@ void lts_recv(lts_socket_t *cs)
         return;
     } else if (0 == recv_sz) {
         // 正常关闭连接
-        cs->readable = 0;
         lts_close_conn(cs, FALSE);
 
         return;
     } else {
         buf->last += recv_sz;
     }
-
-    // 获取app接口
-    app_itfc = (lts_app_module_itfc_t *)lts_module_app_cur->itfc;
-    if (NULL == app_itfc) {
-        abort();
-    }
-    (*app_itfc->handle_ibuf)(cs);
-    (*app_itfc->handle_obuf)(cs);
 
     return;
 }
@@ -471,6 +470,9 @@ void lts_send(lts_socket_t *cs)
 {
     ssize_t sent_sz;
     lts_buffer_t *buf;
+    lts_app_module_itfc_t *app_itfc = (lts_app_module_itfc_t *)(
+        lts_module_app_cur->itfc
+    );
 
     buf = cs->conn->sbuf;
 
@@ -504,12 +506,15 @@ void lts_send(lts_socket_t *cs)
     // assert(sent_sz > 0);
     buf->seek += sent_sz;
 
-    // 本次数据已发完
+    // 数据已发完
     if (buf->seek == buf->last) {
-        lts_buffer_clear(buf);
+        lts_buffer_clear(cs->conn->sbuf);
+
+        // 应用模块处理
+        (*app_itfc->handle_obuf)(cs);
 
         // 关闭写事件监视
-        if (! cs->more) {
+        if (lts_buffer_empty(cs->conn->sbuf)) {
             cs->writable = 0;
             cs->ev_mask &= (~EPOLLOUT);
             (*lts_event_itfc->event_mod)(cs);

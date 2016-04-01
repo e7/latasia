@@ -26,22 +26,16 @@ static void exit_echo_module(lts_module_t *module)
 
 static void echo_ibuf(lts_socket_t *s)
 {
-    lts_buffer_t *rb;
     lts_pool_t *pool;
+    lts_buffer_t *rb = s->conn->rbuf;
+    lts_buffer_t *sb = s->conn->sbuf;
 
-    if (NULL == s->conn) {
-        return;
-    }
+    // 清空原发送缓冲
+    lts_buffer_clear(sb);
 
-    pool = s->conn->pool;
-    if (NULL == pool) {
-        return;
-    }
-
-    rb = s->conn->rbuf;
-    if (lts_buffer_empty(rb)) {
-        abort();
-    }
+    // 交换
+    s->conn->rbuf = sb;
+    s->conn->sbuf = rb;
 
     return;
 }
@@ -49,22 +43,10 @@ static void echo_ibuf(lts_socket_t *s)
 
 static void echo_obuf(lts_socket_t *s)
 {
-    lts_buffer_t *rb;
-    lts_buffer_t *sb;
+    lts_buffer_t *rb = s->conn->rbuf;
+    lts_buffer_t *sb = s->conn->sbuf;
 
-    if (NULL == s->conn) {
-        abort();
-    }
-
-    rb = s->conn->rbuf;
-    sb = s->conn->sbuf;
-
-    // 清空发送缓冲
-    lts_buffer_clear(sb);
-
-    // exchange
-    s->conn->rbuf = sb;
-    s->conn->sbuf = rb;
+    // lts_buffer_append(sb, "latasia", 7);
 
     return;
 }
