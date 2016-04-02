@@ -85,25 +85,17 @@ static void exit_http_core_module(lts_module_t *module)
 }
 
 
-static void http_core_ibuf(lts_socket_t *s)
+static void http_core_service(lts_socket_t *s)
 {
-    lts_buffer_t *rb;
     lts_str_t idata, req_line;
     int pattern_s;
     lts_str_t pattern;
     lts_str_t uri, *http_cwd;
-    lts_pool_t *pool;
+    lts_pool_t *pool = s->conn->pool;
+    lts_buffer_t *rb = s->conn->rbuf, *sb = s->conn->sbuf;
     http_req_t *req;
+    size_t n, n_read;
 
-    if (NULL == s->conn) {
-        return;
-    }
-
-    pool = s->conn->pool;
-    if (NULL == pool) {
-        return;
-    }
-    rb = s->conn->rbuf;
     if (lts_buffer_empty(rb)) {
         abort();
     }
@@ -162,27 +154,6 @@ static void http_core_ibuf(lts_socket_t *s)
     // 清空接收缓冲
     lts_buffer_clear(rb);
 
-    s->app_ctx = req;
-
-    return;
-}
-
-static void http_core_obuf(lts_socket_t *s)
-{
-    size_t n, n_read;
-    lts_buffer_t *sb;
-    http_req_t *req;
-
-    if (NULL == s->conn) {
-        abort();
-    }
-    sb = s->conn->sbuf;
-
-    req = s->app_ctx;
-    if ((NULL == req) || (0 == req->req_path.len)) {
-        return;
-    }
-
     s->shutdown = 1; // 发送完毕后关闭连接
     n = sb->end - sb->last;
     req->req_file.name = req->req_path;
@@ -203,6 +174,8 @@ static void http_core_obuf(lts_socket_t *s)
 
             return;
         }
+
+        s->conn->app_data = req;
 
         // 获取文件大小
         (void)fstat(req->req_file.fd, &st);
@@ -285,27 +258,22 @@ static void http_core_obuf(lts_socket_t *s)
         if (n_read > 0) {
             sb->last += n_read;
         }
-
-        s->more = 1;
     }
 
     return;
 }
 
-static void http_core_more(lts_socket_t *s)
+static void http_core_send_more(lts_socket_t *s)
 {
     size_t n, n_read;
     http_req_t *req;
     lts_buffer_t *sb;
 
-    if (NULL == s->conn) {
-        abort();
-    }
     sb = s->conn->sbuf;
 
-    req = s->app_ctx;
-    if ((NULL == req) || (0 == req->req_path.len)) {
-        abort();
+    req = s->conn->app_data;
+    if (NULL == req) {
+        return;
     }
 
     // 读文件数据
@@ -320,19 +288,15 @@ static void http_core_more(lts_socket_t *s)
     }
 
     // 完毕
-    s->more = 0;
     lts_file_close(&req->req_file);
-    req->req_path.len = 0;
-    req->req_file.fd = -1;
 
     return;
 }
 
 
 static lts_app_module_itfc_t http_core_itfc = {
-    http_core_ibuf,
-    http_core_obuf,
-    http_core_more,
+    http_core_service,
+    http_core_send_more,
 };
 
 lts_module_t lts_app_http_core_module = {

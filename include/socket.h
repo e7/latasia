@@ -34,6 +34,7 @@ struct lts_conn_s {
     lts_pool_t *pool;
     lts_buffer_t *rbuf;
     lts_buffer_t *sbuf;
+    void *app_data;
 };
 
 
@@ -47,7 +48,6 @@ struct lts_socket_s {
     unsigned readable: 1;
     unsigned writable: 1;
     unsigned timeoutable: 1;
-    unsigned more: 1;
     unsigned reset: 1; // 重置连接
     unsigned shutdown: 1; // 关闭连接
     unsigned instance: 1;
@@ -61,8 +61,6 @@ struct lts_socket_s {
     lts_handle_event_pt do_read;
     lts_handle_event_pt do_write;
     lts_handle_event_pt do_timeout;
-
-    void *app_ctx; // 应用上下文
 };
 
 
@@ -102,7 +100,6 @@ void lts_init_socket(lts_socket_t *s)
     s->ev_mask = 0;
     s->readable = 0;
     s->writable = 0;
-    s->more = 0;
     s->timeoutable = 0;
     s->reset = 0;
     s->shutdown = 0;
@@ -118,8 +115,6 @@ void lts_init_socket(lts_socket_t *s)
     s->do_read = NULL;
     s->do_write = NULL;
     s->do_timeout = NULL;
-
-    s->app_ctx = NULL;
 }
 
 

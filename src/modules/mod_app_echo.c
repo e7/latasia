@@ -24,9 +24,8 @@ static void exit_echo_module(lts_module_t *module)
 }
 
 
-static void echo_ibuf(lts_socket_t *s)
+static void echo_service(lts_socket_t *s)
 {
-    lts_pool_t *pool;
     lts_buffer_t *rb = s->conn->rbuf;
     lts_buffer_t *sb = s->conn->sbuf;
 
@@ -41,21 +40,15 @@ static void echo_ibuf(lts_socket_t *s)
 }
 
 
-static void echo_obuf(lts_socket_t *s)
+static void echo_send_more(lts_socket_t *s)
 {
-    lts_buffer_t *rb = s->conn->rbuf;
-    lts_buffer_t *sb = s->conn->sbuf;
-
-    // lts_buffer_append(sb, "latasia", 7);
-
     return;
 }
 
 
 static lts_app_module_itfc_t echo_itfc = {
-    &echo_ibuf,
-    &echo_obuf,
-    NULL,
+    &echo_service,
+    &echo_send_more,
 };
 
 lts_module_t lts_app_echo_module = {

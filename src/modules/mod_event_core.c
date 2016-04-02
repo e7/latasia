@@ -121,6 +121,7 @@ static void lts_accept(lts_socket_t *ls)
         c->pool = cpool; // 新连接的内存池
         c->rbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
         c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
+        c->app_data = NULL;
         assert(c->rbuf != c->sbuf);
         if ((NULL == c->rbuf) || (NULL == c->sbuf)) {
             lts_close_conn_orig(cmnct_fd, TRUE);
@@ -431,7 +432,7 @@ void lts_recv(lts_socket_t *cs)
             cs->readable = 0;
 
             // 应用模块处理
-            (*app_itfc->handle_ibuf)(cs);
+            (*app_itfc->service)(cs);
 
             if ((! lts_buffer_empty(cs->conn->sbuf))
                 && (! (cs->ev_mask & EPOLLOUT))) {
@@ -503,7 +504,6 @@ void lts_send(lts_socket_t *cs)
         return;
     }
 
-    // assert(sent_sz > 0);
     buf->seek += sent_sz;
 
     // 数据已发完
@@ -511,7 +511,7 @@ void lts_send(lts_socket_t *cs)
         lts_buffer_clear(cs->conn->sbuf);
 
         // 应用模块处理
-        (*app_itfc->handle_obuf)(cs);
+        (*app_itfc->send_more)(cs);
 
         // 关闭写事件监视
         if (lts_buffer_empty(cs->conn->sbuf)) {
