@@ -122,12 +122,6 @@ static void lts_accept(lts_socket_t *ls)
         c->rbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
         c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
         c->app_data = NULL;
-        assert(c->rbuf != c->sbuf);
-        if ((NULL == c->rbuf) || (NULL == c->sbuf)) {
-            lts_close_conn_orig(cmnct_fd, TRUE);
-            lts_destroy_pool(cpool);
-            continue;
-        }
 
         cs = lts_alloc_socket();
         cs->fd = cmnct_fd;

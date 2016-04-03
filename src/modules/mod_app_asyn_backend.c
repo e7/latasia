@@ -1,5 +1,6 @@
 #include <zlib.h>
 #include <arpa/inet.h>
+#include <sys/epoll.h>
 #include <pthread.h>
 
 #include <strings.h>
@@ -11,11 +12,15 @@
 
 #define __THIS_FILE__       "src/modules/mod_app_asyn_backend.c"
 
-#define N_NETIO_THREAD      1
-
 
 typedef struct {
-    pthread_t *netio_threads;
+    int channel;
+} thread_args_t;
+
+typedef struct {
+    int pipeline[2];
+    lts_socket_t *cs;
+    pthread_t netio_thread;
 } asyn_backend_ctx_t;
 
 
@@ -25,20 +30,43 @@ static asyn_backend_ctx_t s_ctx;
 
 static void *netio_thread_proc(void *args)
 {
+    lts_pool_t *pool;
+    thread_args_t local_args = *(thread_args_t *)args;
+
+    // 创建内存池
+    pool = lts_create_pool(MODULE_POOL_SIZE);
+    if (NULL == pool) {
+        // log
+        return NULL;
+    }
+
+    // 工作循环
     while (s_running) {
         sleep(1);
     }
+
+    // 销毁内存池
+    lts_destroy_pool(pool);
 
     return NULL;
 }
 
 
+static void rs_pipe_recv(lts_socket_t *cs)
+{
+}
+
+
+static void rs_pipe_send(lts_socket_t *cs)
+{
+}
+
+
 static int init_asyn_backend_module(lts_module_t *module)
 {
-    int rslt;
     lts_pool_t *pool;
 
-    // 创建内存池
+    // 创建模块内存池
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {
         // log
@@ -46,32 +74,60 @@ static int init_asyn_backend_module(lts_module_t *module)
     }
     module->pool = pool;
 
-    // 上下文初始化
-    s_running = TRUE;
-    s_ctx.netio_threads = (pthread_t *)lts_palloc(
-        pool, N_NETIO_THREAD * sizeof(pthread_t)
-    );
+    // 创建通信管线
+    if (-1 == socketpair(AF_UNIX, SOCK_STREAM, 0, s_ctx.pipeline)) {
+        // log
+        return -1;
+    }
+    if (lts_set_nonblock(s_ctx.pipeline[0])
+        || lts_set_nonblock(s_ctx.pipeline[1])) {
+        // log
+        return -1;
+    }
+    s_ctx.cs = lts_alloc_socket();
+    s_ctx.cs->fd = s_ctx.pipeline[0];
+    s_ctx.cs->ev_mask = (EPOLLET | EPOLLIN);
+    s_ctx.cs->conn = NULL;
+    s_ctx.cs->do_read = &rs_pipe_recv;
+    s_ctx.cs->do_write = &rs_pipe_send;
+    s_ctx.cs->do_timeout = NULL;
+    s_ctx.cs->timeout = 0;
+    (*lts_event_itfc->event_add)(s_ctx.cs);
 
     // 创建后端网络线程
-    rslt = 0;
-    for (int i = 0; i < N_NETIO_THREAD; ++i) {
-        rslt = pthread_create(
-            &s_ctx.netio_threads[i], NULL, &netio_thread_proc, NULL
-        );
-
-        if (rslt) {
-            s_running = FALSE; // 通知已有线程退出
-            break;
-        }
+    s_running = TRUE;
+    thread_args_t *args = (thread_args_t *)lts_palloc(
+        pool, sizeof(thread_args_t)
+    );
+    args->channel = s_ctx.pipeline[1];
+    if (pthread_create(&s_ctx.netio_thread, NULL, &netio_thread_proc, args)) {
+        // log
+        return -1;
     }
 
-    return rslt;
+    return 0;
 }
 
 
 static void exit_asyn_backend_module(lts_module_t *module)
 {
-    s_running = FALSE; // 通知已有线程退出
+    // 等待后端线程退出
+    s_running = FALSE; // 通知线程退出
+    (void)pthread_join(s_ctx.netio_thread, NULL);
+
+    // 关闭pipeline
+    if (close(s_ctx.pipeline[0]) || close(s_ctx.pipeline[1])) {
+        // log
+    }
+    lts_free_socket(s_ctx.cs);
+    s_ctx.cs = NULL;
+
+    // 销毁模块内存池
+    if (module->pool) {
+        lts_destroy_pool(module->pool);
+        module->pool = NULL;
+    }
+
     return;
 }
 
