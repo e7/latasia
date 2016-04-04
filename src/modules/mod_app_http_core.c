@@ -154,7 +154,6 @@ static void http_core_service(lts_socket_t *s)
     // 清空接收缓冲
     lts_buffer_clear(rb);
 
-    s->shutdown = 1; // 发送完毕后关闭连接
     n = sb->end - sb->last;
     req->req_file.name = req->req_path;
     if (-1 == req->req_file.fd) {

@@ -48,8 +48,6 @@ struct lts_socket_s {
     unsigned readable: 1;
     unsigned writable: 1;
     unsigned timeoutable: 1;
-    unsigned reset: 1; // 重置连接
-    unsigned shutdown: 1; // 关闭连接
     unsigned instance: 1;
 
     lts_conn_t *conn;
@@ -101,8 +99,6 @@ void lts_init_socket(lts_socket_t *s)
     s->readable = 0;
     s->writable = 0;
     s->timeoutable = 0;
-    s->reset = 0;
-    s->shutdown = 0;
     s->instance = (!s->instance);
 
     s->conn = NULL;
