@@ -3,7 +3,8 @@
     "port": "0", # 端口
     "pid_file": "run/latasia.pid", # pid文件
     "log_file": "run/latasia.log", # 日志文件
-    "workers":"1", # 工作进程数
-    "keepalive":"60", # 长连接保持时间
+    "workers": "1", # 工作进程数
+    "max_connections": "1", # 最大连接数
+    "keepalive": "60", # 长连接保持时间
     "app_mod_conf": "run/mod_http.conf" # 应用模块配置文件
 }

@@ -116,6 +116,7 @@ cb_port_match(lts_conf_t *conf, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
 }
 
 
+// match of pid_file
 static void cb_pid_file_match(lts_conf_t *conf,
                               lts_str_t *k,
                               lts_str_t *v,
@@ -136,6 +137,7 @@ static void cb_pid_file_match(lts_conf_t *conf,
 }
 
 
+// match of log_file
 static void cb_log_file_match(lts_conf_t *conf,
                               lts_str_t *k,
                               lts_str_t *v,
@@ -156,7 +158,7 @@ static void cb_log_file_match(lts_conf_t *conf,
 }
 
 
-// 工作进程配置
+// match of workers_file
 static void cb_workers_match(lts_conf_t *conf,
                              lts_str_t *k,
                              lts_str_t *v,
@@ -182,23 +184,23 @@ static void cb_workers_match(lts_conf_t *conf,
 }
 
 
-// 连接超时配置
+// match of keepalive
 static void cb_keepalive_match(lts_conf_t *conf,
                                lts_str_t *k,
                                lts_str_t *v,
                                lts_pool_t *pool)
 {
     int nkeepalive;
-    uint8_t *port_buf;
-    size_t port_buf_size = MAX(v->len, 8) + 1;
+    uint8_t *item_buf;
+    size_t item_buf_size = MAX(v->len, 8) + 1;
 
     // 缓冲value
-    port_buf  = (uint8_t *)lts_palloc(pool, port_buf_size);
-    (void)memcpy(port_buf, v->data, v->len);
-    port_buf[v->len] = 0;
+    item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
+    (void)memcpy(item_buf, v->data, v->len);
+    item_buf[v->len] = 0;
 
     // 更新配置
-    nkeepalive = atoi((char const *)port_buf);
+    nkeepalive = atoi((char const *)item_buf);
     if ((nkeepalive < 0) || (nkeepalive > MAX_KEEPALIVE)) { // 不超过一天
         nkeepalive = MAX_KEEPALIVE;
     }
@@ -207,8 +209,34 @@ static void cb_keepalive_match(lts_conf_t *conf,
     return;
 }
 
+// match of max_connections
+static void cb_max_connections_match(lts_conf_t *conf,
+                                     lts_str_t *k,
+                                     lts_str_t *v,
+                                     lts_pool_t *pool)
+{
+    int max_connections;
+    uint8_t *item_buf;
+    size_t item_buf_size = MAX(v->len, 8) + 1;
 
-// 应用模块配置文件
+    // 缓冲value
+    item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
+    (void)memcpy(item_buf, v->data, v->len);
+    item_buf[v->len] = 0;
+
+    // 更新配置
+    max_connections = atoi((char const *)item_buf);
+    if (max_connections < 1) {
+        max_connections = 1;
+    }
+    conf->max_connections = max_connections;
+
+    return;
+}
+
+
+
+// match of app_mod_conf
 static void cb_app_mod_conf_match(lts_conf_t *conf,
                                   lts_str_t *k,
                                   lts_str_t *v,
@@ -236,6 +264,7 @@ static conf_item_t conf_items[] = {
     {lts_string("pid_file"), &cb_pid_file_match},
     {lts_string("log_file"), &cb_log_file_match},
     {lts_string("keepalive"), &cb_keepalive_match},
+    {lts_string("max_connections"), &cb_max_connections_match},
     {lts_string("app_mod_conf"), &cb_app_mod_conf_match},
 };
 

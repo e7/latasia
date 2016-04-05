@@ -14,6 +14,16 @@
 #define __THIS_FILE__       "src/modules/mod_event_core.c"
 
 
+typedef struct {
+    int current_conns; // 当前连接数
+} event_core_ctx_t;
+
+
+static event_core_ctx_t s_event_core_ctx = {
+    0,
+};
+
+
 void lts_close_conn_orig(int fd, int reset)
 {
     if (reset) {
@@ -56,91 +66,99 @@ void lts_close_conn(lts_socket_t *cs, int reset)
     // 回收套接字
     lts_free_socket(cs);
 
+    if (s_event_core_ctx.current_conns > 0) {
+        --s_event_core_ctx.current_conns;
+    }
+
     return;
 }
 
 
 static void lts_accept(lts_socket_t *ls)
 {
-    int cmnct_fd, nodelay, count;
+    int cmnct_fd, nodelay;
     uint8_t clt[LTS_SOCKADDRLEN];
     socklen_t clt_len;
     lts_socket_t *cs;
     lts_conn_t *c;
     lts_pool_t *cpool;
 
-    nodelay = 1;
-    for (count = 0; count < lts_conf.max_connections; ++count) {
-        clt_len = sizeof(clt);
-
-        if (0 == lts_sock_cache_n) {
-            // 连接耗尽
-            break;
-        }
-
-        cmnct_fd = lts_accept4(ls->fd, (struct sockaddr *)clt,
-                               &clt_len, SOCK_NONBLOCK);
-        if (-1 == cmnct_fd) {
-            ls->readable = 0;
-            lts_listen_list_add(ls); // post_list -> listen_list
-
-            if (LTS_E_CONNABORTED == errno) {
-                continue;
-            }
-
-            if ((LTS_E_AGAIN != errno) && (LTS_E_WOULDBLOCK != errno)) {
-                (void)lts_write_logger(
-                    &lts_file_logger, LTS_LOG_ERROR,
-                    "%s:accept4() failed:%s\n",
-                    STR_LOCATION, lts_errno_desc[errno]
-                );
-            }
-
-            break;
-        }
-        if (-1 == setsockopt(cmnct_fd, IPPROTO_TCP,
-                             TCP_NODELAY, &nodelay, sizeof(nodelay))) {
-            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                   "%s:setsockopt() TCP_NODELAY failed:%s\n",
-                                   STR_LOCATION, lts_errno_desc[errno]);
-        }
-
-        // 新连接初始化
-        cpool = lts_create_pool(CONN_POOL_SIZE);
-        if (NULL == cpool) {
-            lts_close_conn_orig(cmnct_fd, TRUE);
-            continue;
-        }
-
-        c = (lts_conn_t *)lts_palloc(cpool, sizeof(lts_conn_t));
-        if (NULL == c) {
-            lts_close_conn_orig(cmnct_fd, TRUE);
-            lts_destroy_pool(cpool);
-            continue;
-        }
-        c->pool = cpool; // 新连接的内存池
-        c->rbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
-        c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
-        c->app_data = NULL;
-
-        cs = lts_alloc_socket();
-        cs->fd = cmnct_fd;
-        cs->ev_mask = (EPOLLET | EPOLLIN);
-        cs->conn = c;
-        cs->do_read = &lts_recv;
-        cs->do_write = &lts_send;
-        cs->do_timeout = &lts_timeout;
-        cs->timeout = lts_current_time + lts_conf.keepalive * 10;
-
-        // 加入事件监视
-        (*lts_event_itfc->event_add)(cs);
-
-        while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
-            ++cs->timeout;
-        }
-
-        lts_conn_list_add(cs); // 纳入活动连接
+    if (s_event_core_ctx.current_conns >= lts_conf.max_connections) {
+        // 达到最大连接数
+        return;
     }
+
+    if (0 == lts_sock_cache_n) {
+        abort();
+    }
+
+    nodelay = 1;
+    clt_len = sizeof(clt);
+    cmnct_fd = lts_accept4(ls->fd, (struct sockaddr *)clt,
+                           &clt_len, SOCK_NONBLOCK);
+    if (-1 == cmnct_fd) {
+        if (LTS_E_CONNABORTED == errno) {
+            fprintf(stderr, "conn aborted\n");
+            return; // hold readable and try again
+        }
+
+        if ((LTS_E_AGAIN != errno) && (LTS_E_WOULDBLOCK != errno)) {
+            (void)lts_write_logger(
+                &lts_file_logger, LTS_LOG_ERROR,
+                "%s:accept4() failed:%s\n",
+                STR_LOCATION, lts_errno_desc[errno]
+            );
+        }
+        ls->readable = 0;
+        lts_listen_list_add(ls); // post_list -> listen_list
+
+        return;
+    }
+
+    if (-1 == setsockopt(cmnct_fd, IPPROTO_TCP,
+                         TCP_NODELAY, &nodelay, sizeof(nodelay))) {
+        (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                               "%s:setsockopt() TCP_NODELAY failed:%s\n",
+                               STR_LOCATION, lts_errno_desc[errno]);
+    }
+
+    // 新连接初始化
+    cpool = lts_create_pool(CONN_POOL_SIZE);
+    if (NULL == cpool) {
+        lts_close_conn_orig(cmnct_fd, TRUE);
+        return;
+    }
+
+    c = (lts_conn_t *)lts_palloc(cpool, sizeof(lts_conn_t));
+    if (NULL == c) {
+        lts_close_conn_orig(cmnct_fd, TRUE);
+        lts_destroy_pool(cpool);
+        return;
+    }
+    c->pool = cpool; // 新连接的内存池
+    c->rbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
+    c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
+    c->app_data = NULL;
+
+    cs = lts_alloc_socket();
+    cs->fd = cmnct_fd;
+    cs->ev_mask = (EPOLLET | EPOLLIN);
+    cs->conn = c;
+    cs->do_read = &lts_recv;
+    cs->do_write = &lts_send;
+    cs->do_timeout = &lts_timeout;
+    cs->timeout = lts_current_time + lts_conf.keepalive * 10;
+
+    // 加入事件监视
+    (*lts_event_itfc->event_add)(cs);
+
+    while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
+        ++cs->timeout;
+    }
+
+    lts_conn_list_add(cs); // 纳入活动连接
+
+    ++s_event_core_ctx.current_conns;
 
     return;
 }
@@ -166,11 +184,8 @@ static int alloc_listen_sockets(lts_pool_t *pool)
         return -1;
     }
 
-    // 统计监听套接字数目
-    lts_sock_cache_n = lts_conf.max_connections;
-    for (iter = records; NULL != iter; iter = iter->ai_next) {
-        ++lts_sock_cache_n;
-    }
+    lts_sock_inuse_n = 0;
+    lts_sock_cache_n = lts_conf.max_connections + 64;
 
     // 建立socket缓存
     dlist_init(&lts_sock_list);
@@ -329,6 +344,7 @@ static int init_event_core_master(lts_module_t *mod)
 
     return rslt;
 }
+
 
 static void channel_do_read(lts_socket_t *s)
 {
@@ -532,7 +548,8 @@ lts_module_t lts_event_core_module = {
     LTS_CORE_MODULE,
     NULL,
     NULL,
-    NULL,
+    &s_event_core_ctx,
+
     // interfaces
     &init_event_core_master,
     &init_event_core_worker,

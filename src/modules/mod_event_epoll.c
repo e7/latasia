@@ -155,7 +155,6 @@ static int epoll_process_events(void)
 
 static int init_event_epoll_worker(lts_module_t *mod)
 {
-    int max_conns;
     lts_pool_t *pool;
 
     // 全局变量初始化
@@ -184,14 +183,13 @@ static int init_event_epoll_worker(lts_module_t *mod)
     }
 
     // 创建epoll_event缓存
-    max_conns = lts_conf.max_connections;
+    nbuf_epevs = lts_sock_cache_n + lts_sock_inuse_n;
     buf_epevs = (struct epoll_event *)(
-        lts_palloc(pool, max_conns * sizeof(struct epoll_event))
+        lts_palloc(pool, nbuf_epevs * sizeof(struct epoll_event))
     );
     if (NULL == buf_epevs) {
         return -1;
     }
-    nbuf_epevs = max_conns;
 
     // 添加channel事件监视
     epoll_event_add(lts_channels[lts_ps_slot]);
