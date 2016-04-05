@@ -7,10 +7,11 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR})
 
+SET(CMAKE_C_FLAGS -std=gnu99)
 add_definitions(-Wall)
 # add_definitions(-Wall -Wextra)
 add_definitions(-D_GNU_SOURCE -DPROJECT_ROOT=${PROJECT_SOURCE_DIR})
-add_definitions(-ggdb -O0 -std=gnu99 -pipe -rdynamic)
+add_definitions(-ggdb -O0 -pipe -rdynamic)
 
 check_function_exists(epoll_create1 HAVE_FUNCTION_EPOLL_CREATE1)
 check_function_exists(epoll_pwait HAVE_FUNCTION_EPOLL_PWAIT)
