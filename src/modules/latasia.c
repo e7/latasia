@@ -421,17 +421,17 @@ int event_loop_single(void)
         if (-1 == kill(lts_processes[lts_ps_slot].ppid, 0)) {
             (void)lts_write_logger(
                 &lts_file_logger, LTS_LOG_WARN,
-                "%s:I am gona die because my parent has been dead\n",
+                "%s:I am gona die because my father has been dead\n",
                 STR_LOCATION
             );
             break;
         }
 
         // 更新进程负载
-        lts_accept_disabled = lts_sock_inuse_n / 8 - lts_sock_cache_n;
+        lts_accept_disabled = lts_conf.max_connections / 8 - lts_sock_cache_n;
 
         if (lts_accept_disabled < 0) {
-            if (!hold) {
+            if (! hold) {
                 dlist_for_each_f(pos, &lts_listen_list) {
                     lts_socket_t *ls;
 
@@ -452,6 +452,8 @@ int event_loop_single(void)
 
                 hold = FALSE;
             }
+
+            --lts_accept_disabled; // maybe next time
         }
 
         rslt = (*lts_event_itfc->process_events)();
