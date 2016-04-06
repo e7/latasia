@@ -14,6 +14,10 @@
 #include "mem_pool.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 // simple json表示键值叶子类型均为字符串
 // 值类型
 enum {
@@ -99,4 +103,8 @@ static inline lts_sjson_obj_node_t *lts_sjson_next(lts_sjson_obj_node_t *node)
 
     return p ? CONTAINER_OF(p, lts_sjson_obj_node_t, tnode) : NULL;
 }
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__SIMPLE_JSON_H__

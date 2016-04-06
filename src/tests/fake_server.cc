@@ -8,6 +8,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "buffer.h"
 #include "protocol_lbm.h"
 
 

@@ -17,6 +17,10 @@
 #include "mem_pool.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 #define LTS_SOCKADDRLEN         256
 #define EVENT_READ              (1 << 1)
 #define EVENT_WRITE             (1 << 2)
@@ -155,4 +159,8 @@ extern int lts_accept4(int sockfd, struct sockaddr *addr,
 #else
 #define lts_accept4     accept4
 #endif
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__SOCKET_H__

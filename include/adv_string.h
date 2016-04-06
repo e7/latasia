@@ -11,6 +11,9 @@
 #include "common.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
 // start of charmap {{
 typedef union {
@@ -109,4 +112,8 @@ extern int lts_str_find(lts_str_t *text, lts_str_t *pattern, int offset);
 
 // long转字符串
 extern int lts_l2str(lts_str_t *str, long x);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__ADV_STRING_H__
