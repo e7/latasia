@@ -23,15 +23,23 @@ typedef struct {
 } thread_args_t;
 
 
+extern "C"  {
+    size_t lts_sys_pagesize = 4096;
+}
+
+
 void *rs_thread_proc(void *args)
 {
 #define BUF_SIZE        4096
-    uint8_t *recv_buf = new uint8_t[BUF_SIZE];
-    uint8_t *send_buf = new uint8_t[BUF_SIZE];
+    lts_pool_t *pool;
+    lts_buffer_t *rbuf, *sbuf;
     thread_args_t *ta = reinterpret_cast<thread_args_t *>(args);
 
+    pool = ::lts_create_pool(BUF_SIZE * 8);
+    rbuf = ::lts_create_buffer(pool, BUF_SIZE, 0);
+    sbuf = ::lts_create_buffer(pool, BUF_SIZE, 0);
     while (true) {
-        ssize_t sz = ::recv(ta->cmnct_fd, recv_buf, BUF_SIZE, 0);
+        ssize_t sz = ::recv(ta->cmnct_fd, rbuf->last, BUF_SIZE, 0);
 
         if (0 == sz) {
             cerr << "thread exit" << endl;
@@ -42,12 +50,13 @@ void *rs_thread_proc(void *args)
             continue;
         }
 
+        // 协议解析
+
         cerr << "recved data" << endl;
     }
 
-    delete recv_buf;
-    delete send_buf;
     delete ta;
+    ::lts_destroy_pool(pool);
 
     return NULL;
 #undef BUF_SIZE

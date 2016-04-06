@@ -38,21 +38,23 @@ int lts_buffer_append(lts_buffer_t *buffer, uint8_t *data, size_t n)
 {
     if ((buffer->end - buffer->last) < n) { // 可用空间不足
         uint8_t *tmp;
-        size_t curr_size, ctx_size;
-
-        curr_size = buffer->end - buffer->start;
-        if (curr_size > buffer->limit) {
-            abort();
-        }
-        if (buffer->limit - curr_size < n) { // 天花板
-            return -1;
-        }
+        size_t ctx_size, curr_size;
 
         // 指数增长
-        curr_size = 2 * MAX(curr_size, n);
-        if (curr_size > buffer->limit) {
-            curr_size = buffer->limit;
+        curr_size = 2 * MAX(buffer->end - buffer->start, n);
+        if (buffer->limit > 0) {
+            if (curr_size > buffer->limit) {
+                abort();
+            }
+            if (buffer->limit - curr_size < n) { // 天花板
+                return -1;
+            }
+
+            if (curr_size > buffer->limit) {
+                curr_size = buffer->limit;
+            }
         }
+
         tmp = (uint8_t *)lts_palloc(buffer->pool, curr_size);
         if (NULL == tmp) {
             return -1;
