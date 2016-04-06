@@ -23,7 +23,7 @@ static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
     iter = &root->rb_node;
     while (*iter) {
         parent = *iter;
-        s = rb_entry(parent, lts_socket_t, rb_node);
+        s = rb_entry(parent, lts_socket_t, timer_heap_node);
 
         if (sock->timeout < s->timeout) {
             iter = &(parent->rb_left);
@@ -35,8 +35,8 @@ static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
     }
 
     if (link) {
-        rb_link_node(&sock->rb_node, parent, iter);
-        rb_insert_color(&sock->rb_node, root);
+        rb_link_node(&sock->timer_heap_node, parent, iter);
+        rb_insert_color(&sock->timer_heap_node, root);
     }
 
     return sock;
@@ -45,7 +45,7 @@ static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
 
 int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
 {
-    if (! RB_EMPTY_NODE(&s->rb_node)) {
+    if (! RB_EMPTY_NODE(&s->timer_heap_node)) {
         return -1;
     }
 
@@ -59,12 +59,8 @@ int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
 
 void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
 {
-    if (RB_EMPTY_NODE(&s->rb_node)) {
-        return;
-    }
-
-    rb_erase(&s->rb_node, root);
-    RB_CLEAR_NODE(&s->rb_node);
+    rb_erase(&s->timer_heap_node, root);
+    RB_CLEAR_NODE(&s->timer_heap_node);
 
     return;
 }
@@ -80,7 +76,7 @@ lts_socket_t *lts_timer_heap_min(lts_rb_root_t *root)
         return NULL;
     }
 
-    return rb_entry(p, lts_socket_t, rb_node);
+    return rb_entry(p, lts_socket_t, timer_heap_node);
 
 #else
 
@@ -92,7 +88,7 @@ lts_socket_t *lts_timer_heap_min(lts_rb_root_t *root)
     while (p) {
         if (NULL == p->rb_left) {
             rb_erase(p, root);
-            s = rb_entry(p, lts_socket_t, rb_node);
+            s = rb_entry(p, lts_socket_t, timer_heap_node);
             break;
         }
         p = p->rb_left;

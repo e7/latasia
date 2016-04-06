@@ -47,25 +47,25 @@ void lts_close_conn_orig(int fd, int reset)
 
 void lts_close_conn(lts_socket_t *cs, int reset)
 {
-    // 移除定时器
-    lts_timer_heap_del(&lts_timer_heap, cs);
-
-    // 清事件标识移除事件监视
-    cs->readable = 0;
-    cs->writable = 0;
-    cs->timeoutable = 0;
+    // 移除事件监视
     (*lts_event_itfc->event_del)(cs);
 
-    // 关闭连接
-    lts_close_conn_orig(cs->fd, reset);
+    // 移除定时器
+    if (! RB_EMPTY_NODE(&cs->timer_heap_node)) {
+        lts_timer_heap_del(&lts_timer_heap, cs);
+    }
+
+    // 回收内存
     if (cs->conn->pool) {
         lts_destroy_pool(cs->conn->pool);
         cs->conn = NULL;
     }
 
     // 回收套接字
+    lts_close_conn_orig(cs->fd, reset);
     lts_free_socket(cs);
 
+    // 调整当前连接数
     if (s_event_core_ctx.current_conns > 0) {
         --s_event_core_ctx.current_conns;
     }
@@ -538,6 +538,7 @@ void lts_send(lts_socket_t *cs)
 void lts_timeout(lts_socket_t *cs)
 {
     cs->timeoutable = 0;
+    lts_close_conn(cs, TRUE); // keepalive timeout
 
     return;
 }

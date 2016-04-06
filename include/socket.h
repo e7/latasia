@@ -54,7 +54,7 @@ struct lts_socket_s {
     dlist_t dlnode;
 
     int64_t timeout; // 超时时间
-    lts_rb_node_t rb_node; // timer heap
+    lts_rb_node_t timer_heap_node;
 
     lts_handle_event_pt do_read;
     lts_handle_event_pt do_write;
@@ -68,7 +68,8 @@ extern size_t lts_sock_cache_n; // socket缓存余量
 extern size_t lts_sock_inuse_n; // socket缓存使用量
 extern dlist_t lts_addr_list; // 地址列表
 extern dlist_t lts_listen_list; // 监听socket列表
-extern dlist_t lts_conn_list; // 连接列表
+
+extern dlist_t lts_conn_list; // 连接链表，与post链互为补链
 extern dlist_t lts_post_list; // post链表，事件延迟处理
 
 #define lts_sock_list_add(s)    dlist_add_tail(&lts_sock_list, &s->dlnode)
@@ -105,8 +106,8 @@ void lts_init_socket(lts_socket_t *s)
     dlist_init(&s->dlnode);
 
     s->timeout = 0;
-    s->rb_node = RB_NODE;
-    RB_CLEAR_NODE(&s->rb_node);
+    s->timer_heap_node = RB_NODE;
+    RB_CLEAR_NODE(&s->timer_heap_node);
 
     s->do_read = NULL;
     s->do_write = NULL;
@@ -130,6 +131,7 @@ lts_socket_t *lts_alloc_socket(void)
     dlist_del(rslt);
     --lts_sock_cache_n;
     ++lts_sock_inuse_n;
+
     s = CONTAINER_OF(rslt, lts_socket_t, dlnode);
     lts_init_socket(s);
 
@@ -140,6 +142,13 @@ lts_socket_t *lts_alloc_socket(void)
 static inline
 void lts_free_socket(lts_socket_t *s)
 {
+    s->fd = -1;
+    s->family = 0;
+    s->ev_mask = 0;
+    s->readable = 0;
+    s->writable = 0;
+    s->timeoutable = 0;
+
     dlist_del(&s->dlnode);
     lts_sock_list_add(s);
     ++lts_sock_cache_n;
