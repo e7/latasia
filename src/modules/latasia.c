@@ -403,10 +403,16 @@ void process_post_list(void)
 
 int event_loop_single(void)
 {
-    int rslt, hold;
+    int rslt;
 
     // 事件循环
-    hold = FALSE;
+    dlist_for_each_f(pos, &lts_listen_list) {
+        lts_socket_t *ls;
+
+        ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
+        (*lts_event_itfc->event_add)(ls);
+    }
+
     while (TRUE) {
         // 检查channel信号
         if (LTS_CHANNEL_SIGEXIT == lts_global_sm.channel_signal) {
@@ -425,35 +431,6 @@ int event_loop_single(void)
                 STR_LOCATION
             );
             break;
-        }
-
-        // 更新进程负载
-        lts_accept_disabled = lts_conf.max_connections / 8 - lts_sock_cache_n;
-
-        if (lts_accept_disabled < 0) {
-            if (! hold) {
-                dlist_for_each_f(pos, &lts_listen_list) {
-                    lts_socket_t *ls;
-
-                    ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-                    (*lts_event_itfc->event_add)(ls);
-                }
-
-                hold = TRUE;
-            }
-        } else {
-            if (hold) {
-                dlist_for_each_f(pos, &lts_listen_list) {
-                    lts_socket_t *ls;
-
-                    ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
-                    (*lts_event_itfc->event_del)(ls);
-                }
-
-                hold = FALSE;
-            }
-
-            --lts_accept_disabled; // maybe next time
         }
 
         rslt = (*lts_event_itfc->process_events)();
@@ -477,6 +454,8 @@ int event_loop_multi(void)
     int rslt;
 
     // 事件循环
+    disable_accept_events();
+
     while (TRUE) {
         // 检查channel信号
         if (LTS_CHANNEL_SIGEXIT == lts_global_sm.channel_signal) {
@@ -498,23 +477,24 @@ int event_loop_multi(void)
         }
 
         // 更新进程负载
-        lts_accept_disabled = lts_sock_inuse_n / 8 - lts_sock_cache_n;
+        lts_accept_disabled = lts_conf.max_connections / 8 - lts_sock_cache_n;
 
         if (lts_accept_disabled < 0) {
             if (lts_shmtx_trylock((lts_atomic_t *)lts_accept_lock.addr)) {
                 // 抢锁成功
                 enable_accept_events();
-            } else {
-                disable_accept_events();
             }
         } else {
-            disable_accept_events();
+            --lts_accept_disabled;
         }
 
         rslt = (*lts_event_itfc->process_events)();
+
         if (lts_accept_lock_hold) {
+            disable_accept_events();
             lts_shmtx_unlock((lts_atomic_t *)lts_accept_lock.addr);
         }
+
         if (0 != rslt) {
             break;
         }

@@ -8,6 +8,8 @@
 #include <cstring>
 #include <iostream>
 
+#include "protocol_lbm.h"
+
 
 using std::cout;
 using std::cerr;
