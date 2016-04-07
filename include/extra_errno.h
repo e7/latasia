@@ -11,6 +11,10 @@
 #include "errno.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 #define LTS_E_BADF                      EBADF
 #define LTS_E_INVAL                     EINVAL
 #define LTS_E_SRCH                      ESRCH
@@ -27,4 +31,8 @@
 
 #define LTS_E_SYS                       200
 #define LTS_E_INVALID_FORMAT            201
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__EXTRA_ERRNO_H__

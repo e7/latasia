@@ -10,6 +10,10 @@
 #include "mem_pool.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 typedef struct hlist_head_s hlist_head_t;
 typedef struct hlist_node_s hlist_node_t;
 typedef struct lts_hashtable_s lts_hashtable_t;
@@ -47,4 +51,9 @@ static inline void hlist_add(hlist_head_t *hlist, hlist_node_t *node)
 extern void lts_init_hashtable(lts_hashtable_t *ht);
 extern lts_hashtable_t
 *lts_create_hashtable(lts_pool_t *pool, ssize_t nbucket);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
 #endif // __LATASIA__HASHTABLE_H__

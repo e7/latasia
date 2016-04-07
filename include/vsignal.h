@@ -8,6 +8,10 @@
 #define __LATASIA__VSIGNAL_H__
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 enum {
     LTS_MASK_SIGEXIT = (1L << 0),
     LTS_MASK_SIGCHLD = (1L << 1),
@@ -23,4 +27,8 @@ typedef struct {
 
 
 extern int lts_init_sigactions(int ismaster);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__VSIGNAL_H__

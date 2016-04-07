@@ -13,6 +13,10 @@
 #include "socket.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 extern int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s);
 extern void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s);
 extern lts_socket_t *lts_timer_heap_min(lts_rb_root_t *root);
@@ -20,4 +24,8 @@ extern lts_socket_t *lts_timer_heap_min(lts_rb_root_t *root);
 extern void lts_update_time(void);
 extern int64_t lts_current_time; // 当前时间
 extern lts_rb_root_t lts_timer_heap; // 时间堆
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__RBT_TIMER_H__

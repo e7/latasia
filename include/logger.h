@@ -14,6 +14,10 @@
 #define LOG_SHOW_LOC        TRUE
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
     LTS_LOG_DEBUG = 1,
     LTS_LOG_INFO,
@@ -58,4 +62,9 @@ extern ssize_t lts_write_logger(lts_logger_t *log,
 #else
 #define STR_LOCATION        "*"
 #endif // LOG_SHOW_LOC
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif // __LATASIA__LOGGER_H__

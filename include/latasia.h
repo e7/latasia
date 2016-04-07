@@ -13,6 +13,10 @@
 #include "shmem.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 #define LTS_MAX_PATH_LEN        256
 #define LTS_MAX_PROCESSES       1024
 
@@ -115,4 +119,8 @@ extern int lts_accept_lock_hold;
 extern int lts_use_accept_lock;
 extern pid_t lts_pid; // 进程id
 extern int lts_process_role; // 进程角色
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__LTS_H__

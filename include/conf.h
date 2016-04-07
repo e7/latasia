@@ -11,6 +11,11 @@
 #include "adv_string.h"
 #include "mem_pool.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 // configuration {{
 #define MAX_CONF_SIZE           65535
 #define ENABLE_IPV6             FALSE
@@ -39,4 +44,8 @@ struct lts_conf_s {
 
 extern lts_conf_t lts_conf;
 extern int lts_load_config(lts_conf_t *conf, lts_pool_t *pool);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__CONF_H__

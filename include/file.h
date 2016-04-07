@@ -12,6 +12,10 @@
 #include "adv_string.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 typedef struct lts_file_s {
     int fd;
     lts_str_t name;
@@ -50,4 +54,9 @@ extern ssize_t lts_file_read(lts_file_t *file,
 extern ssize_t lts_file_write(lts_file_t *file,
                               void const *buf, size_t sz, void *logger);
 extern void lts_file_close(lts_file_t *file);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
 #endif // __LATASIA__FILE_H__

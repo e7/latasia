@@ -11,6 +11,10 @@
 #include "common.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 typedef struct {
     uint8_t *addr;
     size_t size;
@@ -19,4 +23,8 @@ typedef struct {
 
 extern int lts_shm_alloc(lts_shm_t *shm);
 extern void lts_shm_free(lts_shm_t *shm);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__SHMEM_H__

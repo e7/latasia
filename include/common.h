@@ -25,6 +25,10 @@
 #include "build.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 // 布尔值
 #define FALSE           0
 #define TRUE            (!FALSE)
@@ -79,4 +83,8 @@ int lts_atomic_cmp_set(lts_atomic_t *lock, sig_atomic_t old, sig_atomic_t set)
 }
 
 extern char const **lts_errno_desc;
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // __LATASIA__COMMON_H__
