@@ -99,7 +99,7 @@ static inline
 void lts_init_socket(lts_socket_t *s)
 {
     s->fd = -1;
-    s->family = 0;
+    s->family = -1;
     s->ev_mask = 0;
     s->readable = 0;
     s->writable = 0;
@@ -147,7 +147,7 @@ static inline
 void lts_free_socket(lts_socket_t *s)
 {
     s->fd = -1;
-    s->family = 0;
+    s->family = -1;
     s->ev_mask = 0;
     s->readable = 0;
     s->writable = 0;

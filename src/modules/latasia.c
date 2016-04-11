@@ -231,7 +231,7 @@ lts_shm_t lts_accept_lock = {
     NULL,
     128,
 };
-int lts_accept_lock_hold = FALSE;
+int lts_accept_lock_hold;
 int lts_use_accept_lock;
 pid_t lts_pid;
 int lts_process_role;
@@ -321,7 +321,7 @@ void lts_shmtx_unlock(lts_atomic_t *lock)
 }
 
 
-void enable_accept_events(void)
+static void enable_accept_events(void)
 {
     if (lts_accept_lock_hold) {
         return;
@@ -339,7 +339,10 @@ void enable_accept_events(void)
 }
 
 
-void disable_accept_events(void)
+#define holding_lock()      lts_accept_lock_hold
+
+
+static void disable_accept_events(void)
 {
     if (! lts_accept_lock_hold) {
         return;
@@ -454,8 +457,6 @@ int event_loop_multi(void)
     int rslt;
 
     // 事件循环
-    disable_accept_events();
-
     while (TRUE) {
         // 检查channel信号
         if (LTS_CHANNEL_SIGEXIT == lts_global_sm.channel_signal) {
@@ -490,7 +491,7 @@ int event_loop_multi(void)
 
         rslt = (*lts_event_itfc->process_events)();
 
-        if (lts_accept_lock_hold) {
+        if (holding_lock()) {
             disable_accept_events();
             lts_shmtx_unlock((lts_atomic_t *)lts_accept_lock.addr);
         }
