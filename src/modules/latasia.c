@@ -341,7 +341,7 @@ void enable_accept_events(void)
 
 void disable_accept_events(void)
 {
-    if (!lts_accept_lock_hold) {
+    if (! lts_accept_lock_hold) {
         return;
     }
 
@@ -817,8 +817,18 @@ int worker_main(void)
     (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                            "%s:slave started\n", STR_LOCATION);
     if (lts_use_accept_lock) {
+        (void)lts_write_logger(
+            &lts_file_logger, LTS_LOG_INFO,
+            "%s: using multi-processes\n", STR_LOCATION
+        );
+
         rslt = event_loop_multi();
     } else {
+        (void)lts_write_logger(
+            &lts_file_logger, LTS_LOG_INFO,
+            "%s: using single-process\n", STR_LOCATION
+        );
+
         rslt = event_loop_single();
     }
 

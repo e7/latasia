@@ -48,6 +48,9 @@ void lts_close_conn_orig(int fd, int reset)
 void lts_close_conn(lts_socket_t *cs, int reset)
 {
     // 移除事件监视
+    (void)lts_write_logger(&lts_file_logger, LTS_LOG_DEBUG,
+                           "%s:close connection\n",
+                           STR_LOCATION);
     (*lts_event_itfc->event_del)(cs);
 
     // 移除定时器
