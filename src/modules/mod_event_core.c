@@ -110,7 +110,6 @@ static void lts_accept(lts_socket_t *ls)
             );
         }
         ls->readable = 0;
-        lts_listen_list_add(ls); // post_list -> listen_list
 
         return;
     }
@@ -156,7 +155,7 @@ static void lts_accept(lts_socket_t *ls)
         ++cs->timeout;
     }
 
-    lts_conn_list_add(cs); // 纳入活动连接
+    lts_watch_list_add(cs); // 纳入观察列表
 
     ++s_event_core_ctx.current_conns;
 
@@ -166,8 +165,8 @@ static void lts_accept(lts_socket_t *ls)
 
 static int alloc_listen_sockets(lts_pool_t *pool)
 {
-    int rslt;
-    size_t i;
+    int i;
+    int nrecords;
     char const *conf_port;
     lts_socket_t *sock_cache;
     struct addrinfo hint, *records, *iter;
@@ -178,29 +177,31 @@ static int alloc_listen_sockets(lts_pool_t *pool)
     hint.ai_socktype = SOCK_STREAM;
     hint.ai_flags = AI_PASSIVE;
     conf_port = (char const *)lts_conf.port.data;
-    rslt = getaddrinfo(NULL, conf_port, &hint, &records);
-    if (rslt) {
-        errno = LTS_E_SYS;
+    errno = getaddrinfo(NULL, conf_port, &hint, &records);
+    if (errno) {
         return -1;
     }
 
-    lts_sock_inuse_n = 0;
-    lts_sock_cache_n = lts_conf.max_connections + 64;
-
-    // 建立socket缓存
-    dlist_init(&lts_sock_list);
-    sock_cache = (lts_socket_t *)(
-        lts_palloc(pool, lts_sock_cache_n * sizeof(lts_socket_t))
-    );
-    for (i = 0; i < lts_sock_cache_n; ++i) {
-        dlist_add_tail(&lts_sock_list, &sock_cache[i].dlnode);
+    // 统计地址数
+    nrecords = 0;
+    for (iter = records; iter; iter = iter->ai_next) {
+        ++nrecords;
     }
 
-    // 地址列表初始化
-    rslt = 0;
-    dlist_init(&lts_addr_list);
-    for (iter = records; NULL != iter; iter = iter->ai_next) {
-        struct sockaddr *a;
+    // 创建监听地址数组
+    lts_listen_array = (lts_socket_t **)lts_palloc(
+        pool, sizeof(lts_socket_t *) * (nrecords + 1)
+    );
+    if (NULL == lts_listen_array) {
+        // out of memory
+        abort();
+    }
+
+    i = 0;
+    lts_listen_array[0] = NULL;
+    for (iter = records; iter; iter = iter->ai_next) {
+        int fd;
+        int tmp, ipv6_only, reuseaddr;
         lts_socket_t *ls;
 
         if ((AF_INET != iter->ai_family)
@@ -208,50 +209,102 @@ static int alloc_listen_sockets(lts_pool_t *pool)
             continue;
         }
 
-        a = (struct sockaddr *)(
-            lts_palloc(pool, iter->ai_addrlen)
-        );
-        ls = lts_alloc_socket();
-        if ((NULL == a) || (NULL == ls)) {
-            rslt = -1;
+        ls = (lts_socket_t *)lts_palloc(pool, sizeof(lts_socket_t));
+        if (NULL == ls) {
+            // out of memory
+            abort();
+        }
+        lts_init_socket(ls);
+
+        fd = socket(iter->ai_family, SOCK_STREAM, 0);
+        if (-1 == fd) {
             break;
         }
 
-        (void)memcpy(a, iter->ai_addr, iter->ai_addrlen);
-        lts_init_socket(ls);
+        if (iter->ai_family == AF_INET6) { // 仅ipv6
+            ipv6_only = 1;
+            tmp = setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,
+                                 &ipv6_only, sizeof(ipv6_only));
+            if (-1 == tmp) {
+                // log
+            }
+        }
+
+        tmp = lts_set_nonblock(fd);
+        if (-1 == tmp) {
+            // log
+        }
+
+        reuseaddr = 1;
+        tmp = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
+                         (const void *) &reuseaddr, sizeof(int));
+        if (-1 == tmp) {
+            // log
+        }
+
+        if (-1 == bind(fd, iter->ai_addr, iter->ai_addrlen)) {
+            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
+                                   "%s:bind() failed:%s\n",
+                                   STR_LOCATION,
+                                   lts_errno_desc[errno]);
+            (void)close(fd);
+            break;
+        }
+
+        if (-1 == listen(fd, SOMAXCONN)) {
+            (void)close(fd);
+            break;
+        }
+
+        ls->fd = fd;
         ls->family = iter->ai_family;
-        ls->local_addr = a;
-        ls->addr_len = iter->ai_addrlen;
         ls->ev_mask = (EPOLLET | EPOLLIN);
         ls->do_read = &lts_accept;
-        lts_addr_list_add(ls); // 添加到地址列表
+
+        lts_listen_array[i] = ls;
+        lts_listen_array[++i] = NULL;
     }
 
     freeaddrinfo(records);
 
-    return rslt;
+    if (NULL == lts_listen_array[0]) {
+        // not one
+        return -1;
+    }
+
+    // 建立socket缓存
+    lts_sock_inuse_n = 0;
+    lts_sock_cache_n = lts_conf.max_connections + 64;
+    dlist_init(&lts_sock_list);
+
+    sock_cache = (lts_socket_t *)(
+        lts_palloc(pool, lts_sock_cache_n * sizeof(lts_socket_t))
+    );
+    for (i = 0; i < lts_sock_cache_n; ++i) {
+        dlist_add_tail(&lts_sock_list, &sock_cache[i].dlnode);
+    }
+
+    return 0;
 }
 
 
 static void free_listen_sockets(void)
 {
-    dlist_for_each_f_safe(pos_node, cur_next, &lts_listen_list) {
-        lts_socket_t *ls;
+    for (int i = 0; lts_listen_array[i]; ++i) {
+        lts_socket_t *ls = lts_listen_array[i];
 
-        ls = CONTAINER_OF(pos_node, lts_socket_t, dlnode);
         if (-1 == close(ls->fd)) {
             (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                    "%s:close() failed:%s\n",
                                    STR_LOCATION, lts_errno_desc[errno]);
         }
-        dlist_del(&ls->dlnode);
     }
 }
 
 
 static int init_event_core_master(lts_module_t *mod)
 {
-    int rslt, ipv6_only, reuseaddr;
+    int rslt;
     lts_pool_t *pool;
 
     // 全局初始化
@@ -286,62 +339,6 @@ static int init_event_core_master(lts_module_t *mod)
         return rslt;
     }
 
-    // 打开监听套接字
-    rslt = 0;
-    ipv6_only = 1;
-    reuseaddr = 1;
-    dlist_init(&lts_listen_list);
-    dlist_for_each_f_safe(pos_node, cur_next, &lts_addr_list) {
-        int fd;
-        lts_socket_t *ls;
-
-        ls = CONTAINER_OF(pos_node, lts_socket_t, dlnode);
-        fd = socket(ls->family, SOCK_STREAM, 0);
-        if (-1 == fd) {
-            // log
-            return -1;
-        }
-
-        if (ls->family == AF_INET6) { // 仅ipv6
-            rslt = setsockopt(fd, IPPROTO_IPV6,
-                              IPV6_V6ONLY, &ipv6_only, sizeof(ipv6_only));
-            if (-1 == rslt) {
-                // log
-            }
-        }
-
-        rslt = lts_set_nonblock(fd);
-        if (-1 == rslt) {
-            // log
-        }
-
-        rslt = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
-                          (const void *) &reuseaddr, sizeof(int));
-        if (-1 == rslt) {
-            // log
-        }
-
-        rslt = bind(fd, ls->local_addr, ls->addr_len);
-        if (-1 == rslt) {
-            (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                                   "%s:bind() failed:%s\n",
-                                   STR_LOCATION,
-                                   lts_errno_desc[errno]);
-            (void)close(fd);
-            break;
-        }
-
-        rslt = listen(fd, SOMAXCONN);
-        if (-1 == rslt) {
-            (void)close(fd);
-            break;
-        }
-
-        ls->fd = fd;
-
-        lts_listen_list_add(ls); // 纳入监听列表
-    }
-
     return rslt;
 }
 
@@ -369,7 +366,7 @@ static int init_event_core_worker(lts_module_t *mod)
     };
 
     // 初始化各种列表
-    dlist_init(&lts_conn_list);
+    dlist_init(&lts_watch_list);
     dlist_init(&lts_post_list);
 
     // 工作进程晶振

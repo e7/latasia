@@ -19,7 +19,6 @@ int lts_shm_alloc(lts_shm_t *shm)
                                 PROT_READ | PROT_WRITE,
                                 MAP_ANONYMOUS | MAP_SHARED, -1, 0);
     if (MAP_FAILED == shm->addr) {
-        errno = LTS_E_SYS;
         return -1;
     }
 

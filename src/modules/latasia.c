@@ -328,10 +328,9 @@ static void enable_accept_events(void)
     }
 
     lts_accept_lock_hold = TRUE;
-    dlist_for_each_f(pos, &lts_listen_list) {
-        lts_socket_t *ls;
+    for (int i = 0; lts_listen_array[i]; ++i) {
+        lts_socket_t *ls = lts_listen_array[i];
 
-        ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
         (*lts_event_itfc->event_add)(ls);
     }
 
@@ -349,10 +348,9 @@ static void disable_accept_events(void)
     }
 
     lts_accept_lock_hold = FALSE;
-    dlist_for_each_f(pos, &lts_listen_list) {
-        lts_socket_t *ls;
+    for (int i = 0; lts_listen_array[i]; ++i) {
+        lts_socket_t *ls = lts_listen_array[i];
 
-        ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
         (*lts_event_itfc->event_del)(ls);
     }
 
@@ -396,7 +394,7 @@ void process_post_list(void)
 
         // 移出post链
         if ((! cs->readable) && (! cs->writable) && (! cs->timeoutable)) {
-            lts_conn_list_add(cs);
+            lts_watch_list_add(cs);
         }
     }
 
@@ -409,10 +407,9 @@ int event_loop_single(void)
     int rslt;
 
     // 事件循环
-    dlist_for_each_f(pos, &lts_listen_list) {
-        lts_socket_t *ls;
+    for (int i = 0; lts_listen_array[i]; ++i) {
+        lts_socket_t *ls = lts_listen_array[i];
 
-        ls = CONTAINER_OF(pos, lts_socket_t, dlnode);
         (*lts_event_itfc->event_add)(ls);
     }
 

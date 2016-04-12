@@ -70,10 +70,9 @@ extern int lts_accept_disabled;
 extern dlist_t lts_sock_list; // socket缓存列表
 extern size_t lts_sock_cache_n; // socket缓存余量
 extern size_t lts_sock_inuse_n; // socket缓存使用量
-extern dlist_t lts_addr_list; // 地址列表
-extern dlist_t lts_listen_list; // 监听socket列表
+extern lts_socket_t **lts_listen_array; // 监听socket数组
 
-extern dlist_t lts_conn_list; // 连接链表，与post链互为补链
+extern dlist_t lts_watch_list; // 观察链表，与post链互为补链
 extern dlist_t lts_post_list; // post链表，事件延迟处理
 
 #define lts_sock_list_add(s)    dlist_add_tail(&lts_sock_list, &s->dlnode)
@@ -85,9 +84,9 @@ extern dlist_t lts_post_list; // post链表，事件延迟处理
             dlist_del(&s->dlnode);\
             dlist_add_tail(&lts_listen_list, &s->dlnode);\
         } while (0)
-#define lts_conn_list_add(s)    do {\
+#define lts_watch_list_add(s)    do {\
             dlist_del(&s->dlnode);\
-            dlist_add_tail(&lts_conn_list, &s->dlnode);\
+            dlist_add_tail(&lts_watch_list, &s->dlnode);\
         } while (0)
 #define lts_post_list_add(s)    do {\
             dlist_del(&s->dlnode);\

@@ -120,11 +120,11 @@ static int epoll_process_events(void)
             continue;
         }
 
-        if (cs->family >= 0) {
+        /*if (cs->family >= 0) {
             // 监听套接字立即处理
             (*cs->do_read)(cs);
             continue;
-        }
+        }*/
 
         revents = buf_epevs[i].events;
         if ((revents & (EPOLLERR | EPOLLHUP)
