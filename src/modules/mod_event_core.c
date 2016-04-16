@@ -146,13 +146,18 @@ static void lts_accept(lts_socket_t *ls)
     cs->do_read = &lts_recv;
     cs->do_write = &lts_send;
     cs->do_timeout = &lts_timeout;
-    cs->timeout = lts_current_time + lts_conf.keepalive * 10;
 
     // 加入事件监视
     (*lts_event_itfc->event_add)(cs);
 
-    while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
-        ++cs->timeout;
+    // 加入定时器
+    if (lts_conf.keepalive > 0) {
+        cs->timeout = lts_current_time + lts_conf.keepalive * 10;
+        while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
+            ++cs->timeout;
+        }
+    } else {
+        cs->timeout = 0; // 短连接
     }
 
     lts_watch_list_add(cs); // 纳入观察列表
@@ -457,6 +462,9 @@ void lts_recv(lts_socket_t *cs)
             (void)lts_write_logger(&lts_file_logger, lvl,
                                    "%s:recv() failed:%s, reset connection\n",
                                    STR_LOCATION, lts_errno_desc[errno]);
+
+            // 直接重置连接
+            (void)shutdown(cs->fd, SHUT_RDWR);
             lts_close_conn(cs, TRUE);
         }
 
@@ -506,6 +514,9 @@ void lts_send(lts_socket_t *cs)
                                "%s:send(%d) failed:%s, reset connection\n",
                                STR_LOCATION, cs->fd,
                                lts_errno_desc[errno]);
+
+        // 直接重置连接
+        (void)shutdown(cs->fd, SHUT_RDWR);
         lts_close_conn(cs, TRUE);
 
         return;
@@ -525,6 +536,13 @@ void lts_send(lts_socket_t *cs)
             cs->writable = 0;
             cs->ev_mask &= (~EPOLLOUT);
             (*lts_event_itfc->event_mod)(cs);
+
+            if (0 == cs->timeout) {
+                // 短连接
+                if (-1 == shutdown(cs->fd, SHUT_WR)) {
+                    // log
+                }
+            }
         }
     }
 
@@ -535,7 +553,9 @@ void lts_send(lts_socket_t *cs)
 void lts_timeout(lts_socket_t *cs)
 {
     cs->timeoutable = 0;
-    lts_close_conn(cs, TRUE); // keepalive timeout
+    if (-1 == shutdown(cs->fd, SHUT_WR)) {
+        // log
+    }
 
     return;
 }
