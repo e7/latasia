@@ -127,7 +127,16 @@ int main(void)
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t5);
-    assert(-1 == lts_sjson_decode(&s, pool, &output));
+    assert(0 == lts_sjson_decode(&s, pool, &output));
+    (void)fprintf(stderr, "======== t5\n");
+    (void)fprintf(stderr, "size: %ld\n", lts_sjson_encode_size(&output));
+    assert(0 == lts_sjson_encode(&output, pool, &s));
+    for (int i = 0; i < s.len; ++i) {
+        (void)fputc(s.data[i], stderr);
+    }
+    (void)fputc('\n', stderr);
+    (void)fprintf(stderr, "len:%ld\n", s.len);
+    dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t6);
     assert(0 == lts_sjson_decode(&s, pool, &output));
