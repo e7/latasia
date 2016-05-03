@@ -26,3 +26,24 @@ lts_hashtable_t *lts_create_hashtable(lts_pool_t *pool, ssize_t nbucket)
 
     return ht;
 }
+
+
+// 备选哈希函数
+uintptr_t time33(char const *str, size_t len)
+{
+    uintptr_t hash = 0;
+
+    for (size_t i = 0; i < len; ++i) {
+        hash = hash *33 + (uintptr_t)str[i];
+    }
+
+    return hash;
+}
+
+
+uintptr_t hash_long(uintptr_t val, uintptr_t bits)
+{
+    uintptr_t hash = val * 0x9e370001UL;
+
+    return hash >> (32 - bits);
+}

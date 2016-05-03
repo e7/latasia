@@ -52,6 +52,10 @@ extern void lts_init_hashtable(lts_hashtable_t *ht);
 extern lts_hashtable_t
 *lts_create_hashtable(lts_pool_t *pool, ssize_t nbucket);
 
+
+// 备选哈希函数
+extern uintptr_t time33(char const *str, size_t len);
+extern uintptr_t hash_long(uintptr_t val, uintptr_t bits);
 #ifdef __cplusplus
 }
 #endif // __cplusplus
