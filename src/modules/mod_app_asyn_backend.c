@@ -81,13 +81,25 @@ static void *netio_thread_proc(void *args)
 
 static void rs_channel_recv(lts_socket_t *cs)
 {
-    uint8_t tmp_buf[64];
+    uint8_t tmp_buf[256];
     ssize_t recv_sz = recv(cs->fd, tmp_buf, 64, 0);
+    int64_t id;
+    lts_socket_t *s;
 
     if (-1 == recv_sz) {
         cs->readable = 0;
         return;
     }
+    id = *(int64_t *)&tmp_buf[0];
+    s = *(lts_socket_t **)&tmp_buf[sizeof(int64_t)];
+    if (id != s->born_time) {
+        // drop response
+        // log
+        return;
+    }
+
+    fprintf(stderr, "recv id:%ld\n", id);
+    fprintf(stderr, "recv s->id:%ld\n", s->born_time);
     fprintf(stderr, "recv response\n");
 }
 
@@ -165,12 +177,28 @@ static void exit_asyn_backend_module(lts_module_t *module)
 static void asyn_backend_service(lts_socket_t *s)
 {
     ssize_t sent_sz;
+    lts_pool_t *pool;
     lts_buffer_t *rb = s->conn->rbuf;
+    uint8_t *tmpbuf;
+    size_t tmplen;
+
+    pool = lts_create_pool(4096);
+    tmpbuf = (uint8_t *)lts_palloc(pool, 1024);
+    tmplen = 0;
+
+    assert(tmpbuf);
+    memcpy(&tmpbuf[tmplen], &s->born_time, sizeof(int64_t));
+    tmplen += sizeof(int64_t);
+    memcpy(&tmpbuf[tmplen], &s, sizeof(lts_socket_t *));
+    tmplen += sizeof(lts_socket_t *);
+    memcpy(&tmpbuf[tmplen], rb->seek,
+           (uintptr_t)rb->last - (uintptr_t)rb->seek);
+    tmplen += (uintptr_t)rb->last - (uintptr_t)rb->seek;
+
+    fprintf(stderr, "%ld\n", s->born_time);
 
     // 发送数据
-    sent_sz = send(s_ctx.pipeline[0], rb->seek,
-                   (uintptr_t)rb->last - (uintptr_t)rb->seek, 0);
-
+    sent_sz = send(s_ctx.pipeline[0], tmpbuf, tmplen, 0);
     if (-1 == sent_sz) {
         if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
             // system busy
@@ -179,11 +207,15 @@ static void asyn_backend_service(lts_socket_t *s)
             fprintf(stderr, "send failed:%d\n", errno);
         }
 
+        lts_destroy_pool(pool);
+
         return;
     }
 
     // 清空接收缓冲
     lts_buffer_clear(rb);
+
+    lts_destroy_pool(pool);
 
     return;
 }

@@ -54,6 +54,7 @@ struct lts_socket_s {
     unsigned timeoutable: 1;
     unsigned instance: 1;
 
+    int64_t born_time;
     lts_conn_t *conn;
     dlist_t dlnode;
 
@@ -74,6 +75,8 @@ extern lts_socket_t **lts_listen_array; // 监听socket数组
 
 extern dlist_t lts_watch_list; // 观察链表，与post链互为补链
 extern dlist_t lts_post_list; // post链表，事件延迟处理
+
+extern int64_t lts_current_time;
 
 #define lts_sock_list_add(s)    dlist_add_tail(&lts_sock_list, &s->dlnode)
 #define lts_addr_list_add(s)    do {\
@@ -105,6 +108,7 @@ void lts_init_socket(lts_socket_t *s)
     s->timeoutable = 0;
     s->instance = (!s->instance);
 
+    s->born_time = lts_current_time;
     s->conn = NULL;
     dlist_init(&s->dlnode);
 
