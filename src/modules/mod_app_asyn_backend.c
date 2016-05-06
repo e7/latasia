@@ -19,8 +19,9 @@ typedef struct {
 
 typedef struct {
     int pipeline[2];
-    lts_socket_t *cs;
+    lts_socket_t *cs; // channel connection
     pthread_t netio_thread;
+    lts_buffer_t *push_buf; // 推送缓冲
 } asyn_backend_ctx_t;
 
 
@@ -64,9 +65,11 @@ static void *netio_thread_proc(void *args)
 
         for (int i = 0; i < rslt; ++i) {
             if (FD_ISSET(local_args.channel, &rfds)) {
-                uint8_t tmp_buf[64];
+                uint8_t tmp_buf[64] = {0};
                 ssize_t recv_sz = recv(local_args.channel, tmp_buf, 64, 0);
                 fprintf(stderr, "recv data size:%ld\n", recv_sz);
+                fprintf(stderr, "%s\n", &tmp_buf[16]);
+                fprintf(stderr, "do some interested process......\n");
                 send(local_args.channel, tmp_buf, 64, 0);
             }
         }
@@ -136,6 +139,8 @@ static int init_asyn_backend_module(lts_module_t *module)
     s_ctx.cs->timeout = 0;
     (*lts_event_itfc->event_add)(s_ctx.cs);
 
+    s_ctx.push_buf = lts_create_buffer(pool, 1024 * 16, 1024 * 16);
+
     // 创建后端网络线程
     s_running = TRUE;
     thread_args_t *args = (thread_args_t *)lts_palloc(
@@ -177,45 +182,55 @@ static void exit_asyn_backend_module(lts_module_t *module)
 static void asyn_backend_service(lts_socket_t *s)
 {
     ssize_t sent_sz;
-    lts_pool_t *pool;
+    ssize_t sending_sz; // 推送的数据长度
     lts_buffer_t *rb = s->conn->rbuf;
-    uint8_t *tmpbuf;
-    size_t tmplen;
-
-    pool = lts_create_pool(4096);
-    tmpbuf = (uint8_t *)lts_palloc(pool, 1024);
-    tmplen = 0;
-
-    assert(tmpbuf);
-    memcpy(&tmpbuf[tmplen], &s->born_time, sizeof(int64_t));
-    tmplen += sizeof(int64_t);
-    memcpy(&tmpbuf[tmplen], &s, sizeof(lts_socket_t *));
-    tmplen += sizeof(lts_socket_t *);
-    memcpy(&tmpbuf[tmplen], rb->seek,
-           (uintptr_t)rb->last - (uintptr_t)rb->seek);
-    tmplen += (uintptr_t)rb->last - (uintptr_t)rb->seek;
 
     fprintf(stderr, "%ld\n", s->born_time);
 
+    // 计算本次推送的数据长度
+    sending_sz = 0;
+    sending_sz += sizeof(int64_t) + sizeof(lts_socket_t *);
+    sending_sz += (uintptr_t)rb->last - (uintptr_t)rb->seek;
+
+    if (0 == s_ctx.push_buf->limit) {
+        // 要求使用设限缓冲
+        abort();
+    }
+
+    if ((s_ctx.push_buf->end - s_ctx.push_buf->last) < sending_sz) {
+        // 响应系统繁忙
+        return;
+    }
+
+    (void)lts_buffer_append(
+        s_ctx.push_buf, (uint8_t *)&s->born_time, sizeof(int64_t)
+    );
+    (void)lts_buffer_append(
+        s_ctx.push_buf, (uint8_t *)&s, sizeof(lts_socket_t *)
+    );
+    (void)lts_buffer_append(
+        s_ctx.push_buf, rb->seek, (uintptr_t)rb->last - (uintptr_t)rb->seek
+    );
+    lts_buffer_clear(rb); // 清空接收缓冲
+
     // 发送数据
-    sent_sz = send(s_ctx.pipeline[0], tmpbuf, tmplen, 0);
+    sent_sz = send(
+        s_ctx.cs->fd, s_ctx.push_buf->seek,
+        (uintptr_t)s_ctx.push_buf->last - (uintptr_t)s_ctx.push_buf->seek, 0
+    );
     if (-1 == sent_sz) {
         if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
-            // system busy
+            // 响应系统繁忙
         } else {
-            // log
-            fprintf(stderr, "send failed:%d\n", errno);
+            abort(); // should NOT be
         }
-
-        lts_destroy_pool(pool);
 
         return;
     }
 
-    // 清空接收缓冲
-    lts_buffer_clear(rb);
-
-    lts_destroy_pool(pool);
+    // 调整推送缓冲
+    s_ctx.push_buf->seek += sent_sz;
+    lts_buffer_drop_accessed(s_ctx.push_buf);
 
     return;
 }

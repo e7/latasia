@@ -20,7 +20,7 @@ typedef struct lts_buffer_s lts_buffer_t;
 
 struct lts_buffer_s {
     lts_pool_t *pool;
-    size_t limit; // 容量扩展上限，0表示不设限
+    ssize_t limit; // 容量扩展上限，0表示不设限
     uint8_t *start; // 缓冲起始地址
     uint8_t *seek; // 访问指针
     uint8_t *last; // 空闲区起始地址
@@ -50,8 +50,13 @@ static inline void lts_buffer_clear(lts_buffer_t *buffer)
 }
 
 extern lts_buffer_t *lts_create_buffer(lts_pool_t *pool,
-                                       size_t size, size_t limit);
-extern int lts_buffer_append(lts_buffer_t *buffer, uint8_t *data, size_t n);
+                                       ssize_t size, ssize_t limit);
+
+// 追加数据
+extern int lts_buffer_append(lts_buffer_t *buffer, uint8_t *data, ssize_t n);
+
+// 丢弃seek之前的数据
+extern void lts_buffer_drop_accessed(lts_buffer_t *buffer);
 
 #ifdef __cplusplus
 }
