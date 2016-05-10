@@ -6,5 +6,5 @@
     "workers": "1", # 工作进程数
     "max_connections": "1", # 最大连接数
     "keepalive": "60", # 长连接保持时间
-    "app_mod_conf": "run/mod_http.conf" # 应用模块配置文件
+    "app_mod_conf": "conf/mod_app.conf" # 应用模块配置文件
 }

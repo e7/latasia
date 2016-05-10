@@ -817,14 +817,14 @@ int worker_main(void)
     if (lts_use_accept_lock) {
         (void)lts_write_logger(
             &lts_file_logger, LTS_LOG_INFO,
-            "%s: using multi-processes\n", STR_LOCATION
+            "%s:using multi-processes\n", STR_LOCATION
         );
 
         rslt = event_loop_multi();
     } else {
         (void)lts_write_logger(
             &lts_file_logger, LTS_LOG_INFO,
-            "%s: using single-process\n", STR_LOCATION
+            "%s:using single-process\n", STR_LOCATION
         );
 
         rslt = event_loop_single();

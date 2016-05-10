@@ -15,7 +15,7 @@
 #define __THIS_FILE__       "src/conf.c"
 
 
-#define CONF_FILE           "latasia.conf"
+#define CONF_FILE           "conf/latasia.conf"
 #define MAX_KEEPALIVE       (24 * 60 * 60)
 
 
