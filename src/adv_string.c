@@ -353,3 +353,12 @@ int lts_l2str(lts_str_t *str, long x)
 
     return 0;
 }
+
+
+void lts_str_println(FILE *stream, lts_str_t *s)
+{
+    for (int i = 0; i < s->len; ++i) {
+        (void)fputc(s->data[i], stream);
+    }
+    (void)fputc('\n', stream);
+}

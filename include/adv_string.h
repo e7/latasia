@@ -113,6 +113,9 @@ extern int lts_str_find(lts_str_t *text, lts_str_t *pattern, int offset);
 // long转字符串
 extern int lts_l2str(lts_str_t *str, long x);
 
+// print
+extern void lts_str_println(FILE *stream, lts_str_t *s);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

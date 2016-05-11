@@ -111,6 +111,8 @@ static int init_asyn_backend_module(lts_module_t *module)
 {
     lts_pool_t *pool;
 
+    lts_str_println(stderr, &lts_conf.app_mod_conf);
+
     // 创建模块内存池
     pool = lts_create_pool(MODULE_POOL_SIZE);
     if (NULL == pool) {
