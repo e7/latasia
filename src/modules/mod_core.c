@@ -5,9 +5,26 @@
 
 #define __THIS_FILE__       "src/modules/mod_core.c"
 
+#define CONF_FILE           "conf/latasia.conf"
 
+
+static int daemonize(const char *wd);
+static int lts_load_config(lts_conf_t *conf, lts_pool_t *pool);
 static int init_core_master(lts_module_t *module);
 static void exit_core_master(lts_module_t *module);
+
+
+// 默认配置
+lts_conf_t lts_main_conf = {
+    FALSE, // 守护进程
+    lts_string("6742"), // 监听端口
+    1, // slave进程数
+    MAX_CONNECTIONS, // 每个slave最大连接数
+    60, // 连接超时
+    lts_string("run/latasia.pid"), // pid文件路径
+    lts_string("run/latasia.log"), // 日志路径
+    lts_string("conf/mod_app.conf"), // 应用模块配置文件路径
+};
 
 
 lts_module_t lts_core_module = {
@@ -24,7 +41,28 @@ lts_module_t lts_core_module = {
 };
 
 
-static int daemonize(const char *wd)
+int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
+{
+    off_t sz;
+    uint8_t *addr;
+    int rslt;
+    lts_file_t lts_conf_file = {
+        -1, {
+            (uint8_t *)CONF_FILE, sizeof(CONF_FILE) - 1,
+        },
+    };
+
+    if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
+        return -1;
+    }
+    rslt = parse_conf(conf, addr, sz, pool);
+    close_conf_file(&lts_conf_file, addr, sz);
+
+    return rslt;
+}
+
+
+int daemonize(const char *wd)
 {
     switch (fork()) {
     case -1:
@@ -89,7 +127,7 @@ int init_core_master(lts_module_t *module)
     module->pool = pool;
 
     // 读取配置
-    if (-1 == lts_load_config(&lts_conf, module->pool)) {
+    if (-1 == lts_load_config(&lts_main_conf, module->pool)) {
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_WARN,
                                "%s:load config failed, using default\n",
                                STR_LOCATION);
@@ -97,7 +135,7 @@ int init_core_master(lts_module_t *module)
 
     // 初始化日志
     lts_str_init(&lts_log_file.name,
-                 lts_conf.log_file.data, lts_conf.log_file.len);
+                 lts_main_conf.log_file.data, lts_main_conf.log_file.len);
     if (-1 == lts_file_open(&lts_log_file, O_RDWR | O_CREAT | O_APPEND,
                             S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH,
                             &lts_stderr_logger)) {
@@ -108,7 +146,7 @@ int init_core_master(lts_module_t *module)
     }
 
     // 守护进程
-    if (lts_conf.daemon && (-1 == daemonize(wd))) {
+    if (lts_main_conf.daemon && (-1 == daemonize(wd))) {
         (void)lts_write_logger(
             &lts_file_logger, LTS_LOG_INFO,
             "%s:fall into daemon failed\n", STR_LOCATION
@@ -120,7 +158,7 @@ int init_core_master(lts_module_t *module)
     // 创建pid文件
     lts_pid = getpid(); // 初始化进程号
     lts_str_init(&lts_pid_file.name,
-                 lts_conf.pid_file.data, lts_conf.pid_file.len);
+                 lts_main_conf.pid_file.data, lts_main_conf.pid_file.len);
     if (-1 == lts_file_open(&lts_pid_file, O_RDWR | O_CREAT | O_EXCL,
                             S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH,
                             &lts_stderr_logger)) {
@@ -171,10 +209,11 @@ int init_core_master(lts_module_t *module)
     return 0;
 }
 
+
 void exit_core_master(lts_module_t *module)
 {
     // 删除pid文件
-    if (-1 == unlink((char const *)lts_conf.pid_file.data)) {
+    if (-1 == unlink((char const *)lts_main_conf.pid_file.data)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "%s:delete pid file failed\n", STR_LOCATION);
     }

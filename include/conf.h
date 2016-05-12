@@ -10,6 +10,7 @@
 
 #include "adv_string.h"
 #include "mem_pool.h"
+#include "file.h"
 
 
 #ifdef __cplusplus
@@ -26,8 +27,8 @@ extern "C" {
 // }} configuration
 
 
-
 typedef struct lts_conf_s lts_conf_t;
+typedef struct lts_conf_asyn_s lts_conf_asyn_t;
 
 
 struct lts_conf_s {
@@ -40,11 +41,26 @@ struct lts_conf_s {
     lts_str_t log_file; // 日志
     lts_str_t app_mod_conf; // 应用模块配置文件
 };
+struct lts_conf_asyn_s {
+    lts_str_t host;
+    uintptr_t port;
+};
 
 
-extern lts_conf_t lts_conf;
-extern int lts_load_config(lts_conf_t *conf, lts_pool_t *pool);
+typedef struct {
+    lts_str_t name;
+    void (*match_handler)(void *conf,
+                          lts_str_t *key,
+                          lts_str_t *value,
+                          lts_pool_t *pool);
+} lts_conf_item_t;
 
+
+extern lts_conf_t lts_main_conf;
+
+extern int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz);
+extern int parse_conf(void *conf, uint8_t *addr, off_t sz, lts_pool_t *pool);
+extern void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz);
 #ifdef __cplusplus
 }
 #endif // __cplusplus

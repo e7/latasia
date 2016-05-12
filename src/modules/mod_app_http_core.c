@@ -74,7 +74,7 @@ void dump_mem_to_file(char const *filepath, uint8_t *data, size_t n)
 
 static int init_http_core_module(lts_module_t *module)
 {
-    fprintf(stderr, "conf file:%s\n", lts_conf.app_mod_conf.data);
+    fprintf(stderr, "conf file:%s\n", lts_main_conf.app_mod_conf.data);
     return 0;
 }
 

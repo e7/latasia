@@ -475,7 +475,9 @@ int event_loop_multi(void)
         }
 
         // 更新进程负载
-        lts_accept_disabled = lts_conf.max_connections / 8 - lts_sock_cache_n;
+        lts_accept_disabled = (
+            lts_main_conf.max_connections / 8 - lts_sock_cache_n
+        );
 
         if (lts_accept_disabled < 0) {
             if (lts_shmtx_trylock((lts_atomic_t *)lts_accept_lock.addr)) {
@@ -520,7 +522,7 @@ pid_t wait_children(void)
     }
 
     // 有子进程退出
-    for (slot = 0; slot < lts_conf.workers; ++slot) {
+    for (slot = 0; slot < lts_main_conf.workers; ++slot) {
         if (child == lts_processes[slot].pid) {
             lts_processes[slot].pid = -1;
             if (-1 == close(lts_processes[slot].channel[0])) {
@@ -558,7 +560,7 @@ int master_main(void)
 
     // 事件循环
     workers = 0; // 当前工作进程数
-    if (lts_conf.workers > 1) {
+    if (lts_main_conf.workers > 1) {
         lts_use_accept_lock = TRUE;
     } else {
         lts_use_accept_lock = FALSE;
@@ -568,17 +570,17 @@ int master_main(void)
     while (TRUE) {
         if (0 == (lts_signals_mask & LTS_MASK_SIGEXIT)) {
             // 重启工作进程
-            while (workers  < lts_conf.workers) {
+            while (workers  < lts_main_conf.workers) {
                 pid_t p;
                 int domain_fd;
 
                 // 寻找空闲槽
-                for (slot = 0; slot < lts_conf.workers; ++slot) {
+                for (slot = 0; slot < lts_main_conf.workers; ++slot) {
                     if (-1 == lts_processes[slot].pid) {
                         break;
                     }
                 }
-                if (slot >= lts_conf.workers) { // bug defence
+                if (slot >= lts_main_conf.workers) { // bug defence
                     abort();
                 }
 
@@ -645,7 +647,7 @@ int master_main(void)
         (void)sigsuspend(&tmp_mask);
 
         if (lts_signals_mask & LTS_MASK_SIGEXIT) {
-            for (int i = 0; i < lts_conf.workers; ++i) {
+            for (int i = 0; i < lts_main_conf.workers; ++i) {
                 uint32_t sigexit = LTS_CHANNEL_SIGEXIT;
 
                 if (-1 == lts_processes[i].pid) {

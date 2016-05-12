@@ -83,7 +83,7 @@ static void lts_accept(lts_socket_t *ls)
     lts_conn_t *c;
     lts_pool_t *cpool;
 
-    if (s_event_core_ctx.current_conns >= lts_conf.max_connections) {
+    if (s_event_core_ctx.current_conns >= lts_main_conf.max_connections) {
         // 达到最大连接数
         return;
     }
@@ -151,8 +151,8 @@ static void lts_accept(lts_socket_t *ls)
     (*lts_event_itfc->event_add)(cs);
 
     // 加入定时器
-    if (lts_conf.keepalive > 0) {
-        cs->timeout = lts_current_time + lts_conf.keepalive * 10;
+    if (lts_main_conf.keepalive > 0) {
+        cs->timeout = lts_current_time + lts_main_conf.keepalive * 10;
         while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
             ++cs->timeout;
         }
@@ -181,7 +181,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
     hint.ai_family = AF_UNSPEC;
     hint.ai_socktype = SOCK_STREAM;
     hint.ai_flags = AI_PASSIVE;
-    conf_port = (char const *)lts_conf.port.data;
+    conf_port = (char const *)lts_main_conf.port.data;
     errno = getaddrinfo(NULL, conf_port, &hint, &records);
     if (errno) {
         return -1;
@@ -279,7 +279,7 @@ static int alloc_listen_sockets(lts_pool_t *pool)
 
     // 建立socket缓存
     lts_sock_inuse_n = 0;
-    lts_sock_cache_n = lts_conf.max_connections + 64;
+    lts_sock_cache_n = lts_main_conf.max_connections + 64;
     dlist_init(&lts_sock_list);
 
     sock_cache = (lts_socket_t *)(
