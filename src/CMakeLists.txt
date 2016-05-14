@@ -1,5 +1,6 @@
 AUX_SOURCE_DIRECTORY(. src_utils)
 AUX_SOURCE_DIRECTORY(modules src_modules)
+
 ADD_EXECUTABLE(latasia ${src_utils} ${src_modules})
 TARGET_LINK_LIBRARIES(latasia z mcheck pthread)
 

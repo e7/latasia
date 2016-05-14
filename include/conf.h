@@ -59,7 +59,16 @@ typedef struct {
 extern lts_conf_t lts_main_conf;
 
 extern int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz);
-extern int parse_conf(void *conf, uint8_t *addr, off_t sz, lts_pool_t *pool);
+
+// json配置解析，将配置文件内容转换为相应的配置结构体
+// addr, sz: 配置文件内容
+// conf_items: 需要处理的配置项
+// pool: 内存池
+// conf: 配置输出结构体
+extern int parse_conf(uint8_t *addr, off_t sz,
+                      lts_conf_item_t *conf_items[],
+                      lts_pool_t *pool, void *conf);
+
 extern void close_conf_file(lts_file_t *file, uint8_t *addr, off_t sz);
 #ifdef __cplusplus
 }

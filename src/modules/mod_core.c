@@ -8,23 +8,12 @@
 #define CONF_FILE           "conf/latasia.conf"
 
 
+extern lts_conf_t lts_main_conf;
+
 static int daemonize(const char *wd);
 static int lts_load_config(lts_conf_t *conf, lts_pool_t *pool);
 static int init_core_master(lts_module_t *module);
 static void exit_core_master(lts_module_t *module);
-
-
-// 默认配置
-lts_conf_t lts_main_conf = {
-    FALSE, // 守护进程
-    lts_string("6742"), // 监听端口
-    1, // slave进程数
-    MAX_CONNECTIONS, // 每个slave最大连接数
-    60, // 连接超时
-    lts_string("run/latasia.pid"), // pid文件路径
-    lts_string("run/latasia.log"), // 日志路径
-    lts_string("conf/mod_app.conf"), // 应用模块配置文件路径
-};
 
 
 lts_module_t lts_core_module = {
@@ -43,6 +32,8 @@ lts_module_t lts_core_module = {
 
 int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
 {
+    extern lts_conf_item_t *g_conf_main_items[];
+
     off_t sz;
     uint8_t *addr;
     int rslt;
@@ -55,7 +46,7 @@ int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
     if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
         return -1;
     }
-    rslt = parse_conf(conf, addr, sz, pool);
+    rslt = parse_conf(addr, sz, g_conf_main_items, pool, conf);
     close_conf_file(&lts_conf_file, addr, sz);
 
     return rslt;

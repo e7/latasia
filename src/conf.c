@@ -14,258 +14,6 @@
 #define __THIS_FILE__       "src/conf.c"
 
 
-#define MAX_KEEPALIVE       (24 * 60 * 60)
-
-
-// 分割字符串
-static lts_str_t *split_str(lts_str_t *text, char delemiter, lts_pool_t *pool)
-{
-    int dlm_count, nitems;
-    lts_str_t *rslt;
-
-    // counting delemiter
-    dlm_count = 0;
-    for (int i = 0; i < text->len; ++i) {
-        if (delemiter == text->data[i]) {
-            ++dlm_count;
-        }
-    }
-
-    // alloc memory
-    nitems = dlm_count + 1 + 1;
-    rslt = (lts_str_t *)lts_palloc(
-        pool, sizeof(lts_str_t) * (nitems)
-    );
-    rslt[0].data = text->data;
-    rslt[0].len = text->len;
-    for (int i = 1; i < nitems; ++i) {
-        rslt[i] = (lts_str_t)lts_null_string;
-    }
-
-    // split
-    nitems = 0;
-    for (int i = 0; i < text->len; ++i) {
-        for (int j = i; j < text->len; ++j) {
-            if (delemiter == text->data[j]) {
-                rslt[nitems++].len = j - i;
-                rslt[nitems].data = text->data + j + 1;
-                rslt[nitems].len = text->len - j - 1;
-                i = j;
-                break;
-            }
-        }
-    }
-
-    return rslt;
-}
-
-
-// match of daemon
-static void
-cb_daemon_match(void *c, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
-{
-    uint8_t *item_buf;
-    size_t item_buf_size = MAX(v->len, 8) + 1;
-    lts_conf_t *conf = (lts_conf_t *)c;
-
-    // 缓冲value
-    item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
-    (void)memcpy(item_buf, v->data, v->len);
-    item_buf[v->len] = 0;
-
-    conf->daemon = atoi((char const *)item_buf);
-
-    return;
-}
-
-
-// match of port
-static void
-cb_port_match(void *c, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
-{
-    int nport;
-    uint8_t *port_buf;
-    size_t port_buf_size = MAX(v->len, 8) + 1;
-    lts_conf_t *conf = (lts_conf_t *)c;
-
-    // 缓冲value
-    port_buf  = (uint8_t *)lts_palloc(pool, port_buf_size);
-    (void)memcpy(port_buf, v->data, v->len);
-    port_buf[v->len] = 0;
-
-    // 检查端口合法性
-    nport = atoi((char const *)port_buf);
-    if ((nport < 1) || (nport > 65535)) {
-        nport = 6742;
-    }
-
-    // 更新配置
-    lts_str_init(&conf->port, port_buf, port_buf_size - 1);
-    assert(0 == lts_l2str(&conf->port, nport));
-
-    return;
-}
-
-
-// match of pid_file
-static void cb_pid_file_match(void *c,
-                              lts_str_t *k,
-                              lts_str_t *v,
-                              lts_pool_t *pool)
-{
-    uint8_t *pid_file_buf;
-    lts_conf_t *conf = (lts_conf_t *)c;
-    size_t pid_file_buf_size = MAX(v->len, 8) + 1;
-
-    // 缓冲value
-    pid_file_buf  = (uint8_t *)lts_palloc(pool, pid_file_buf_size);
-    (void)memcpy(pid_file_buf, v->data, v->len);
-    pid_file_buf[v->len] = 0;
-
-    // 更新配置
-    lts_str_init(&conf->pid_file, pid_file_buf, v->len);
-
-    return;
-}
-
-
-// match of log_file
-static void cb_log_file_match(void *c,
-                              lts_str_t *k,
-                              lts_str_t *v,
-                              lts_pool_t *pool)
-{
-    uint8_t *log_file_buf;
-    lts_conf_t *conf = (lts_conf_t *)c;
-    size_t log_file_buf_size = MAX(v->len, 8) + 1;
-
-    // 缓冲value
-    log_file_buf  = (uint8_t *)lts_palloc(pool, log_file_buf_size);
-    (void)memcpy(log_file_buf, v->data, v->len);
-    log_file_buf[v->len] = 0;
-
-    // 更新配置
-    lts_str_init(&conf->log_file, log_file_buf, v->len);
-
-    return;
-}
-
-
-// match of workers_file
-static void cb_workers_match(void *c,
-                             lts_str_t *k,
-                             lts_str_t *v,
-                             lts_pool_t *pool)
-{
-    int nworkers;
-    uint8_t *port_buf;
-    lts_conf_t *conf = (lts_conf_t *)c;
-    size_t port_buf_size = MAX(v->len, 8) + 1;
-
-    // 缓冲value
-    port_buf  = (uint8_t *)lts_palloc(pool, port_buf_size);
-    (void)memcpy(port_buf, v->data, v->len);
-    port_buf[v->len] = 0;
-
-    // 更新配置
-    nworkers = atoi((char const *)port_buf);
-    if ((nworkers < 1) || (nworkers > 512)) {
-        nworkers = 1;
-    }
-    conf->workers = nworkers;
-
-    return;
-}
-
-
-// match of keepalive
-static void cb_keepalive_match(void *c,
-                               lts_str_t *k,
-                               lts_str_t *v,
-                               lts_pool_t *pool)
-{
-    int nkeepalive;
-    uint8_t *item_buf;
-    lts_conf_t *conf = (lts_conf_t *)c;
-    size_t item_buf_size = MAX(v->len, 8) + 1;
-
-    // 缓冲value
-    item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
-    (void)memcpy(item_buf, v->data, v->len);
-    item_buf[v->len] = 0;
-
-    // 更新配置
-    nkeepalive = atoi((char const *)item_buf);
-    if ((nkeepalive < 0) || (nkeepalive > MAX_KEEPALIVE)) { // 不超过一天
-        nkeepalive = MAX_KEEPALIVE;
-    }
-    conf->keepalive = nkeepalive;
-
-    return;
-}
-
-
-// match of max_connections
-static void cb_max_connections_match(void *c,
-                                     lts_str_t *k,
-                                     lts_str_t *v,
-                                     lts_pool_t *pool)
-{
-    int max_connections;
-    uint8_t *item_buf;
-    lts_conf_t *conf = (lts_conf_t *)c;
-    size_t item_buf_size = MAX(v->len, 8) + 1;
-
-    // 缓冲value
-    item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
-    (void)memcpy(item_buf, v->data, v->len);
-    item_buf[v->len] = 0;
-
-    // 更新配置
-    max_connections = atoi((char const *)item_buf);
-    if (max_connections < 1) {
-        max_connections = 1;
-    }
-    conf->max_connections = max_connections;
-
-    return;
-}
-
-
-// match of app_mod_conf
-static void cb_app_mod_conf_match(void *c,
-                                  lts_str_t *k,
-                                  lts_str_t *v,
-                                  lts_pool_t *pool)
-{
-    uint8_t *item_buf;
-    lts_conf_t *conf = (lts_conf_t *)c;
-    size_t item_buf_size = MAX(v->len, 8) + 1;
-
-    // 缓冲value
-    item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
-    (void)memcpy(item_buf, v->data, v->len);
-    item_buf[v->len] = 0;
-
-    // 更新配置
-    lts_str_init(&conf->app_mod_conf, item_buf, v->len);
-
-    return;
-}
-
-
-static lts_conf_item_t s_conf_items[] = {
-    {lts_string("daemon"), &cb_daemon_match},
-    {lts_string("port"), &cb_port_match},
-    {lts_string("workers"), &cb_workers_match},
-    {lts_string("pid_file"), &cb_pid_file_match},
-    {lts_string("log_file"), &cb_log_file_match},
-    {lts_string("keepalive"), &cb_keepalive_match},
-    {lts_string("max_connections"), &cb_max_connections_match},
-    {lts_string("app_mod_conf"), &cb_app_mod_conf_match},
-};
-
-
 int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz)
 {
     struct stat st;
@@ -342,8 +90,14 @@ static void log_invalid_conf(lts_str_t *item, lts_pool_t *pool)
 */
 
 
-// json配置解析
-int parse_conf(void *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
+// json配置解析，将配置文件内容转换为相应的配置结构体
+// addr, sz: 配置文件内容
+// conf_items: 需要处理的配置项
+// pool: 内存池
+// conf: 配置输出结构体
+int parse_conf(uint8_t *addr, off_t sz,
+               lts_conf_item_t *conf_items[],
+               lts_pool_t *pool, void *conf)
 {
     lts_sjson_t conf_json;
     lts_sjson_obj_node_t *iter;
@@ -388,13 +142,13 @@ int parse_conf(void *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
 
         kv = CONTAINER_OF(iter, lts_sjson_kv_t, _obj_node);
 
-        for (int j = 0; j < (int)ARRAY_COUNT(s_conf_items); ++j) {
-            if (lts_str_compare(&s_conf_items[j].name, &iter->key)) {
+        for (int j = 0; conf_items[j]; ++j) {
+            if (lts_str_compare(&conf_items[j]->name, &iter->key)) {
                 continue;
             }
 
-            if (s_conf_items[j].match_handler) {
-                s_conf_items[j].match_handler(
+            if (conf_items[j]->match_handler) {
+                conf_items[j]->match_handler(
                     conf, &iter->key, &kv->val, pool
                 );
                 break;
