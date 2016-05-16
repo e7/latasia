@@ -57,6 +57,7 @@ typedef struct {
 
 
 extern lts_conf_t lts_main_conf;
+extern lts_conf_asyn_t lts_asyn_conf;
 
 extern int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz);
 

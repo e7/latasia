@@ -28,8 +28,18 @@ typedef struct {
 static uintptr_t s_running;
 static asyn_backend_ctx_t s_ctx;
 
+static int load_asyn_config(lts_conf_asyn_t *conf, lts_pool_t *pool);
+static void *netio_thread_proc(void *args);
 
-static void *netio_thread_proc(void *args)
+
+// 加载模块配置
+int load_asyn_config(lts_conf_asyn_t *conf, lts_pool_t *pool)
+{
+    return 0;
+}
+
+
+void *netio_thread_proc(void *args)
 {
     fd_set rfds;
     lts_pool_t *pool;
@@ -120,6 +130,13 @@ static int init_asyn_backend_module(lts_module_t *module)
         return -1;
     }
     module->pool = pool;
+
+    // 读取模块配置
+    if (-1 == load_asyn_config(&lts_asyn_conf, module->pool)) {
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_WARN,
+                               "%s:load asyn config failed, using default\n",
+                               STR_LOCATION);
+    }
 
     // 创建通信管线
     if (-1 == socketpair(AF_UNIX, SOCK_STREAM, 0, s_ctx.pipeline)) {

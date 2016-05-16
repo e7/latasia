@@ -218,7 +218,7 @@ static void cb_app_mod_conf_match(void *c,
 }
 
 
-lts_conf_item_t *g_conf_main_items[] = {
+lts_conf_item_t *lts_conf_main_items[] = {
     &(lts_conf_item_t){lts_string("daemon"), &cb_daemon_match},
     &(lts_conf_item_t){lts_string("port"), &cb_port_match},
     &(lts_conf_item_t){lts_string("workers"), &cb_workers_match},

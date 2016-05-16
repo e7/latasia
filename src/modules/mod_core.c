@@ -8,10 +8,8 @@
 #define CONF_FILE           "conf/latasia.conf"
 
 
-extern lts_conf_t lts_main_conf;
-
 static int daemonize(const char *wd);
-static int lts_load_config(lts_conf_t *conf, lts_pool_t *pool);
+static int load_main_config(lts_conf_t *conf, lts_pool_t *pool);
 static int init_core_master(lts_module_t *module);
 static void exit_core_master(lts_module_t *module);
 
@@ -30,9 +28,9 @@ lts_module_t lts_core_module = {
 };
 
 
-int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
+int load_main_config(lts_conf_t *conf, lts_pool_t *pool)
 {
-    extern lts_conf_item_t *g_conf_main_items[];
+    extern lts_conf_item_t *lts_conf_main_items[];
 
     off_t sz;
     uint8_t *addr;
@@ -46,7 +44,7 @@ int lts_load_config(lts_conf_t *conf, lts_pool_t *pool)
     if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
         return -1;
     }
-    rslt = parse_conf(addr, sz, g_conf_main_items, pool, conf);
+    rslt = parse_conf(addr, sz, lts_conf_main_items, pool, conf);
     close_conf_file(&lts_conf_file, addr, sz);
 
     return rslt;
@@ -118,7 +116,7 @@ int init_core_master(lts_module_t *module)
     module->pool = pool;
 
     // 读取配置
-    if (-1 == lts_load_config(&lts_main_conf, module->pool)) {
+    if (-1 == load_main_config(&lts_main_conf, module->pool)) {
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_WARN,
                                "%s:load config failed, using default\n",
                                STR_LOCATION);
