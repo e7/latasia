@@ -12,6 +12,8 @@
 
 #define __THIS_FILE__       "src/modules/mod_app_asyn_backend.c"
 
+#define CONF_FILE           "conf/mod_app.conf"
+
 
 typedef struct {
     int channel;
@@ -35,7 +37,24 @@ static void *netio_thread_proc(void *args);
 // 加载模块配置
 int load_asyn_config(lts_conf_asyn_t *conf, lts_pool_t *pool)
 {
-    return 0;
+    extern lts_conf_item_t *lts_conf_asyn_items[];
+
+    off_t sz;
+    uint8_t *addr;
+    int rslt;
+    lts_file_t lts_conf_file = {
+        -1, {
+            (uint8_t *)CONF_FILE, sizeof(CONF_FILE) - 1,
+        },
+    };
+
+    if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
+        return -1;
+    }
+    rslt = parse_conf(addr, sz, lts_conf_asyn_items, pool, conf);
+    close_conf_file(&lts_conf_file, addr, sz);
+
+    return rslt;
 }
 
 
@@ -52,6 +71,29 @@ void *netio_thread_proc(void *args)
     if (NULL == pool) {
         // log
         return NULL;
+    }
+
+    {
+        int fd = socket(AF_INET, SOCK_STREAM, 0);
+        struct sockaddr_in backend_addr = {0};
+
+        backend_addr.sin_family = AF_INET;
+        backend_addr.sin_port = htons(lts_asyn_conf.port);
+        (void)inet_aton(
+            (char const *)lts_asyn_conf.host.data, &backend_addr.sin_addr
+        );
+
+        while (s_running) {
+            if (0 == connect(fd, (struct sockaddr const *)&backend_addr,
+                              sizeof(backend_addr))) {
+                break;
+            }
+
+            fprintf(stderr, "connect failed:%s\n", lts_errno_desc[errno]);
+            if (LTS_E_TIMEDOUT != errno) {
+                (void)sleep(3);
+            }
+        }
     }
 
     // 工作循环
@@ -120,8 +162,6 @@ static void rs_channel_recv(lts_socket_t *cs)
 static int init_asyn_backend_module(lts_module_t *module)
 {
     lts_pool_t *pool;
-
-    lts_str_println(stderr, &lts_main_conf.app_mod_conf);
 
     // 创建模块内存池
     pool = lts_create_pool(MODULE_POOL_SIZE);

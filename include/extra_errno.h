@@ -21,7 +21,10 @@ extern "C" {
 #define LTS_E_PERM                      EPERM
 #define LTS_E_CHILD                     ECHILD
 #define LTS_E_NOMEM                     ENOMEM
+#define LTS_E_TIMEDOUT                  ETIMEDOUT
 
+#define LTS_E_ADDRINUSE                 EADDRINUSE
+#define LTS_E_CONNREFUSED               ECONNREFUSED
 #define LTS_E_AGAIN                     EAGAIN
 #define LTS_E_WOULDBLOCK                EWOULDBLOCK
 #define LTS_E_CONNABORTED               ECONNABORTED

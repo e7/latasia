@@ -21,6 +21,9 @@ static void cb_host_match(void *c,
                           lts_str_t *v,
                           lts_pool_t *pool)
 {
+    fprintf(stderr, "host matched\n");
+    lts_str_println(stderr, k);
+    lts_str_println(stderr, v);
     return;
 }
 
@@ -30,6 +33,9 @@ static void cb_port_match(void *c,
                           lts_str_t *v,
                           lts_pool_t *pool)
 {
+    fprintf(stderr, "port matched\n");
+    lts_str_println(stderr, k);
+    lts_str_println(stderr, v);
     return;
 }
 
