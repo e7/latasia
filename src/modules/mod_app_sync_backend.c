@@ -10,7 +10,7 @@
 #include "logger.h"
 #include "conf.h"
 
-#define __THIS_FILE__       "src/modules/mod_app_asyn_backend.c"
+#define __THIS_FILE__       "src/modules/mod_app_sync_backend.c"
 
 #define CONF_FILE           "conf/mod_app.conf"
 
@@ -24,20 +24,20 @@ typedef struct {
     lts_socket_t *cs; // channel connection
     pthread_t netio_thread;
     lts_buffer_t *push_buf; // 推送缓冲
-} asyn_backend_ctx_t;
+} sync_backend_ctx_t;
 
 
 static uintptr_t s_running;
-static asyn_backend_ctx_t s_ctx;
+static sync_backend_ctx_t s_ctx;
 
-static int load_asyn_config(lts_conf_asyn_t *conf, lts_pool_t *pool);
+static int load_sync_config(lts_conf_sync_t *conf, lts_pool_t *pool);
 static void *netio_thread_proc(void *args);
 
 
 // 加载模块配置
-int load_asyn_config(lts_conf_asyn_t *conf, lts_pool_t *pool)
+int load_sync_config(lts_conf_sync_t *conf, lts_pool_t *pool)
 {
-    extern lts_conf_item_t *lts_conf_asyn_items[];
+    extern lts_conf_item_t *lts_conf_sync_items[];
 
     off_t sz;
     uint8_t *addr;
@@ -51,53 +51,20 @@ int load_asyn_config(lts_conf_asyn_t *conf, lts_pool_t *pool)
     if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
         return -1;
     }
-    rslt = parse_conf(addr, sz, lts_conf_asyn_items, pool, conf);
+    rslt = parse_conf(addr, sz, lts_conf_sync_items, pool, conf);
     close_conf_file(&lts_conf_file, addr, sz);
 
     return rslt;
 }
 
 
-int netio_thread_init(void)
-{
-    int rslt;
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in backend_addr = {0};
-
-    backend_addr.sin_family = AF_INET;
-    backend_addr.sin_port = htons(lts_asyn_conf.port);
-    (void)inet_aton(
-        (char const *)lts_asyn_conf.host.data, &backend_addr.sin_addr
-    );
-
-    rslt = -1;
-    while (s_running) {
-        if (0 == connect(fd, (struct sockaddr const *)&backend_addr,
-                          sizeof(backend_addr))) {
-            rslt = 0;
-            break;
-        }
-
-        fprintf(stderr, "connect failed:%s\n", lts_errno_desc[errno]);
-        if (LTS_E_TIMEDOUT != errno) {
-            (void)sleep(3);
-        }
-    }
-
-    return rslt;
-}
-
-
-static void *netio_thread_proc(void *args)
+void *netio_thread_proc(void *args)
 {
 #define RECV_BUF_SZ             4096
 
-    fd_set rfds;
     uint8_t *recv_buf;
     lts_pool_t *pool;
-    thread_args_t local_args = *(thread_args_t *)args;
-
-    FD_ZERO(&rfds);
+    // thread_args_t local_args = *(thread_args_t *)args;
 
     // 创建内存池
     pool = lts_create_pool(MODULE_POOL_SIZE);
@@ -106,41 +73,13 @@ static void *netio_thread_proc(void *args)
         return NULL;
     }
 
-    if (-1 == netio_thread_init()) {
-        return NULL;
-    }
-
     // 工作循环
     recv_buf = (uint8_t *)lts_palloc(pool, RECV_BUF_SZ);
     while (s_running) {
-        int rslt;
-        struct timeval tv = {0, 20 * 1000};
-
-        FD_SET(local_args.channel, &rfds);
-        rslt = select(
-            local_args.channel + 1, &rfds, NULL, NULL, &tv
-        );
-
-        if (-1 == rslt) {
-            // log
-            continue;
-        }
-
-        if (0 == rslt) {
-            continue;
-        }
-
-        for (int i = 0; i < rslt; ++i) {
-            if (FD_ISSET(local_args.channel, &rfds)) {
-                ssize_t recv_sz = recv(
-                    local_args.channel, recv_buf, RECV_BUF_SZ, 0
-                );
-                fprintf(stderr, "recv data size:%ld\n", recv_sz);
-                fprintf(stderr, "%s\n", &recv_buf[16]);
-                fprintf(stderr, "do some interested process......\n");
-                send(local_args.channel, recv_buf, recv_sz, 0);
-            }
-        }
+        // connect
+        // recv
+        // send
+        sleep(1);
     }
 
     // 销毁内存池
@@ -152,30 +91,10 @@ static void *netio_thread_proc(void *args)
 
 static void rs_channel_recv(lts_socket_t *cs)
 {
-    uint8_t tmp_buf[256];
-    ssize_t recv_sz = recv(cs->fd, tmp_buf, 64, 0);
-    int64_t id;
-    lts_socket_t *s;
-
-    if (-1 == recv_sz) {
-        cs->readable = 0;
-        return;
-    }
-    id = *(int64_t *)&tmp_buf[0];
-    s = *(lts_socket_t **)&tmp_buf[sizeof(int64_t)];
-    if (id != s->born_time) {
-        // drop response
-        // log
-        return;
-    }
-
-    fprintf(stderr, "recv id:%ld\n", id);
-    fprintf(stderr, "recv s->id:%ld\n", s->born_time);
-    fprintf(stderr, "recv response\n");
 }
 
 
-static int init_asyn_backend_module(lts_module_t *module)
+static int init_sync_backend_module(lts_module_t *module)
 {
     lts_pool_t *pool;
 
@@ -188,9 +107,9 @@ static int init_asyn_backend_module(lts_module_t *module)
     module->pool = pool;
 
     // 读取模块配置
-    if (-1 == load_asyn_config(&lts_asyn_conf, module->pool)) {
+    if (-1 == load_sync_config(&lts_sync_conf, module->pool)) {
         (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_WARN,
-                               "%s:load asyn config failed, using default\n",
+                               "%s:load sync config failed, using default\n",
                                STR_LOCATION);
     }
 
@@ -231,7 +150,7 @@ static int init_asyn_backend_module(lts_module_t *module)
 }
 
 
-static void exit_asyn_backend_module(lts_module_t *module)
+static void exit_sync_backend_module(lts_module_t *module)
 {
     // 等待后端线程退出
     s_running = FALSE; // 通知线程退出
@@ -254,7 +173,7 @@ static void exit_asyn_backend_module(lts_module_t *module)
 }
 
 
-static void asyn_backend_service(lts_socket_t *s)
+static void sync_backend_service(lts_socket_t *s)
 {
     ssize_t sent_sz;
     ssize_t sending_sz; // 推送的数据长度
@@ -311,27 +230,27 @@ static void asyn_backend_service(lts_socket_t *s)
 }
 
 
-static void asyn_backend_send_more(lts_socket_t *s)
+static void sync_backend_send_more(lts_socket_t *s)
 {
     return;
 }
 
 
-static lts_app_module_itfc_t asyn_backend_itfc = {
-    &asyn_backend_service,
-    &asyn_backend_send_more,
+static lts_app_module_itfc_t sync_backend_itfc = {
+    &sync_backend_service,
+    &sync_backend_send_more,
 };
 
-lts_module_t lts_app_asyn_backend_module = {
-    lts_string("lts_app_asyn_backend_module"),
+lts_module_t lts_app_sync_backend_module = {
+    lts_string("lts_app_sync_backend_module"),
     LTS_APP_MODULE,
-    &asyn_backend_itfc,
+    &sync_backend_itfc,
     NULL,
     &s_ctx,
 
     // interfaces
     NULL,
-    &init_asyn_backend_module,
-    &exit_asyn_backend_module,
+    &init_sync_backend_module,
+    &exit_sync_backend_module,
     NULL,
 };
