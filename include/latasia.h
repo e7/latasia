@@ -101,14 +101,17 @@ extern size_t lts_sys_pagesize; // 系统内存页
 extern lts_atomic_t lts_signals_mask; // 信号掩码
 
 extern int lts_module_count; // 模块计数
+extern lts_module_t *lts_module_event_cur; // 当前事件模块
+extern lts_module_t *lts_module_app_cur; // 当前应用模块
+
 extern lts_module_t lts_core_module; // 核心模块
 extern lts_module_t lts_event_core_module; // 事件核心模块
 extern lts_module_t lts_event_epoll_module; // epoll事件模块
+// app模块 {{
 extern lts_module_t lts_app_asyn_backend_module; // 异步后端框架模块
 extern lts_module_t lts_app_echo_module; // echo模块
 extern lts_module_t lts_app_http_core_module; // http core模块
-extern lts_module_t *lts_module_event_cur; // 当前事件模块
-extern lts_module_t *lts_module_app_cur; // 当前应用模块
+// }} app模块
 
 extern lts_socket_t *lts_channels[LTS_MAX_PROCESSES];
 extern int lts_ps_slot;

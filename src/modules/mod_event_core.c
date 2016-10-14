@@ -431,6 +431,9 @@ void lts_recv(lts_socket_t *cs)
     buf = cs->conn->rbuf;
 
     if (lts_buffer_full(buf)) {
+        lts_buffer_drop_accessed(buf); // 试图腾出缓冲
+    }
+    if (lts_buffer_full(buf)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_WARN,
                                "%s:recv buffer is full\n", STR_LOCATION);
         abort(); // 要求应用模块一定要处理缓冲
