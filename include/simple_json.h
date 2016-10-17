@@ -36,11 +36,12 @@ typedef struct {
     lts_rb_root_t val;
     lts_sjson_obj_node_t _obj_node; // 内部所用红黑树结点
     lstack_t _stk_node; // 内部所用栈结点
+    lts_pool_t *pool; // 内存池
 } lts_sjson_t;
-#define lts_empty_json (lts_sjson_t){\
+#define lts_empty_sjson(pool) (lts_sjson_t){\
     RB_ROOT, (lts_sjson_obj_node_t){\
         0, lts_null_string, RB_NODE,\
-    }\
+    }, NULL, pool\
 }
 
 typedef struct {
@@ -59,18 +60,16 @@ typedef struct {
 } lts_sjson_kv_t;
 
 
+// 获取指定的值
+
 // 计算编码后的大小
 extern ssize_t lts_sjson_encode_size(lts_sjson_t *sjson);
 
 // 编码
-extern int lts_sjson_encode(lts_sjson_t *sjson,
-                            lts_pool_t *pool,
-                            lts_str_t *output);
+extern int lts_sjson_encode(lts_sjson_t *sjson, lts_str_t *output);
 
 // 解码
-extern int lts_sjson_decode(lts_str_t *src,
-                            lts_pool_t *pool,
-                            lts_sjson_t *output);
+extern int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output);
 
 // 弹出最小的元素
 extern lts_sjson_obj_node_t *lts_sjson_pop_min(lts_sjson_t *obj);

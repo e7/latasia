@@ -229,10 +229,11 @@ static void __lts_sjson_encode(lts_sjson_t *sjson,
 }
 
 
-int lts_sjson_encode(lts_sjson_t *sjson, lts_pool_t *pool, lts_str_t *output)
+int lts_sjson_encode(lts_sjson_t *sjson, lts_str_t *output)
 {
     uint8_t *data;
     ssize_t data_sz, offset;
+    lts_pool_t *pool = sjson->pool;
 
     data_sz = lts_sjson_encode_size(sjson);
     if (-1 == data_sz) {
@@ -257,7 +258,7 @@ int lts_sjson_encode(lts_sjson_t *sjson, lts_pool_t *pool, lts_str_t *output)
 }
 
 
-int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
+int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output)
 {
     static uint8_t invisible[] = {'\t', '\n', '\r', '\x20'};
 
@@ -269,11 +270,11 @@ int lts_sjson_decode(lts_str_t *src, lts_pool_t *pool, lts_sjson_t *output)
     lts_sjson_li_node_t *li_node = NULL;
     lts_sjson_list_t *json_list = NULL;
     lts_sjson_t *json_obj = NULL;
+    lts_pool_t *pool = output->pool;
 
     // 过滤不可见字符
     (void)lts_str_filter_multi(src, invisible, ARRAY_COUNT(invisible));
 
-    *output = lts_empty_json;
     for (size_t i = 0; i < src->len; ++i) {
         switch (current_stat) {
         case SJSON_EXP_START:

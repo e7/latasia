@@ -99,7 +99,7 @@ int parse_conf(uint8_t *addr, off_t sz,
                lts_conf_item_t *conf_items[],
                lts_pool_t *pool, void *conf)
 {
-    lts_sjson_t conf_json;
+    lts_sjson_t conf_json = lts_empty_sjson(pool);
     lts_sjson_obj_node_t *iter;
     lts_str_t conf_text = {addr, sz};
 
@@ -123,7 +123,7 @@ int parse_conf(uint8_t *addr, off_t sz,
     }
 
     // 解码json
-    if (lts_sjson_decode(&conf_text, pool, &conf_json)) {
+    if (lts_sjson_decode(&conf_text, &conf_json)) {
         (void)lts_write_logger(
             &lts_stderr_logger, LTS_LOG_WARN, "%s:invalid json\n", STR_LOCATION
         );
