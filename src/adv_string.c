@@ -23,7 +23,7 @@ static void __reverse_region(uint8_t *data, int i, int j)
     }
 }
 
-static void __kmp_next(lts_str_t *str, int *next, size_t sz)
+static void __kmp_next(lts_str_t *str, int *next, ssize_t sz)
 {
     int i = 0;
     int j = 1;
@@ -75,7 +75,7 @@ void lts_str_trim(lts_str_t *str)
 }
 
 
-void lts_str_hollow(lts_str_t *src, size_t start, size_t len)
+void lts_str_hollow(lts_str_t *src, ssize_t start, ssize_t len)
 {
     if ((start + len) > src->len) {
         abort();
@@ -96,7 +96,7 @@ void lts_str_hollow(lts_str_t *src, size_t start, size_t len)
 int lts_str_find(lts_str_t *text, lts_str_t *pattern)
 {
     int rslt;
-    size_t next_sz = pattern->len * sizeof(int);
+    ssize_t next_sz = pattern->len * sizeof(int);
     int *next = (int *)malloc(next_sz);
 
     if (NULL == next) {
@@ -133,7 +133,7 @@ int lts_str_find(lts_str_t *text, lts_str_t *pattern)
 int lts_str_find(lts_str_t *text, lts_str_t *pattern, int offset)
 {
     int rslt;
-    size_t next_sz = pattern->len * sizeof(int);
+    ssize_t next_sz = pattern->len * sizeof(int);
     int *next = (int *)malloc(next_sz);
     lts_str_t region;
 
@@ -174,7 +174,7 @@ int lts_str_find(lts_str_t *text, lts_str_t *pattern, int offset)
 int lts_str_compare(lts_str_t *a, lts_str_t *b)
 {
     int rslt = 0;
-    size_t i, cmp_len = MIN(a->len, b->len);
+    ssize_t i, cmp_len = MIN(a->len, b->len);
 
     for (i = 0; i < cmp_len; ++i) {
         rslt = a->data[i] - b->data[i];
@@ -233,7 +233,7 @@ ssize_t lts_str_filter(lts_str_t *src, uint8_t c)
             }
         }
         if (m == src->len) {
-            size_t tmp_len = src->len - c_count;
+            ssize_t tmp_len = src->len - c_count;
 
             src->data[tmp_len] = 0;
             src->len = tmp_len;
@@ -292,7 +292,7 @@ ssize_t lts_str_filter_multi(lts_str_t *src, uint8_t *c, ssize_t len)
             }
         }
         if (m == src->len) {
-            size_t tmp_len = src->len - c_count;
+            ssize_t tmp_len = src->len - c_count;
 
             src->data[tmp_len] = 0;
             src->len = tmp_len;
@@ -317,9 +317,9 @@ ssize_t lts_str_filter_multi(lts_str_t *src, uint8_t *c, ssize_t len)
 }
 
 
-static size_t long_width(long x)
+static ssize_t long_width(long x)
 {
-    size_t rslt = ((x < 0) ? 1 : 0);
+    ssize_t rslt = ((x < 0) ? 1 : 0);
 
     do {
         ++rslt;
@@ -331,7 +331,7 @@ static size_t long_width(long x)
 
 int lts_l2str(lts_str_t *str, long x)
 {
-    size_t last = 0;
+    ssize_t last = 0;
     long absx = labs(x);
     uint32_t oct_bit;
 
@@ -362,3 +362,49 @@ void lts_str_println(FILE *stream, lts_str_t *s)
     }
     (void)fputc('\n', stream);
 }
+
+
+#ifdef ADV_STRING_ENHANCE
+lts_str_t **lts_str_split(lts_str_t *src, uint8_t c, lts_pool_t *pool)
+{
+    int cur, count;
+    lts_str_t **rslt;
+
+    // 统计项数
+    count = (c == src->data[0]) ? 0 : 1;
+    for (ssize_t i = 0; i < src->len - 1; ++i) {
+        if (c == src->data[i]) {
+            if (c == src->data[i + 1]) {
+                continue;
+            }
+
+            ++count;
+        }
+    }
+
+    rslt = (lts_str_t **)lts_palloc(pool, sizeof(lts_str_t *) * (count + 1));
+
+    // 分割
+    cur = 0;
+    for (ssize_t j = 0; j < src->len; ++j) {
+        if (c != src->data[j]) {
+            rslt[cur] = (lts_str_t *)lts_palloc(pool, sizeof(lts_str_t));
+            rslt[cur]->data = &src->data[j];
+            rslt[cur]->len = 1;
+
+            // 计算单项长度
+            while ((j < src->len) && (c != src->data[j + 1])) {
+                ++j;
+                ++rslt[cur]->len;
+            }
+
+            ++cur;
+
+            continue;
+        }
+    }
+    rslt[cur] = NULL;
+
+    return rslt;
+}
+#endif // ADV_STRING_ENHANCE

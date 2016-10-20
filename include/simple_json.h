@@ -41,7 +41,7 @@ typedef struct {
 #define lts_empty_sjson(pool) (lts_sjson_t){\
     RB_ROOT, (lts_sjson_obj_node_t){\
         0, lts_null_string, RB_NODE,\
-    }, NULL, pool\
+    }, 0, pool\
 }
 
 typedef struct {

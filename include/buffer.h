@@ -38,9 +38,9 @@ static inline int lts_buffer_full(lts_buffer_t *buffer)
     return buffer->last == buffer->end;
 }
 
-static inline int lts_buffer_has_pending(lts_buffer_t *buffer)
+static inline int lts_buffer_pending(lts_buffer_t *buffer)
 {
-    return buffer->seek < buffer->last;
+    return buffer->last - buffer->seek;
 }
 
 static inline void lts_buffer_clear(lts_buffer_t *buffer)

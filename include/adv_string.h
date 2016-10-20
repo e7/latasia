@@ -68,7 +68,7 @@ int charmap_count(charmap_t *cm)
 
 typedef struct {
     uint8_t *data;
-    size_t len;
+    ssize_t len;
 } lts_str_t;
 
 
@@ -77,7 +77,7 @@ typedef struct {
 #define lts_null_string         {NULL, 0,}
 
 static inline
-void lts_str_init(lts_str_t *str, uint8_t *data, size_t len)
+void lts_str_init(lts_str_t *str, uint8_t *data, ssize_t len)
 {
     str->data = data;
     str->len = len;
@@ -98,7 +98,7 @@ extern void lts_str_trim(lts_str_t *str);
 extern void lts_str_reverse(lts_str_t *src);
 
 // 移除子串
-extern void lts_str_hollow(lts_str_t *src, size_t start, size_t len);
+extern void lts_str_hollow(lts_str_t *src, ssize_t start, ssize_t len);
 
 // 字符过滤
 extern ssize_t lts_str_filter(lts_str_t *src, uint8_t c);
@@ -119,4 +119,22 @@ extern void lts_str_println(FILE *stream, lts_str_t *s);
 #ifdef __cplusplus
 }
 #endif // __cplusplus
+
+
+#ifdef ADV_STRING_ENHANCE
+#include "mem_pool.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+// 分割字符串，返回字符串数组，NULL结束
+extern lts_str_t **lts_str_split(lts_str_t *src, uint8_t c, lts_pool_t *pool);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+#endif // ADV_STRING_ENHANCE
+
 #endif // __LATASIA__ADV_STRING_H__

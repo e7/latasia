@@ -220,7 +220,6 @@ lts_sm_t lts_global_sm; // 全局状态机
 lts_str_t lts_cwd = {__lts_cwd_buf, 0,}; // 当前工作目录
 int lts_cpu_conf; // cpu总核数
 int lts_cpu_onln; // 可用cpu核数
-size_t lts_sys_pagesize;
 lts_atomic_t lts_signals_mask; // 信号掩码
 
 int lts_module_count; // 模块计数
