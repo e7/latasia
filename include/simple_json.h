@@ -40,7 +40,12 @@ typedef struct {
 } lts_sjson_t;
 #define lts_empty_sjson(pool) (lts_sjson_t){\
     RB_ROOT, (lts_sjson_obj_node_t){\
-        0, lts_null_string, RB_NODE,\
+        OBJ_VALUE, lts_null_string, RB_NODE,\
+    }, 0, pool\
+}
+#define lts_key_sjson(key, pool) (lts_sjson_t){\
+    RB_ROOT, (lts_sjson_obj_node_t){\
+        OBJ_VALUE, key, RB_NODE,\
     }, 0, pool\
 }
 
@@ -60,6 +65,14 @@ typedef struct {
 } lts_sjson_kv_t;
 
 
+// 构造sjson {{
+// sjson对象嵌套
+extern lts_sjson_t *lts_sjson_add_sjson(lts_sjson_t *sjson, lts_str_t *key);
+extern lts_sjson_kv_t *lts_sjson_add_kv(lts_sjson_t *sjson,
+                                        lts_str_t *key, lts_str_t *val);
+// }} 构造sjson
+
+
 // 获取指定的值
 
 // 计算编码后的大小
@@ -74,7 +87,7 @@ extern int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output);
 // 弹出最小的元素
 extern lts_sjson_obj_node_t *lts_sjson_pop_min(lts_sjson_t *obj);
 
-// 遍历
+// 遍历 {{
 static inline lts_sjson_obj_node_t *lts_sjson_first(lts_sjson_t *obj)
 {
     lts_rb_node_t *p = rb_first(&obj->val);
@@ -102,6 +115,7 @@ static inline lts_sjson_obj_node_t *lts_sjson_next(lts_sjson_obj_node_t *node)
 
     return p ? CONTAINER_OF(p, lts_sjson_obj_node_t, tnode) : NULL;
 }
+// }} 遍历
 
 #ifdef __cplusplus
 }

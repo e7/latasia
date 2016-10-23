@@ -27,6 +27,7 @@ enum {
 
 // 查询或添加结点
 // link，结点不存在时是否挂到树上
+// 结点存在则返回存在的结点，不存在则返回obj_node
 static lts_sjson_obj_node_t *__lts_sjson_search(lts_rb_root_t *root,
                                                lts_sjson_obj_node_t *obj_node,
                                                int link)
@@ -58,6 +59,58 @@ static lts_sjson_obj_node_t *__lts_sjson_search(lts_rb_root_t *root,
 
     return obj_node;
 }
+
+
+// 构造sjson {{
+lts_sjson_t *lts_sjson_add_sjson(lts_sjson_t *sjson, lts_str_t *key)
+{
+    lts_sjson_t *sub;
+    lts_pool_t *pool = sjson->pool;
+
+    sub = (lts_sjson_t *)lts_palloc(pool, sizeof(lts_sjson_t));
+    if (NULL == sub) {
+        return NULL;
+    }
+
+    // 初始化
+    *sub = lts_key_sjson(*lts_str_clone(key, pool), pool);
+
+    // attach
+    if (&sub->_obj_node
+        != __lts_sjson_search(&sjson->val, &sub->_obj_node, TRUE)) {
+        return NULL;
+    }
+
+    return sub;
+}
+
+
+lts_sjson_kv_t *lts_sjson_add_kv(lts_sjson_t *sjson,
+                              lts_str_t *key, lts_str_t *val)
+{
+    lts_pool_t *pool = sjson->pool;
+    lts_str_t *clone_key, *clone_val;
+    lts_sjson_kv_t *kv;
+
+    kv = (lts_sjson_kv_t *)lts_palloc(pool, sizeof(lts_sjson_kv_t));
+    clone_key = lts_str_clone(key, pool);
+    clone_val = lts_str_clone(val, pool);
+
+    // 初始化
+    kv->val = *clone_val;
+    kv->_obj_node.node_type = STRING_VALUE;
+    kv->_obj_node.key = *clone_key;
+    kv->_obj_node.tnode = RB_NODE;
+
+    // attach
+    if (&kv->_obj_node
+        != __lts_sjson_search(&sjson->val, &kv->_obj_node, TRUE)) {
+        return NULL;
+    }
+
+    return kv;
+}
+// }} 构造sjson
 
 
 ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
@@ -359,7 +412,7 @@ int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output)
                     return -1;
                 }
 
-                lts_str_copy(&json_kv->_obj_node.key, &current_key);
+                lts_str_share(&json_kv->_obj_node.key, &current_key);
                 json_kv->val.data = &src->data[i + 1];
                 json_kv->val.len = 0;
                 json_kv->_obj_node.node_type = STRING_VALUE;
@@ -375,7 +428,7 @@ int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output)
                     return -1;
                 }
 
-                lts_str_copy(&json_list->_obj_node.key, &current_key);
+                lts_str_share(&json_list->_obj_node.key, &current_key);
                 list_set_empty(&json_list->val);
                 json_list->_obj_node.node_type = LIST_VALUE;
                 json_list->_obj_node.tnode = RB_NODE;
@@ -390,7 +443,7 @@ int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output)
                     return -1;
                 }
 
-                lts_str_copy(&new_obj->_obj_node.key, &current_key);
+                lts_str_share(&new_obj->_obj_node.key, &current_key);
                 new_obj->val = RB_ROOT;
                 new_obj->_obj_node.node_type = OBJ_VALUE;
                 new_obj->_obj_node.tnode = RB_NODE;

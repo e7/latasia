@@ -84,7 +84,7 @@ void lts_str_init(lts_str_t *str, uint8_t *data, ssize_t len)
 }
 
 static inline
-void lts_str_copy(lts_str_t *dst, lts_str_t *src)
+void lts_str_share(lts_str_t *dst, lts_str_t *src)
 {
     dst->data = src->data;
     dst->len = src->len;
@@ -128,6 +128,9 @@ extern void lts_str_println(FILE *stream, lts_str_t *s);
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+
+// 字符串克隆
+extern lts_str_t *lts_str_clone(lts_str_t *s, lts_pool_t *pool);
 
 // 分割字符串，返回字符串数组，NULL结束
 extern lts_str_t **lts_str_split(lts_str_t *src, uint8_t c, lts_pool_t *pool);

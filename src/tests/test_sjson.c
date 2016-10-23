@@ -89,6 +89,11 @@ int main(void)
 
     output = lts_empty_sjson(pool);
 
+    lts_str_t key1 = lts_string("lalala");
+    lts_str_t k2 = lts_string("key2"), v2 = lts_string("v2");
+    lts_sjson_add_kv(lts_sjson_add_sjson(&output, &key1), &k2, &v2);
+    dump_sjson(&output);
+
     s = (lts_str_t)lts_string(t1);
     assert(0 == lts_sjson_decode(&s, &output));
     (void)fprintf(stderr, "======== t1\n");
