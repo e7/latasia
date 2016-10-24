@@ -9,7 +9,7 @@
 #include <iostream>
 
 #include "buffer.h"
-#include "protocol_lbm.h"
+#include "protocol_sjsonb.h"
 
 
 using std::cout;
