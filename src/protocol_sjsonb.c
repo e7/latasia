@@ -53,7 +53,7 @@ lts_sjson_t *lts_proto_sjsonb_decode(lts_buffer_t *buf, lts_pool_t *pool)
     lts_sjson_t *rslt;
 
     // 包头标识的字符串形式
-    uni_magic.ui = MAGIC_NO;
+    uni_magic.ui = htonl(MAGIC_NO);
     str_magic = (lts_str_t)lts_string(uni_magic.c);
 
     // 寻找有效包头

@@ -74,6 +74,9 @@ extern lts_sjson_kv_t *lts_sjson_add_kv(lts_sjson_t *sjson,
 
 
 // 获取指定的值
+extern lts_sjson_obj_node_t *lts_sjson_get_obj_node(lts_sjson_t *sjson,
+                                                    lts_str_t *key);
+
 
 // 计算编码后的大小
 extern ssize_t lts_sjson_encode_size(lts_sjson_t *sjson);

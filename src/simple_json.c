@@ -113,6 +113,18 @@ lts_sjson_kv_t *lts_sjson_add_kv(lts_sjson_t *sjson,
 // }} 构造sjson
 
 
+// 获取指定key的obj_node
+lts_sjson_obj_node_t *lts_sjson_get_obj_node(lts_sjson_t *sjson,
+                                             lts_str_t *key)
+{
+    lts_sjson_obj_node_t tmp_node;
+
+    tmp_node.key = *key;
+
+    return __lts_sjson_search(&sjson->val, &tmp_node, FALSE);
+}
+
+
 ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
 {
     ssize_t sz;

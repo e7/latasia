@@ -204,7 +204,8 @@ void exit_core_master(lts_module_t *module)
     // 删除pid文件
     if (-1 == unlink((char const *)lts_main_conf.pid_file.data)) {
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
-                               "%s:delete pid file failed\n", STR_LOCATION);
+                               "%s:delete pid file failed:%d\n",
+                               STR_LOCATION, errno);
     }
 
     // 关闭日志

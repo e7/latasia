@@ -24,15 +24,20 @@ void common_test(void)
 void find_test(void)
 {
     uint8_t s[] = "s@#a";
+    uint8_t s3[] = {'a', 'd', 'e', 0xE7, 0x8F, 0x8A, 0x9D, 'f'};
     uint8_t p1[] = "aaaaasfaf32";
     uint8_t p2[] = "@#";
+    uint8_t p3[] = {0xE7, 0x8F, 0x8A, 0x9D};
 
     lts_str_t ls_s = lts_string(s);
+    lts_str_t ls_s3 = lts_string(s3);
     lts_str_t ls_p1 = lts_string(p1);
     lts_str_t ls_p2 = lts_string(p2);
+    lts_str_t ls_p3 = lts_string(p3);
 
     fprintf(stderr, "find test: %d\n", lts_str_find(&ls_s, &ls_p1, 0));
     fprintf(stderr, "find test: %d\n", lts_str_find(&ls_s, &ls_p2, 0));
+    fprintf(stderr, "find test: %d\n", lts_str_find(&ls_s3, &ls_p3, 0));
 }
 
 

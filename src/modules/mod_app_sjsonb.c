@@ -8,6 +8,7 @@
 #include "rbtree.h"
 #include "logger.h"
 #include "conf.h"
+#include "protocol_sjsonb.h"
 
 #define __THIS_FILE__       "src/modules/mod_app_sjsonb.c"
 
@@ -26,15 +27,17 @@ static void exit_sjsonb_module(lts_module_t *module)
 
 static void sjsonb_service(lts_socket_t *s)
 {
+    lts_sjson_t *sjson;
     lts_buffer_t *rb = s->conn->rbuf;
     lts_buffer_t *sb = s->conn->sbuf;
+    lts_pool_t *pool = s->conn->pool;
 
-    // 清空原发送缓冲
-    lts_buffer_clear(sb);
+    sjson = lts_proto_sjsonb_decode(rb, pool);
+    if (NULL == sjson) {
+        return;
+    }
 
-    // 交换
-    s->conn->rbuf = sb;
-    s->conn->sbuf = rb;
+    fprintf(stderr, "get json\n");
 
     return;
 }
