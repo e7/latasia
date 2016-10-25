@@ -304,6 +304,7 @@ static lts_app_module_itfc_t http_core_itfc = {
     &http_core_on_connected,
     &http_core_service,
     &http_core_send_more,
+    NULL,
 };
 
 lts_module_t lts_app_http_core_module = {

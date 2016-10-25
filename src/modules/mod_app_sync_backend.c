@@ -244,6 +244,7 @@ static lts_app_module_itfc_t sync_backend_itfc = {
     &sync_backend_on_connected,
     &sync_backend_service,
     &sync_backend_send_more,
+    NULL,
 };
 
 lts_module_t lts_app_sync_backend_module = {

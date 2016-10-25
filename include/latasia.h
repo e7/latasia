@@ -86,6 +86,7 @@ struct lts_app_module_itfc_s {
     void (*on_connected)(lts_socket_t *);
     void (*service)(lts_socket_t *);
     void (*send_more)(lts_socket_t *);
+    void (*on_closing)(lts_socket_t *);
 };
 
 

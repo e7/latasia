@@ -327,6 +327,7 @@ static lts_app_module_itfc_t asyn_backend_itfc = {
     &asyn_backend_on_connected,
     &asyn_backend_service,
     &asyn_backend_send_more,
+    NULL,
 };
 
 lts_module_t lts_app_asyn_backend_module = {

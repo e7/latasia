@@ -47,6 +47,15 @@ void lts_close_conn_orig(int fd, int reset)
 
 void lts_close_conn(lts_socket_t *cs, int reset)
 {
+    lts_app_module_itfc_t *app_itfc = (lts_app_module_itfc_t *)(
+        lts_module_app_cur->itfc
+    );
+
+    // 通知app模块
+    if (app_itfc->on_closing) {
+        (*app_itfc->on_closing)(cs);
+    }
+
     // 移除事件监视
     (*lts_event_itfc->event_del)(cs);
 

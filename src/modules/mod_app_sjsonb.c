@@ -32,6 +32,13 @@ static void sjsonb_on_connected(lts_socket_t *s)
 }
 
 
+static void sjsonb_on_closing(lts_socket_t *s)
+{
+    fprintf(stderr, "closing....\n");
+    return;
+}
+
+
 static void sjsonb_service(lts_socket_t *s)
 {
     lts_sjson_t *sjson;
@@ -70,6 +77,7 @@ static lts_app_module_itfc_t sjsonb_itfc = {
     &sjsonb_on_connected,
     &sjsonb_service,
     &sjsonb_send_more,
+    &sjsonb_on_closing,
 };
 
 lts_module_t lts_app_sjsonb_module = {

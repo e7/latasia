@@ -56,6 +56,7 @@ static lts_app_module_itfc_t echo_itfc = {
     &echo_on_connected,
     &echo_service,
     &echo_send_more,
+    NULL,
 };
 
 lts_module_t lts_app_echo_module = {
