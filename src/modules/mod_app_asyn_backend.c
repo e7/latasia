@@ -254,6 +254,12 @@ static void exit_asyn_backend_module(lts_module_t *module)
 }
 
 
+static void asyn_backend_on_connected(lts_socket_t *s)
+{
+    return;
+}
+
+
 static void asyn_backend_service(lts_socket_t *s)
 {
     ssize_t sent_sz;
@@ -318,6 +324,7 @@ static void asyn_backend_send_more(lts_socket_t *s)
 
 
 static lts_app_module_itfc_t asyn_backend_itfc = {
+    &asyn_backend_on_connected,
     &asyn_backend_service,
     &asyn_backend_send_more,
 };

@@ -24,6 +24,12 @@ static void exit_echo_module(lts_module_t *module)
 }
 
 
+static void echo_on_connected(lts_socket_t *s)
+{
+    return;
+}
+
+
 static void echo_service(lts_socket_t *s)
 {
     lts_buffer_t *rb = s->conn->rbuf;
@@ -47,6 +53,7 @@ static void echo_send_more(lts_socket_t *s)
 
 
 static lts_app_module_itfc_t echo_itfc = {
+    &echo_on_connected,
     &echo_service,
     &echo_send_more,
 };

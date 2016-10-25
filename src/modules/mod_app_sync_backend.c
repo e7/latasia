@@ -62,7 +62,6 @@ void *netio_thread_proc(void *args)
 {
 #define RECV_BUF_SZ             4096
 
-    uint8_t *recv_buf;
     lts_pool_t *pool;
     // thread_args_t local_args = *(thread_args_t *)args;
 
@@ -74,7 +73,6 @@ void *netio_thread_proc(void *args)
     }
 
     // 工作循环
-    recv_buf = (uint8_t *)lts_palloc(pool, RECV_BUF_SZ);
     while (s_running) {
         // connect
         // recv
@@ -173,6 +171,12 @@ static void exit_sync_backend_module(lts_module_t *module)
 }
 
 
+static void sync_backend_on_connected(lts_socket_t *s)
+{
+    return;
+}
+
+
 static void sync_backend_service(lts_socket_t *s)
 {
     ssize_t sent_sz;
@@ -237,6 +241,7 @@ static void sync_backend_send_more(lts_socket_t *s)
 
 
 static lts_app_module_itfc_t sync_backend_itfc = {
+    &sync_backend_on_connected,
     &sync_backend_service,
     &sync_backend_send_more,
 };

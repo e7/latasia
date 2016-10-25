@@ -85,6 +85,12 @@ static void exit_http_core_module(lts_module_t *module)
 }
 
 
+static void http_core_on_connected(lts_socket_t *s)
+{
+    return;
+}
+
+
 static void http_core_service(lts_socket_t *s)
 {
     lts_str_t idata, req_line;
@@ -262,6 +268,7 @@ static void http_core_service(lts_socket_t *s)
     return;
 }
 
+
 static void http_core_send_more(lts_socket_t *s)
 {
     size_t n, n_read;
@@ -294,8 +301,9 @@ static void http_core_send_more(lts_socket_t *s)
 
 
 static lts_app_module_itfc_t http_core_itfc = {
-    http_core_service,
-    http_core_send_more,
+    &http_core_on_connected,
+    &http_core_service,
+    &http_core_send_more,
 };
 
 lts_module_t lts_app_http_core_module = {

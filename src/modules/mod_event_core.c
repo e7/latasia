@@ -82,6 +82,7 @@ static void lts_accept(lts_socket_t *ls)
     lts_socket_t *cs;
     lts_conn_t *c;
     lts_pool_t *cpool;
+    lts_app_module_itfc_t *app_itfc;
 
     if (s_event_core_ctx.current_conns >= lts_main_conf.max_connections) {
         // 达到最大连接数
@@ -163,6 +164,15 @@ static void lts_accept(lts_socket_t *ls)
     lts_watch_list_add(cs); // 纳入观察列表
 
     ++s_event_core_ctx.current_conns;
+
+    // 通知应用模块
+    app_itfc = (lts_app_module_itfc_t *)lts_module_app_cur->itfc;
+    if (NULL == app_itfc) {
+        abort();
+    }
+    if (app_itfc->on_connected) {
+        (*app_itfc->on_connected)(cs);
+    }
 
     return;
 }
