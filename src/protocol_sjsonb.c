@@ -21,19 +21,31 @@ typedef struct {
 int lts_proto_sjsonb_encode(lts_sjson_t *sjson, lts_buffer_t *buf)
 {
     lts_str_t str_sjson;
+    sjsonb_header_t header;
+    ssize_t pack_len; // 包总长
 
     if (-1 == lts_sjson_encode(sjson, &str_sjson)) {
         return -1;
     }
 
-    if (lts_buffer_pending(buf) < str_sjson.len) {
+    // 包头初始化
+    header.magic_no = htonl(MAGIC_NO);
+    header.proto_ver = htonl(PROTO_VER);
+    header.content_ofst = htonl(sizeof(header));
+    header.content_len = htonl(str_sjson.len);
+    header.content_checksum = htonl(0);
+
+    pack_len = ntohl(header.content_ofst) + ntohl(header.content_len);
+
+    if (lts_buffer_space(buf) < pack_len) {
         lts_buffer_drop_accessed(buf);
     }
 
-    if (lts_buffer_pending(buf) < str_sjson.len) {
+    if (lts_buffer_space(buf) < pack_len) {
         return -1;
     }
 
+    (void)lts_buffer_append(buf, (uint8_t *)&header, sizeof(header));
     (void)lts_buffer_append(buf, str_sjson.data, str_sjson.len);
 
     return 0;
