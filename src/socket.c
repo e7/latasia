@@ -5,6 +5,7 @@
 
 
 #include "socket.h"
+#include "adv_string.h"
 
 #define __THIS_FILE__       "src/socket.c"
 
@@ -17,6 +18,29 @@ lts_socket_t **lts_listen_array; // 监听socket数组
 dlist_t lts_watch_list;
 dlist_t lts_post_list;
 dlist_t lts_timeout_list; // 超时列表
+
+
+char *lts_inet_ntoa(struct in_addr in)
+{
+    static char rslt[16];
+
+    union {
+        uint8_t u8[4];
+        uint32_t u32;
+    } uin;
+
+    uin.u32 = in.s_addr;
+    memset(rslt, 0, sizeof(rslt)); // 清空
+    strcat(rslt, lts_uint82cstr(uin.u8[0])); // 保证不越界可使用该函数
+    strcat(rslt, "."); // 保证不越界可使用该函数
+    strcat(rslt, lts_uint82cstr(uin.u8[1])); // 保证不越界可使用该函数
+    strcat(rslt, "."); // 保证不越界可使用该函数
+    strcat(rslt, lts_uint82cstr(uin.u8[2])); // 保证不越界可使用该函数
+    strcat(rslt, "."); // 保证不越界可使用该函数
+    strcat(rslt, lts_uint82cstr(uin.u8[3])); // 保证不越界可使用该函数
+
+    return rslt;
+}
 
 
 #ifndef HAVE_FUNCTION_ACCEPT4

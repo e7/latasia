@@ -86,8 +86,8 @@ void lts_close_conn(lts_socket_t *cs, int reset)
 static void lts_accept(lts_socket_t *ls)
 {
     int cmnct_fd, nodelay;
-    uint8_t clt[LTS_SOCKADDRLEN];
-    socklen_t clt_len;
+    uint8_t clt[LTS_SOCKADDRLEN] = {0};
+    socklen_t clt_len = LTS_SOCKADDRLEN;
     lts_socket_t *cs;
     lts_conn_t *c;
     lts_pool_t *cpool;
@@ -103,12 +103,10 @@ static void lts_accept(lts_socket_t *ls)
     }
 
     nodelay = 1;
-    clt_len = sizeof(clt);
     cmnct_fd = lts_accept4(ls->fd, (struct sockaddr *)clt,
                            &clt_len, SOCK_NONBLOCK);
     if (-1 == cmnct_fd) {
         if (LTS_E_CONNABORTED == errno) {
-            fprintf(stderr, "conn aborted\n");
             return; // hold readable and try again
         }
 
@@ -151,6 +149,8 @@ static void lts_accept(lts_socket_t *ls)
 
     cs = lts_alloc_socket();
     cs->fd = cmnct_fd;
+    cs->peer_addr = (struct sockaddr *)lts_palloc(cpool, LTS_SOCKADDRLEN);
+    memcpy(cs->peer_addr, clt, LTS_SOCKADDRLEN);
     cs->ev_mask = (EPOLLET | EPOLLIN);
     cs->conn = c;
     cs->do_read = &lts_recv;

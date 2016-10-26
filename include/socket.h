@@ -9,6 +9,7 @@
 
 
 #include <sys/socket.h>
+#include <netinet/in.h>
 
 #include "extra_errno.h"
 #include "list.h"
@@ -21,7 +22,7 @@
 extern "C" {
 #endif // __cplusplus
 
-#define LTS_SOCKADDRLEN         256
+#define LTS_SOCKADDRLEN         sizeof(struct sockaddr)
 #define EVENT_READ              (1 << 1)
 #define EVENT_WRITE             (1 << 2)
 
@@ -45,8 +46,7 @@ struct lts_conn_s {
 struct lts_socket_s {
     int fd;
     int family;
-    struct sockaddr *local_addr;
-    socklen_t addr_len;
+    struct sockaddr *peer_addr; // 对端地址信息，网络字节序
     uint32_t ev_mask;
 
     unsigned readable: 1;
@@ -95,6 +95,10 @@ extern int64_t lts_current_time;
             dlist_del(&s->dlnode);\
             dlist_add_tail(&lts_post_list, &s->dlnode);\
         } while (0)
+
+
+// 非线程安全，数字转ip
+extern char *lts_inet_ntoa(struct in_addr in);
 
 
 static inline

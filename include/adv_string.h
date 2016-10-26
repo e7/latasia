@@ -66,6 +66,13 @@ int charmap_count(charmap_t *cm)
 // }} end of charmap
 
 
+// 数字转C字符串，非线程安全 {{
+extern char *lts_uint82cstr(uint8_t u8);
+extern char *lts_uint162cstr(uint16_t u16);
+// }} 数字转C字符串，非线程安全
+
+
+// =================================== lts_str_t
 typedef struct {
     uint8_t *data;
     ssize_t len;

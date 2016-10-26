@@ -103,11 +103,25 @@ void split_test(void)
 }
 
 
+void int2str_test(void)
+{
+    fprintf(stderr, "======================== int2str_test\n");
+    fprintf(stderr, "%s\n", lts_uint82cstr(225));
+    fprintf(stderr, "%s\n", lts_uint82cstr(99));
+    fprintf(stderr, "%s\n", lts_uint82cstr(9));
+    fprintf(stderr, "%s\n", lts_uint82cstr(0));
+    fprintf(stderr, "%s\n", lts_uint82cstr(9));
+    fprintf(stderr, "%s\n", lts_uint82cstr(99));
+    fprintf(stderr, "%s\n", lts_uint82cstr(225));
+}
+
+
 int main(void)
 {
     common_test();
     find_test();
     split_test();
+    int2str_test();
 
     return 0;
 }
