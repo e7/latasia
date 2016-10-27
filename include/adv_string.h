@@ -67,8 +67,7 @@ int charmap_count(charmap_t *cm)
 
 
 // 数字转C字符串，非线程安全 {{
-extern char *lts_uint82cstr(uint8_t u8);
-extern char *lts_uint162cstr(uint16_t u16);
+extern char *lts_uint322cstr(uint32_t u32);
 // }} 数字转C字符串，非线程安全
 
 

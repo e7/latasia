@@ -31,13 +31,13 @@ char *lts_inet_ntoa(struct in_addr in)
 
     uin.u32 = in.s_addr;
     memset(rslt, 0, sizeof(rslt)); // 清空
-    strcat(rslt, lts_uint82cstr(uin.u8[0])); // 保证不越界可使用该函数
+    strcat(rslt, lts_uint322cstr(uin.u8[0])); // 保证不越界可使用该函数
     strcat(rslt, "."); // 保证不越界可使用该函数
-    strcat(rslt, lts_uint82cstr(uin.u8[1])); // 保证不越界可使用该函数
+    strcat(rslt, lts_uint322cstr(uin.u8[1])); // 保证不越界可使用该函数
     strcat(rslt, "."); // 保证不越界可使用该函数
-    strcat(rslt, lts_uint82cstr(uin.u8[2])); // 保证不越界可使用该函数
+    strcat(rslt, lts_uint322cstr(uin.u8[2])); // 保证不越界可使用该函数
     strcat(rslt, "."); // 保证不越界可使用该函数
-    strcat(rslt, lts_uint82cstr(uin.u8[3])); // 保证不越界可使用该函数
+    strcat(rslt, lts_uint322cstr(uin.u8[3])); // 保证不越界可使用该函数
 
     return rslt;
 }

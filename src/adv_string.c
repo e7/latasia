@@ -48,35 +48,27 @@ static void __kmp_next(lts_str_t *str, int *next, ssize_t sz)
 }
 
 
-char *lts_uint82cstr(uint8_t u8)
+char *lts_uint322cstr(uint32_t u32)
 {
-    static char rslt[4];
+    static char rslt[16];
 
     int count = 0;
 
-    if (0 == u8) {
+    if (0 == u32) {
         rslt[0] = '0';
         rslt[1] = 0;
         return rslt;
     }
 
-    while (u8 > 0) {
-        uint8_t c = u8 % 10;
+    while (u32 > 0) {
+        uint32_t c = u32 % 10;
 
-        u8 = u8 / 10;
+        u32 = u32 / 10;
         rslt[count++] = c + 0x30;
     }
     rslt[count] = 0;
 
     __reverse_region((uint8_t *)rslt, 0, count - 1);
-
-    return rslt;
-}
-
-
-char *lts_uint162cstr(uint16_t u16)
-{
-    static char rslt[8] = {0};
 
     return rslt;
 }
