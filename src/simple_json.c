@@ -62,7 +62,15 @@ static lts_sjson_obj_node_t *__lts_sjson_search(lts_rb_root_t *root,
 
 
 // 构造sjson {{
-lts_sjson_t *lts_sjson_add_sjson(lts_sjson_t *sjson, lts_str_t *key)
+lts_sjson_t *lts_sjson_add_sjson(lts_sjson_t *sjson, char const *key)
+{
+    lts_str_t tmpkey = {(uint8_t *)key, strlen(key)};
+
+    return lts_sjson_add_sjson2(sjson, &tmpkey);
+}
+
+
+lts_sjson_t *lts_sjson_add_sjson2(lts_sjson_t *sjson, lts_str_t *key)
 {
     lts_sjson_t *sub;
     lts_pool_t *pool = sjson->pool;
@@ -86,7 +94,17 @@ lts_sjson_t *lts_sjson_add_sjson(lts_sjson_t *sjson, lts_str_t *key)
 
 
 lts_sjson_kv_t *lts_sjson_add_kv(lts_sjson_t *sjson,
-                              lts_str_t *key, lts_str_t *val)
+                                 char const *key, char const *val)
+{
+    lts_str_t tmpkey = {(uint8_t *)key, strlen(key)};
+    lts_str_t tmpval = {(uint8_t *)val, strlen(val)};
+
+    return lts_sjson_add_kv2(sjson, &tmpkey, &tmpval);
+}
+
+
+lts_sjson_kv_t *lts_sjson_add_kv2(lts_sjson_t *sjson,
+                                  lts_str_t *key, lts_str_t *val)
 {
     lts_pool_t *pool = sjson->pool;
     lts_str_t *clone_key, *clone_val;

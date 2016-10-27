@@ -67,9 +67,13 @@ typedef struct {
 
 // 构造sjson {{
 // sjson对象嵌套
-extern lts_sjson_t *lts_sjson_add_sjson(lts_sjson_t *sjson, lts_str_t *key);
+extern lts_sjson_t *lts_sjson_add_sjson(lts_sjson_t *sjson, char const *key);
+extern lts_sjson_t *lts_sjson_add_sjson2(lts_sjson_t *sjson, lts_str_t *key);
+// sjson对象增加键值对
 extern lts_sjson_kv_t *lts_sjson_add_kv(lts_sjson_t *sjson,
-                                        lts_str_t *key, lts_str_t *val);
+                                        char const *key, char const *val);
+extern lts_sjson_kv_t *lts_sjson_add_kv2(lts_sjson_t *sjson,
+                                         lts_str_t *key, lts_str_t *val);
 // }} 构造sjson
 
 
