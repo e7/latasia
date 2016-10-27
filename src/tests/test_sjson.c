@@ -91,7 +91,7 @@ int main(void)
 
     lts_str_t key1 = lts_string("lalala");
     lts_str_t k2 = lts_string("key2"), v2 = lts_string("v2");
-    lts_sjson_add_kv(lts_sjson_add_sjson(&output, &key1), &k2, &v2);
+    lts_sjson_add_kv2(lts_sjson_add_sjson2(&output, &key1), &k2, &v2);
     dump_sjson(&output);
 
     s = (lts_str_t)lts_string(t1);

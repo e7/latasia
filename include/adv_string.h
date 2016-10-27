@@ -134,12 +134,22 @@ extern void lts_str_println(FILE *stream, lts_str_t *s);
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+// 带pool的函数返回的字符串都是有结束符的，可直接使用
 
 // 字符串克隆
 extern lts_str_t *lts_str_clone(lts_str_t *s, lts_pool_t *pool);
 
+// 格式化
+extern lts_str_t *lts_str_sprintf(lts_pool_t *pool, char const *format, ...);
+
 // 分割字符串，返回字符串数组，NULL结束
 extern lts_str_t **lts_str_split(lts_str_t *src, uint8_t c, lts_pool_t *pool);
+
+// base64编解码
+extern lts_str_t *lts_str_base64_en(char const *src, lts_pool_t *pool);
+extern lts_str_t *lts_str_base64_en2(lts_str_t *src, lts_pool_t *pool);
+extern lts_str_t *lts_str_base64_de(char const *src, lts_pool_t *pool);
+extern lts_str_t *lts_str_base64_de2(lts_str_t *src, lts_pool_t *pool);
 
 #ifdef __cplusplus
 }

@@ -116,12 +116,30 @@ void int2str_test(void)
 }
 
 
+void base64_test(void)
+{
+    lts_str_t *e, *d;
+    lts_pool_t *pool = lts_create_pool(4096);
+
+    char const *s1 = "abcdefg";
+    e = lts_str_base64_en(s1, pool);
+    fprintf(stderr, "%s:%s\n", s1, e->data);
+
+    char const *s2 = "aGVsbG8=";
+    d = lts_str_base64_de(s2, pool);
+    fprintf(stderr, "%s:%s\n", s2, d->data);
+
+    lts_destroy_pool(pool);
+}
+
+
 int main(void)
 {
     common_test();
     find_test();
     split_test();
     int2str_test();
+    base64_test();
 
     return 0;
 }

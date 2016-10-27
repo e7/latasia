@@ -391,6 +391,9 @@ void lts_str_println(FILE *stream, lts_str_t *s)
 
 
 #ifdef ADV_STRING_ENHANCE
+#include "base64.h"
+
+
 lts_str_t *lts_str_clone(lts_str_t *s, lts_pool_t *pool)
 {
     lts_str_t *rslt;
@@ -405,6 +408,13 @@ lts_str_t *lts_str_clone(lts_str_t *s, lts_pool_t *pool)
     rslt->len = s->len;
 
     return rslt;
+}
+
+
+// 格式化
+lts_str_t *lts_str_sprintf(lts_pool_t *pool, char const *format, ...)
+{
+    return NULL;
 }
 
 
@@ -447,6 +457,51 @@ lts_str_t **lts_str_split(lts_str_t *src, uint8_t c, lts_pool_t *pool)
         }
     }
     rslt[cur] = NULL;
+
+    return rslt;
+}
+
+
+// base64编解码
+lts_str_t *lts_str_base64_en(char const *src, lts_pool_t *pool)
+{
+    lts_str_t tmpsrc = {(uint8_t *)src, strlen(src)};
+
+    return lts_str_base64_en2(&tmpsrc, pool);
+}
+
+
+lts_str_t *lts_str_base64_en2(lts_str_t *src, lts_pool_t *pool)
+{
+    lts_str_t *rslt = (lts_str_t *)lts_palloc(pool, sizeof(lts_str_t));
+    ssize_t encode_len = base64_encode_len(src->len);
+
+    rslt->data = (uint8_t *)lts_palloc(pool, encode_len);
+    rslt->len = encode_len - 1;
+
+    (void)base64_encode((char *)rslt->data, (char const *)src->data, src->len);
+
+    return rslt;
+}
+
+
+lts_str_t *lts_str_base64_de(char const *src, lts_pool_t *pool)
+{
+    lts_str_t tmpsrc = {(uint8_t *)src, strlen(src)};
+
+    return lts_str_base64_de2(&tmpsrc, pool);
+}
+
+
+lts_str_t *lts_str_base64_de2(lts_str_t *src, lts_pool_t *pool)
+{
+    lts_str_t *rslt = (lts_str_t *)lts_palloc(pool, sizeof(lts_str_t));
+    ssize_t decode_len = base64_decode_len((char const *)src->data);
+
+    rslt->data = (uint8_t *)lts_palloc(pool, decode_len);
+    rslt->len = decode_len - 1;
+
+    (void)base64_decode((char *)rslt->data, (char const *)src->data);
 
     return rslt;
 }

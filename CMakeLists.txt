@@ -4,7 +4,7 @@ project(latacia)
 include(CheckFunctionExists)
 
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR})
 
 SET(CMAKE_C_FLAGS -std=gnu99)

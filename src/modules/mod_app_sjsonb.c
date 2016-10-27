@@ -56,9 +56,7 @@ static void sjsonb_service(lts_socket_t *s)
         return;
     }
 
-    lts_str_t key = lts_string("lala");
-    lts_str_t val = lts_string("tiannalu");
-    lts_sjson_add_kv(sjson, &key, &val);
+    lts_sjson_add_kv(sjson, "lala", "tiannalu");
     fprintf(stderr, "get json\n");
     fprintf(stderr, "%d\n", lts_proto_sjsonb_encode(sjson, sb));
 
