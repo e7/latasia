@@ -95,6 +95,7 @@ static void lts_accept(lts_socket_t *ls)
 
     if (s_event_core_ctx.current_conns >= lts_main_conf.max_connections) {
         // 达到最大连接数
+        ls->readable = 0;
         return;
     }
 

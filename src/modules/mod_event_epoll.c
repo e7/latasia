@@ -128,13 +128,13 @@ static int epoll_process_events(void)
         }
 
         if (revents & EPOLLIN) {
-            lts_post_list_add(cs);
             cs->readable = 1;
+            lts_post_list_add(cs);
         }
 
         if (revents & EPOLLOUT) {
-            lts_post_list_add(cs);
             cs->writable = 1;
+            lts_post_list_add(cs);
         }
     }
 
@@ -145,8 +145,8 @@ static int epoll_process_events(void)
         }
 
         lts_timer_heap_del(&lts_timer_heap, cs);
-        lts_post_list_add(cs);
         cs->timeoutable = 1;
+        lts_post_list_add(cs);
     }
 
     return 0;
