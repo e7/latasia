@@ -14,12 +14,13 @@
 
 
 typedef struct {
+    ssize_t nsize; // 容器对象计数
     intptr_t neg_ofst; // 对象负偏移
     uint32_t (*hash)(void *);
     lts_rb_root_t root;
 } lts_hashset_t;
 #define lts_hashset_entity(t, node, func_hash) (lts_hashset_t){\
-    CONTAINER_OF(NULL, t, node), func_hash, RB_ROOT\
+    0, CONTAINER_OF(NULL, t, node), func_hash, RB_ROOT\
 }
 
 
@@ -27,6 +28,7 @@ static inline
 void lts_hashset_init(lts_hashset_t *hashset,
                       intptr_t neg_offset, uint32_t (*hash)(void *))
 {
+    hashset->nsize = 0;
     hashset->neg_ofst = neg_offset;
     hashset->hash = hash;
     hashset->root = RB_ROOT;

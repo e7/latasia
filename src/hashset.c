@@ -48,6 +48,8 @@ int lts_hashset_add(lts_hashset_t *hashset, void *obj)
         return -1;
     }
 
+    ++hashset->nsize;
+
     return 0;
 }
 
@@ -57,6 +59,7 @@ void lts_hashset_del(lts_hashset_t *hashset, void *obj)
     rb_erase((lts_rb_node_t *)(((uint8_t *)obj) - hashset->neg_ofst),
              &hashset->root);
     RB_CLEAR_NODE((lts_rb_node_t *)(((uint8_t *)obj) - hashset->neg_ofst));
+    --hashset->nsize;
 
     return;
 }
