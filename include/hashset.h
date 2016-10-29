@@ -20,7 +20,7 @@ typedef struct {
     lts_rb_root_t root;
 } lts_hashset_t;
 #define lts_hashset_entity(t, node, func_hash) (lts_hashset_t){\
-    0, CONTAINER_OF(NULL, t, node), func_hash, RB_ROOT\
+    0, (intptr_t)CONTAINER_OF(NULL, t, node), func_hash, RB_ROOT\
 }
 
 
