@@ -1,50 +1,61 @@
 #include "rbmap.h"
 
 
-// link，节点不存在时是否挂到树上
-static void *__rbmap_search_and_link(
-    lts_rbmap_t *rbmap, void *obj, int link
-)
+static lts_rbmap_node_t *__rbmap_search(lts_rb_root_t *root, uintptr_t key)
 {
-    void *pre_obj;
-    lts_rb_node_t *parent, **iter;
+    lts_rbmap_node_t *s;
+    lts_rb_node_t *iter = root->rb_node;
 
-    parent = NULL;
-    iter = &rbmap->root.rb_node;
-    while (*iter) {
-        parent = *iter;
-        pre_obj = (lts_rb_node_t *)(((uint8_t *)parent) + rbmap->neg_ofst);
+    while (iter) {
+        s = rb_entry(iter, lts_rbmap_node_t, rbnode);
 
-        if ((*rbmap->hash)(obj) < (*rbmap->hash)(pre_obj)) {
-            iter = &(parent->rb_left);
-        } else if ((*rbmap->hash)(obj) > (*rbmap->hash)(pre_obj)) {
-            iter = &(parent->rb_right);
+        if (key < s->key) {
+            iter = iter->rb_left;
+        } else if (key > s->key) {
+            iter = iter->rb_right;
         } else {
-            return pre_obj;
+            return s;
         }
     }
 
-    if (link) {
-        rb_link_node((lts_rb_node_t *)(((uint8_t *)obj) - rbmap->neg_ofst),
-                     parent, iter);
-        rb_insert_color(
-            (lts_rb_node_t *)(((uint8_t *)obj) - rbmap->neg_ofst),
-            &rbmap->root
-        );
-    }
-
-    return obj;
+    return NULL;
 }
 
 
-int lts_rbmap_add(lts_rbmap_t *rbmap, void *obj)
+static int __rbmap_link(lts_rb_root_t *root, lts_rbmap_node_t *node)
 {
-    if (! RB_EMPTY_NODE((lts_rb_node_t *)(
-            ((uint8_t *)obj) - rbmap->neg_ofst))) {
+    lts_rbmap_node_t *s;
+    lts_rb_node_t *parent, **iter;
+
+    parent = NULL;
+    iter = &root->rb_node;
+    while (*iter) {
+        parent = *iter;
+        s = rb_entry(parent, lts_rbmap_node_t, rbnode);
+
+        if (node->key < s->key) {
+            iter = &(parent->rb_left);
+        } else if (node->key > s->key) {
+            iter = &(parent->rb_right);
+        } else {
+            return -1;
+        }
+    }
+
+    rb_link_node(&node->rbnode, parent, iter);
+    rb_insert_color(&node->rbnode, root);
+
+    return 0;
+}
+
+
+int lts_rbmap_add(lts_rbmap_t *rbmap, lts_rbmap_node_t *node)
+{
+    if (! RB_EMPTY_NODE(&node->rbnode)) {
         return -1;
     }
 
-    if (obj != __rbmap_search_and_link(rbmap, obj, TRUE)) {
+    if (-1 == __rbmap_link(&rbmap->root, node)) {
         return -1;
     }
 
@@ -54,18 +65,21 @@ int lts_rbmap_add(lts_rbmap_t *rbmap, void *obj)
 }
 
 
-void lts_rbmap_del(lts_rbmap_t *rbmap, void *obj)
+void lts_rbmap_del(lts_rbmap_t *rbmap, uintptr_t key)
 {
-    rb_erase((lts_rb_node_t *)(((uint8_t *)obj) - rbmap->neg_ofst),
-             &rbmap->root);
-    RB_CLEAR_NODE((lts_rb_node_t *)(((uint8_t *)obj) - rbmap->neg_ofst));
-    --rbmap->nsize;
+    lts_rbmap_node_t *key_node = __rbmap_search(&rbmap->root, key);
+
+    if (key_node) {
+        rb_erase(&key_node->rbnode, &rbmap->root);
+        RB_CLEAR_NODE(&key_node->rbnode);
+        --rbmap->nsize;
+    }
 
     return;
 }
 
 
-void *lts_rbmap_get(lts_rbmap_t *rbmap, void *obj)
+lts_rbmap_node_t *lts_rbmap_get(lts_rbmap_t *rbmap, uintptr_t key)
 {
-    return __rbmap_search_and_link(rbmap, obj, FALSE);
+    return __rbmap_search(&rbmap->root, key);
 }

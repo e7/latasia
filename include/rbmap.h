@@ -2,7 +2,7 @@
  * latasia
  * Copyright (c) 2015 e7 <jackzxty@126.com>
  *
- * 基于linux内核红黑树的rbmap
+ * 基于linux内核红黑树的map
  * */
 
 
@@ -14,28 +14,25 @@
 
 
 typedef struct {
+    uintptr_t key;
+    lts_rb_node_t rbnode;
+} lts_rbmap_node_t;
+static inline
+void lts_rbmap_node_init(lts_rbmap_node_t *node, uintptr_t key)
+{
+    node->key = key;
+    node->rbnode = RB_NODE;
+    RB_CLEAR_NODE(&node->rbnode);
+}
+
+typedef struct {
     ssize_t nsize; // 容器对象计数
-    intptr_t neg_ofst; // 对象负偏移
-    uint32_t (*hash)(void *);
     lts_rb_root_t root;
 } lts_rbmap_t;
-#define lts_rbmap_entity(t, node, func_hash) (lts_rbmap_t){\
-    0, (intptr_t)CONTAINER_OF(NULL, t, node), func_hash, RB_ROOT\
-}
+#define lts_rbmap_entity (lts_rbmap_t){0, RB_ROOT}
 
 
-static inline
-void lts_rbmap_init(lts_rbmap_t *rbmap,
-                      intptr_t neg_offset, uint32_t (*hash)(void *))
-{
-    rbmap->nsize = 0;
-    rbmap->neg_ofst = neg_offset;
-    rbmap->hash = hash;
-    rbmap->root = RB_ROOT;
-}
-
-
-extern int lts_rbmap_add(lts_rbmap_t *rbmap, void *obj);
-extern void lts_rbmap_del(lts_rbmap_t *rbmap, void *obj);
-extern void *lts_rbmap_get(lts_rbmap_t *rbmap, void *obj);
+extern int lts_rbmap_add(lts_rbmap_t *rbmap, lts_rbmap_node_t *node);
+extern void lts_rbmap_del(lts_rbmap_t *rbmap, uintptr_t key);
+extern lts_rbmap_node_t *lts_rbmap_get(lts_rbmap_t *rbmap, uintptr_t key);
 #endif // __LATASIA__RBMAP_H__
