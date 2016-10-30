@@ -23,6 +23,10 @@ ADD_EXECUTABLE(test_sjson adv_string.c simple_json.c base64.c
                           mem_pool.c rbtree.c tests/test_sjson.c)
 TARGET_LINK_LIBRARIES(test_sjson mcheck)
 
+ADD_EXECUTABLE(test_rbmap adv_string.c simple_json.c base64.c
+                          mem_pool.c rbtree.c rbmap.c tests/test_rbmap.c)
+TARGET_LINK_LIBRARIES(test_rbmap mcheck)
+
 #remove_definitions(-std=gnu99)
 SET_SOURCE_FILES_PROPERTIES(tests/fake_server.cc PROPERTIES LANGUAGE CXX)
 ADD_EXECUTABLE(fake_server protocol_sjsonb.c buffer.c mem_pool.c adv_string.c
