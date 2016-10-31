@@ -33,6 +33,6 @@ typedef struct {
 
 
 extern int lts_rbmap_add(lts_rbmap_t *rbmap, lts_rbmap_node_t *node);
-extern void lts_rbmap_del(lts_rbmap_t *rbmap, uintptr_t key);
+extern lts_rbmap_node_t *lts_rbmap_del(lts_rbmap_t *rbmap, uintptr_t key);
 extern lts_rbmap_node_t *lts_rbmap_get(lts_rbmap_t *rbmap, uintptr_t key);
 #endif // __LATASIA__RBMAP_H__

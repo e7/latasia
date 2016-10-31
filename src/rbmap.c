@@ -65,7 +65,7 @@ int lts_rbmap_add(lts_rbmap_t *rbmap, lts_rbmap_node_t *node)
 }
 
 
-void lts_rbmap_del(lts_rbmap_t *rbmap, uintptr_t key)
+lts_rbmap_node_t *lts_rbmap_del(lts_rbmap_t *rbmap, uintptr_t key)
 {
     lts_rbmap_node_t *key_node = __rbmap_search(&rbmap->root, key);
 
@@ -73,9 +73,11 @@ void lts_rbmap_del(lts_rbmap_t *rbmap, uintptr_t key)
         rb_erase(&key_node->rbnode, &rbmap->root);
         RB_CLEAR_NODE(&key_node->rbnode);
         --rbmap->nsize;
+
+        return key_node;
     }
 
-    return;
+    return NULL;
 }
 
 
