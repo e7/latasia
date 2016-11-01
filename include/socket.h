@@ -168,6 +168,24 @@ void lts_free_socket(lts_socket_t *s)
     return;
 }
 
+
+// 软事件，强行触发其它连接的事件
+static inline
+void lts_soft_event(lts_socket_t *other, int writable, int timeoutable)
+{
+    extern lts_rb_root_t lts_timer_heap;
+    extern void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s);
+
+    other->writable = writable;
+    other->timeoutable = timeoutable;
+    if (timeoutable) {
+        other->timeout = 0;
+        lts_timer_heap_del(&lts_timer_heap, other);
+    }
+    lts_post_list_add(other);
+}
+
+
 #ifndef HAVE_FUNCTION_ACCEPT4
 #define SOCK_NONBLOCK       (1U << 11)
 extern int lts_accept4(int sockfd, struct sockaddr *addr,
