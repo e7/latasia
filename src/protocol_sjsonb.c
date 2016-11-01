@@ -18,11 +18,17 @@ typedef struct {
 #define LEN_MIN_CONTENT         2
 
 
-int lts_proto_sjsonb_encode(lts_sjson_t *sjson, lts_buffer_t *buf)
+int lts_proto_sjsonb_encode(lts_sjson_t *sjson,
+                            lts_buffer_t *buf, lts_pool_t *pool)
 {
-    lts_str_t str_sjson;
+    lts_str_t str_sjson = lts_null_string;
     sjsonb_header_t header;
-    ssize_t pack_len; // 包总长
+    ssize_t content_ofst = sizeof(sjsonb_header_t) + 0; // 暂无扩展区
+    ssize_t encode_len, pack_len;
+
+    encode_len = lts_sjson_encode_size(sjson); // json编码所需长度
+    str_sjson.data = lts_palloc(pool, encode_len);
+    str_sjson.len = encode_len;
 
     if (-1 == lts_sjson_encode(sjson, &str_sjson)) {
         return -1;
@@ -31,11 +37,11 @@ int lts_proto_sjsonb_encode(lts_sjson_t *sjson, lts_buffer_t *buf)
     // 包头初始化
     header.magic_no = htonl(MAGIC_NO);
     header.proto_ver = htonl(PROTO_VER);
-    header.content_ofst = htonl(sizeof(header));
-    header.content_len = htonl(str_sjson.len);
+    header.content_ofst = htonl(content_ofst);
+    header.content_len = htonl(encode_len);
     header.content_checksum = htonl(0);
 
-    pack_len = ntohl(header.content_ofst) + ntohl(header.content_len);
+    pack_len = content_ofst + encode_len;
 
     if (lts_buffer_space(buf) < pack_len) {
         lts_buffer_drop_accessed(buf);
@@ -103,7 +109,7 @@ lts_sjson_t *lts_proto_sjsonb_decode(lts_buffer_t *buf, lts_pool_t *pool)
             || (header.content_ofst < LEN_HEADER)
             || ((header.content_len < LEN_MIN_CONTENT)
                 || header.content_len > 4096)) {
-            buf->seek += sizeof(uint32_t); // 丢弃该包头标识
+            buf->seek += sizeof(uint32_t); // 丢弃包头标识
             continue;
         }
 

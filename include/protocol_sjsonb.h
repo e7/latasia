@@ -16,9 +16,10 @@
 extern "C" {
 #endif
 
-extern int lts_proto_sjsonb_encode(lts_sjson_t *sjson, lts_buffer_t *buf);
-extern lts_sjson_t *lts_proto_sjsonb_decode(lts_buffer_t *buf,
-                                            lts_pool_t *pool);
+extern int lts_proto_sjsonb_encode(lts_sjson_t *sjson,
+                                   lts_buffer_t *buf, lts_pool_t *pool);
+extern
+lts_sjson_t *lts_proto_sjsonb_decode(lts_buffer_t *buf, lts_pool_t *pool);
 
 #ifdef __cplusplus
 }

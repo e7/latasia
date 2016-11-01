@@ -32,13 +32,6 @@ static void sjsonb_on_connected(lts_socket_t *s)
 }
 
 
-static void sjsonb_on_closing(lts_socket_t *s)
-{
-    fprintf(stderr, "closing....\n");
-    return;
-}
-
-
 static void sjsonb_service(lts_socket_t *s)
 {
     lts_sjson_t *sjson;
@@ -58,7 +51,7 @@ static void sjsonb_service(lts_socket_t *s)
 
     lts_sjson_add_kv(sjson, "lala", "tiannalu");
     fprintf(stderr, "get json\n");
-    fprintf(stderr, "%d\n", lts_proto_sjsonb_encode(sjson, sb));
+    fprintf(stderr, "%d\n", lts_proto_sjsonb_encode(sjson, sb, pool));
 
     lts_destroy_pool(pool);
     return;
@@ -75,7 +68,7 @@ static lts_app_module_itfc_t sjsonb_itfc = {
     &sjsonb_on_connected,
     &sjsonb_service,
     &sjsonb_send_more,
-    &sjsonb_on_closing,
+    NULL,
 };
 
 lts_module_t lts_app_sjsonb_module = {
