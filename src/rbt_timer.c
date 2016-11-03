@@ -59,8 +59,22 @@ int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
 
 void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
 {
-    rb_erase(&s->timer_heap_node, root);
-    RB_CLEAR_NODE(&s->timer_heap_node);
+    lts_socket_t *skt;
+    lts_rb_node_t *iter = root->rb_node;
+
+    while (iter) {
+        skt = rb_entry(iter, lts_socket_t, timer_heap_node);
+
+        if (s->timeout < skt->timeout) {
+            iter = iter->rb_left;
+        } else if (s->timeout > skt->timeout) {
+            iter = iter->rb_right;
+        } else {
+            rb_erase(&s->timer_heap_node, root);
+            RB_CLEAR_NODE(&s->timer_heap_node);
+            break;
+        }
+    }
 
     return;
 }
