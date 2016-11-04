@@ -180,7 +180,7 @@ static void http_core_service(lts_socket_t *s)
             return;
         }
 
-        s->conn->app_data = req;
+        s->app_ctx = req;
 
         // 获取文件大小
         (void)fstat(req->req_file.fd, &st);
@@ -277,7 +277,7 @@ static void http_core_send_more(lts_socket_t *s)
 
     sb = s->conn->sbuf;
 
-    req = s->conn->app_data;
+    req = s->app_ctx;
     if (NULL == req) {
         return;
     }

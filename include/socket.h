@@ -39,7 +39,6 @@ struct lts_conn_s {
     lts_pool_t *pool;
     lts_buffer_t *rbuf;
     lts_buffer_t *sbuf;
-    void *app_data;
 };
 
 
@@ -64,6 +63,8 @@ struct lts_socket_s {
     lts_handle_event_pt do_read;
     lts_handle_event_pt do_write;
     lts_handle_event_pt do_timeout;
+
+    void *app_ctx;
 };
 
 
@@ -171,10 +172,14 @@ void lts_free_socket(lts_socket_t *s)
 
 // 软事件，强行触发其它连接的事件
 static inline
-void lts_soft_event(lts_socket_t *other, int writable, int timeoutable)
+int lts_soft_event(lts_socket_t *other, int writable, int timeoutable)
 {
     extern lts_rb_root_t lts_timer_heap;
     extern void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s);
+
+    if (NULL == other->conn) {
+        return -1;
+    }
 
     other->writable = writable;
     other->timeoutable = timeoutable;

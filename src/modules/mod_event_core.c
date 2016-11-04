@@ -146,7 +146,6 @@ static void lts_accept(lts_socket_t *ls)
     c->pool = cpool; // 新连接的内存池
     c->rbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
     c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
-    c->app_data = NULL;
 
     cs = lts_alloc_socket();
     cs->fd = cmnct_fd;
@@ -157,6 +156,7 @@ static void lts_accept(lts_socket_t *ls)
     cs->do_read = &lts_recv;
     cs->do_write = &lts_send;
     cs->do_timeout = &lts_timeout;
+    cs->app_ctx = NULL;
 
     // 加入事件监视
     (*lts_event_itfc->event_add)(cs);
