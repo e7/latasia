@@ -487,7 +487,6 @@ void lts_recv(lts_socket_t *cs)
                                    STR_LOCATION, lts_errno_desc[errno]);
 
             // 直接重置连接
-            (void)shutdown(cs->fd, SHUT_RDWR);
             lts_close_conn(cs, TRUE);
         }
 
@@ -539,7 +538,6 @@ void lts_send(lts_socket_t *cs)
                                lts_errno_desc[errno]);
 
         // 直接重置连接
-        (void)shutdown(cs->fd, SHUT_RDWR);
         lts_close_conn(cs, TRUE);
 
         return;
@@ -562,9 +560,7 @@ void lts_send(lts_socket_t *cs)
 
             if (0 == cs->timeout) {
                 // 短连接
-                if (-1 == shutdown(cs->fd, SHUT_WR)) {
-                    // log
-                }
+                lts_close_conn(cs, FALSE);
             }
         }
     }
@@ -576,9 +572,7 @@ void lts_send(lts_socket_t *cs)
 void lts_timeout(lts_socket_t *cs)
 {
     cs->timeoutable = 0;
-    if (-1 == shutdown(cs->fd, SHUT_WR)) {
-        // log
-    }
+    lts_close_conn(cs, FALSE);
 
     return;
 }
