@@ -188,6 +188,8 @@ int lts_soft_event(lts_socket_t *other, int writable, int timeoutable)
         lts_timer_heap_del(&lts_timer_heap, other);
     }
     lts_post_list_add(other);
+
+    return 0;
 }
 
 

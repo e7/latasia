@@ -82,6 +82,9 @@ static int epoll_process_events(void)
         timeout = 0;
     } else if (cs) {
         timeout = (int)((cs->timeout - lts_current_time) * 100); // ms
+        if (timeout <= 0) {
+            timeout = 0;
+        }
     } else {
         timeout = -1;
     }
