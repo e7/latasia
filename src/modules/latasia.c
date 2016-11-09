@@ -677,7 +677,7 @@ int master_main(void)
                 --workers;
             }
             if (-1 == child) {
-                assert(LTS_E_CHILD == errno);
+                ASSERT(LTS_E_CHILD == errno);
                 (void)lts_write_logger(&lts_file_logger, LTS_LOG_INFO,
                                        "%s:master ready to exit\n",
                                        STR_LOCATION);

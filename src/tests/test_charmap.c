@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "adv_string.h"
 
 #define __THIS_FILE__       "test/test_charmap.c"

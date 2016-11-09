@@ -335,7 +335,7 @@ int lts_sjson_encode(lts_sjson_t *sjson, lts_str_t *output)
 
     offset = 0;
     __lts_sjson_encode(sjson, output, &offset);
-    assert(output->len < data_sz);
+    ASSERT(output->len < data_sz);
 
     return 0;
 }

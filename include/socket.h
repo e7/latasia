@@ -134,7 +134,7 @@ lts_socket_t *lts_alloc_socket(void)
     lts_socket_t *s;
 
     if (dlist_empty(&lts_sock_list)) {
-        assert(0 == lts_sock_cache_n);
+        ASSERT(0 == lts_sock_cache_n);
         errno = LTS_E_NOMEM;
         return NULL;
     }

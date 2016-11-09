@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 
 #include "build.h"
 
@@ -43,6 +42,7 @@ extern "C" {
     ((uintptr_t)(d) + ((uintptr_t)(a) - 1)) & (~((uintptr_t)(a) - 1))\
 )
 
+#define ASSERT(c)           if (c) {;} else {abort();}
 #define ARRAY_COUNT(a)      ((int)(sizeof(a) / sizeof(a[0])))
 #define OFFSET_OF(s, m)     ((size_t)&(((s *)0)->m ))
 #define CONTAINER_OF(ptr, type, member)     \

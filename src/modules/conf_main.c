@@ -65,7 +65,7 @@ cb_port_match(void *c, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
 
     // 更新配置
     lts_str_init(&conf->port, port_buf, port_buf_size - 1);
-    assert(0 == lts_l2str(&conf->port, nport));
+    ASSERT(0 == lts_l2str(&conf->port, nport));
 
     return;
 }

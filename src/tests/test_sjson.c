@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "simple_json.h"
 #include "extra_errno.h"
 

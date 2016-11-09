@@ -48,7 +48,7 @@ static void *lts_palloc_block(lts_pool_t *pool, size_t size)
     size_t psize;
     lts_pool_data_t *new_block, *iter;
 
-    assert(lts_sys_pagesize > 0);
+    ASSERT(lts_sys_pagesize > 0);
 
     psize  = (size_t)LTS_ALIGN(
         sizeof(lts_pool_data_t) + pool->max_size, LTS_WORD
