@@ -150,10 +150,16 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
 
     sz = 2; // {}
     p = rb_first(&sjson->val);
+    if (NULL == p) {
+        return sz;
+    }
+
     while (p) {
         lts_sjson_obj_node_t *node = CONTAINER_OF(
             p, lts_sjson_obj_node_t, tnode
         );
+
+        ++sz; // ,
 
         if (STRING_VALUE == node->node_type) {
             lts_sjson_kv_t *kv = CONTAINER_OF(node, lts_sjson_kv_t, _obj_node);
@@ -171,15 +177,18 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
             sz += node->key.len + 2; // ""
             ++sz; // :
             it = list_first(&lv->val);
-            while (it) {
-                lts_sjson_li_node_t *ln = CONTAINER_OF(
-                    it, lts_sjson_li_node_t, node
-                );
+            if (it) {
+                while (it) {
+                    lts_sjson_li_node_t *ln = CONTAINER_OF(
+                        it, lts_sjson_li_node_t, node
+                    );
 
-                sz += ln->val.len + 2; // ""
-                ++sz; // ,
+                    sz += ln->val.len + 2; // ""
+                    ++sz; // ,
 
-                it = list_next(it);
+                    it = list_next(it);
+                }
+                --sz; // 补偿第一次循环多算的逗号
             }
         } else if (OBJ_VALUE == node->node_type) {
             lts_sjson_t *ov = CONTAINER_OF(node, lts_sjson_t, _obj_node);
@@ -190,12 +199,11 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
         } else {
             return -1;
         }
-        ++sz; // ,
 
         p = rb_next(p);
     }
 
-    return ++sz; // harmless extra size
+    return --sz; // 补偿第一次循环多算的逗号
 }
 
 
@@ -324,7 +332,7 @@ int lts_sjson_encode(lts_sjson_t *sjson, lts_str_t *output)
     }
 
     // 初始化缓冲区
-    data = (uint8_t *)lts_palloc(pool, data_sz);
+    data = (uint8_t *)lts_palloc(pool, data_sz + 1);
     if (NULL == data) {
         return -1;
     }
@@ -335,7 +343,7 @@ int lts_sjson_encode(lts_sjson_t *sjson, lts_str_t *output)
 
     offset = 0;
     __lts_sjson_encode(sjson, output, &offset);
-    ASSERT(output->len < data_sz);
+    ASSERT(output->len == data_sz);
 
     return 0;
 }
