@@ -184,8 +184,8 @@ void test_t7(lts_pool_t *pool)
 {
     lts_str_t s;
     lts_sjson_t output = lts_empty_sjson(pool);
-    uint8_t t7[] = "{\"a\":[\"b\", \"c\"]}";
-    // uint8_t t7[] = "{\"a\":[]}";
+    // uint8_t t7[] = "{\"a\":[\"b\", \"c\"]}";
+    uint8_t t7[] = "{\"a\":[]}";
 
     s = (lts_str_t)lts_string(t7);
     assert(0 == lts_sjson_decode(&s, &output));

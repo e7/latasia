@@ -9,18 +9,19 @@
 
 
 // 状态机
-enum {
+enum { // 期待的下一个字符
+    // 注释中^表示起始，$表示结束
     SJSON_EXP_START = 1,
-    SJSON_EXP_K_QUOT_START_OR_END,
-    SJSON_EXP_K_QUOT_START,
-    SJSON_EXP_K_QUOT_END,
-    SJSON_EXP_COLON,
-    SJSON_EXP_V_MAP_OR_QUOT_OR_BRACKET_START,
-    SJSON_EXP_V_QUOT_START,
-    SJSON_EXP_V_QUOT_END,
-    SJSON_EXP_COMMA_OR_BRACKET_END,
-    SJSON_EXP_COMMA_OR_END,
-    SJSON_EXP_END,
+    SJSON_EXP_K_QUOT_START_OR_END, // ^" | $}
+    SJSON_EXP_K_QUOT_START, // ^"
+    SJSON_EXP_K_QUOT_END, // $"
+    SJSON_EXP_COLON, // :
+    SJSON_EXP_V_MAP_OR_QUOT_OR_BRACKET_START, // ^{ | ^" | ^[
+    SJSON_EXP_V_QUOT_END, // $"
+    SJSON_EXP_V_QUOT_START_OR_BRACKET_END, // ^" | $]
+    SJSON_EXP_COMMA_OR_BRACKET_END, // , | $]
+    SJSON_EXP_COMMA_OR_END, // , | $}
+    SJSON_EXP_END, // $}
     SJSON_EXP_NOTHING,
 };
 
@@ -360,7 +361,7 @@ int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output)
     lts_sjson_kv_t *json_kv = NULL;
     lts_sjson_li_node_t *li_node = NULL;
     lts_sjson_list_t *json_list = NULL;
-    lts_sjson_t *json_obj = NULL;
+    lts_sjson_t *json_obj = NULL; // 当前所在对象
     lts_pool_t *pool = output->pool;
 
     // 过滤不可见字符
@@ -457,7 +458,7 @@ int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output)
                 json_kv->_obj_node.tnode = RB_NODE;
             } else if ('[' == src->data[i]) {
                 in_bracket = TRUE;
-                current_stat = SJSON_EXP_V_QUOT_START; // only
+                current_stat = SJSON_EXP_V_QUOT_START_OR_BRACKET_END; // only
 
                 json_list = (lts_sjson_list_t *)lts_palloc(pool,
                                                            sizeof(*json_list));
@@ -507,27 +508,43 @@ int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output)
             continue;
         }
 
-        case SJSON_EXP_V_QUOT_START:
+        case SJSON_EXP_V_QUOT_START_OR_BRACKET_END:
         {
-            if ('"' != src->data[i]) {
-                errno = LTS_E_INVALID_FORMAT;
-                return -1;
-            }
-
             if (! in_bracket) {
                 abort();
             }
 
-            current_stat = SJSON_EXP_V_QUOT_END;
+            if ('"' == src->data[i]) {
+                current_stat = SJSON_EXP_V_QUOT_END;
 
-            li_node = (lts_sjson_li_node_t *)lts_palloc(pool,
-                                                        sizeof(*li_node));
-            if (NULL == li_node) {
-                errno = LTS_E_NOMEM;
+                li_node = (lts_sjson_li_node_t *)lts_palloc(pool,
+                                                            sizeof(*li_node));
+                if (NULL == li_node) {
+                    errno = LTS_E_NOMEM;
+                    return -1;
+                }
+                li_node->val.data = &src->data[i + 1];
+                li_node->val.len = 0;
+            } else if (']' == src->data[i]) {
+                in_bracket = FALSE;
+                current_stat = SJSON_EXP_COMMA_OR_END;
+
+                if (lstack_is_empty(&obj_stack)) {
+                    json_obj = output;
+                } else {
+                    json_obj = CONTAINER_OF(
+                        lstack_top(&obj_stack), lts_sjson_t, _stk_node
+                    );
+                }
+
+                __lts_sjson_search(&json_obj->val,
+                                  &json_list->_obj_node,
+                                  TRUE);
+                json_list = NULL;
+            } else {
+                errno = LTS_E_INVALID_FORMAT;
                 return -1;
             }
-            li_node->val.data = &src->data[i + 1];
-            li_node->val.len = 0;
 
             continue;
         }
@@ -574,7 +591,7 @@ int lts_sjson_decode(lts_str_t *src, lts_sjson_t *output)
             }
 
             if (',' == src->data[i]) {
-                current_stat = SJSON_EXP_V_QUOT_START; // only
+                current_stat = SJSON_EXP_V_QUOT_START_OR_BRACKET_END; // only
             } else if (']' == src->data[i]) {
                 in_bracket = FALSE;
                 current_stat = SJSON_EXP_COMMA_OR_END; // only
