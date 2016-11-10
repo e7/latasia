@@ -210,8 +210,7 @@ static int init_asyn_backend_module(lts_module_t *module)
     s_ctx.cs->conn = NULL;
     s_ctx.cs->do_read = &rs_channel_recv;
     s_ctx.cs->do_write = NULL;
-    s_ctx.cs->do_timeout = NULL;
-    s_ctx.cs->timeout = 0;
+    lts_timer_node_init(&s_ctx.cs->timer_node, 0, NULL);
     (*lts_event_itfc->event_add)(s_ctx.cs);
 
     s_ctx.push_buf = lts_create_buffer(pool, 1024 * 16, 1024 * 16);

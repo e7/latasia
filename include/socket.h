@@ -13,7 +13,7 @@
 
 #include "extra_errno.h"
 #include "list.h"
-#include "rbtree.h"
+#include "rbt_timer.h"
 #include "buffer.h"
 #include "mem_pool.h"
 
@@ -50,19 +50,16 @@ struct lts_socket_s {
 
     unsigned readable: 1;
     unsigned writable: 1;
-    unsigned timeoutable: 1;
     unsigned instance: 1;
 
     int64_t born_time;
     lts_conn_t *conn;
     dlist_t dlnode;
 
-    int64_t timeout; // 超时时间
-    lts_rb_node_t timer_heap_node;
+    struct lts_timer_node_s timer_node;
 
     lts_handle_event_pt do_read;
     lts_handle_event_pt do_write;
-    lts_handle_event_pt do_timeout;
 
     void *app_ctx;
 };
@@ -110,20 +107,16 @@ void lts_init_socket(lts_socket_t *s)
     s->ev_mask = 0;
     s->readable = 0;
     s->writable = 0;
-    s->timeoutable = 0;
     s->instance = (!s->instance);
 
     s->born_time = lts_current_time;
     s->conn = NULL;
     dlist_init(&s->dlnode);
 
-    s->timeout = 0;
-    s->timer_heap_node = RB_NODE;
-    RB_CLEAR_NODE(&s->timer_heap_node);
+    lts_timer_node_init(&s->timer_node, 0, NULL);
 
     s->do_read = NULL;
     s->do_write = NULL;
-    s->do_timeout = NULL;
 }
 
 
@@ -159,7 +152,6 @@ void lts_free_socket(lts_socket_t *s)
     s->ev_mask = 0;
     s->readable = 0;
     s->writable = 0;
-    s->timeoutable = 0;
 
     dlist_del(&s->dlnode);
     lts_sock_list_add(s);
@@ -172,21 +164,13 @@ void lts_free_socket(lts_socket_t *s)
 
 // 软事件，强行触发其它连接的事件
 static inline
-int lts_soft_event(lts_socket_t *other, int writable, int timeoutable)
+int lts_soft_event(lts_socket_t *other, int writable)
 {
-    extern lts_rb_root_t lts_timer_heap;
-    extern void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s);
-
     if (NULL == other->conn) {
         return -1;
     }
 
     other->writable = writable;
-    other->timeoutable = timeoutable;
-    if (timeoutable) {
-        other->timeout = 0;
-        lts_timer_heap_del(&lts_timer_heap, other);
-    }
     lts_post_list_add(other);
 
     return 0;

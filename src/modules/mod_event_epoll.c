@@ -68,6 +68,7 @@ static int epoll_process_events(void)
 {
     int i, nevents, timeout, tmp_err;
     lts_socket_t *cs;
+    lts_timer_node_t *min;
     uintptr_t instance;
     uint32_t revents;
 #ifndef HAVE_FUNCTION_EPOLL_PWAIT
@@ -77,11 +78,11 @@ static int epoll_process_events(void)
 
     (void)sigfillset(&sig_mask);
     (void)sigdelset(&sig_mask, SIGALRM); // 允许时钟信号
-    cs = lts_timer_heap_min(&lts_timer_heap);
+    min = lts_timer_min(&lts_timer_heap);
     if (! dlist_empty(&lts_post_list)) {
         timeout = 0;
-    } else if (cs) {
-        timeout = (int)((cs->timeout - lts_current_time) * 100); // ms
+    } else if (min) {
+        timeout = (int)((min->mapnode.key - lts_current_time) * 100); // ms
         if (timeout <= 0) {
             timeout = 0;
         }
@@ -141,17 +142,6 @@ static int epoll_process_events(void)
         }
     }
 
-    // 检查定时器堆
-    while ((cs = lts_timer_heap_min(&lts_timer_heap))) {
-        if (cs->timeout > lts_current_time) {
-            break;
-        }
-
-        lts_timer_heap_del(&lts_timer_heap, cs);
-        cs->timeoutable = 1;
-        lts_post_list_add(cs);
-    }
-
     return 0;
 }
 
@@ -161,7 +151,6 @@ static int init_event_epoll_worker(lts_module_t *mod)
     lts_pool_t *pool;
 
     // 全局变量初始化
-    lts_timer_heap = RB_ROOT;
     lts_event_itfc = (lts_event_module_itfc_t *)mod->itfc;
 
     // 创建内存池

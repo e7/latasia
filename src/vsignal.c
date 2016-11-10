@@ -53,15 +53,10 @@ static void sig_alrm_handler(int s)
     return;
 }
 
-static void sig_abrt_handler(int s)
-{
-    dump_stack_frames();
-    return;
-}
-
 static void sig_segv_handler(int s)
 {
     dump_stack_frames();
+    abort();
     return;
 }
 
@@ -72,7 +67,6 @@ static lts_signal_t lts_signals_master[] = {
     {SIGCHLD, "SIGCHLD", &sig_chld_handler},
     {SIGPIPE, "SIGPIPE", &sig_pipe_handler},
     {SIGALRM, "SIGALRM", SIG_IGN},
-    {SIGABRT, "SIGABRT", &sig_abrt_handler},
     {SIGSEGV, "SIGSEGV", &sig_segv_handler},
     {0, NULL, NULL},
 };
@@ -82,7 +76,6 @@ static lts_signal_t lts_signals_slave[] = {
     {SIGCHLD, "SIGCHLD", &sig_chld_handler},
     {SIGPIPE, "SIGPIPE", SIG_IGN},
     {SIGALRM, "SIGALRM", &sig_alrm_handler},
-    {SIGABRT, "SIGABRT", &sig_abrt_handler},
     {SIGSEGV, "SIGSEGV", &sig_segv_handler},
     {0, NULL, NULL},
 };

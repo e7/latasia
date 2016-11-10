@@ -239,9 +239,9 @@ lts_module_t *lts_modules[] = {
     &lts_event_core_module,
     &lts_event_epoll_module,
     // &lts_app_asyn_backend_module,
-    // &lts_app_echo_module,
+    &lts_app_echo_module,
     // &lts_app_http_core_module,
-    &lts_app_sjsonb_module,
+    // &lts_app_sjsonb_module,
     NULL,
 };
 lts_module_t *lts_module_event_cur;
@@ -372,11 +372,6 @@ void process_post_list(void)
     dlist_for_each_f_safe(pos, cur_next, &lts_post_list) {
         lts_socket_t *cs = CONTAINER_OF(pos, lts_socket_t, dlnode);
 
-        // 超时事件
-        if (cs->timeoutable && cs->do_timeout) {
-            (void)(*cs->do_timeout)(cs);
-        }
-
         // 读事件
         if (cs->readable && cs->do_read) {
             (*cs->do_read)(cs);
@@ -386,11 +381,6 @@ void process_post_list(void)
         if (cs->writable && cs->do_write) {
             (*cs->do_write)(cs);
         }
-
-		// 再处理一次超时事件，有可能业务修改了定时器
-         if (cs->timeoutable && cs->do_timeout) {
-             (void)(*cs->do_timeout)(cs);
-         }
     }
 
     // 清理post链
@@ -398,7 +388,7 @@ void process_post_list(void)
         lts_socket_t *cs = CONTAINER_OF(pos, lts_socket_t, dlnode);
 
         // 移出post链
-        if ((! cs->readable) && (! cs->writable) && (! cs->timeoutable)) {
+        if ((! cs->readable) && (! cs->writable)) {
             lts_watch_list_add(cs);
         }
     }

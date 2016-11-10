@@ -11,107 +11,56 @@
 #define __THIS_FILE__       "src/rbt_timer.c"
 
 
-// link，节点不存在时是否挂到树上
-static lts_socket_t *__lts_timer_heap_search(lts_rb_root_t *root,
-                                             lts_socket_t *sock,
-                                             int link)
+int lts_timer_add(lts_timer_t *heap, lts_timer_node_t *node)
 {
-    lts_socket_t *s;
-    lts_rb_node_t *parent, **iter;
-
-    parent = NULL;
-    iter = &root->rb_node;
-    while (*iter) {
-        parent = *iter;
-        s = rb_entry(parent, lts_socket_t, timer_heap_node);
-
-        if (sock->timeout < s->timeout) {
-            iter = &(parent->rb_left);
-        } else if (sock->timeout > s->timeout) {
-            iter = &(parent->rb_right);
-        } else {
-            return s;
-        }
-    }
-
-    if (link) {
-        rb_link_node(&sock->timer_heap_node, parent, iter);
-        rb_insert_color(&sock->timer_heap_node, root);
-    }
-
-    return sock;
+    return lts_rbmap_add(heap, &node->mapnode);
 }
 
 
-int lts_timer_heap_add(lts_rb_root_t *root, lts_socket_t *s)
+int lts_timer_reset(lts_timer_t *heap,
+                    lts_timer_node_t *node,
+                    uintptr_t timeout)
 {
-    if (! RB_EMPTY_NODE(&s->timer_heap_node)) {
+    lts_rbmap_node_t *rbnd;
+
+    rbnd = lts_rbmap_get(heap, timeout);
+    if (NULL == rbnd) {
+        node->mapnode.key = timeout;
+        lts_rbmap_add(heap, &node->mapnode);
+        return 0;
+    }
+
+    if (node != CONTAINER_OF(rbnd, lts_timer_node_t, mapnode)) {
+        // 已存在另外节点
         return -1;
     }
 
-    if (s != __lts_timer_heap_search(root, s, TRUE)) {
-        return -1;
-    }
+    lts_rbmap_del(heap, node->mapnode.key);
+    node->mapnode.key = timeout;
+    lts_rbmap_add(heap, &node->mapnode);
 
     return 0;
 }
 
 
-void lts_timer_heap_del(lts_rb_root_t *root, lts_socket_t *s)
+void lts_timer_del(lts_timer_t *heap, lts_timer_node_t *node)
 {
-    lts_socket_t *skt;
-    lts_rb_node_t *iter = root->rb_node;
-
-    while (iter) {
-        skt = rb_entry(iter, lts_socket_t, timer_heap_node);
-
-        if (s->timeout < skt->timeout) {
-            iter = iter->rb_left;
-        } else if (s->timeout > skt->timeout) {
-            iter = iter->rb_right;
-        } else {
-            rb_erase(&s->timer_heap_node, root);
-            RB_CLEAR_NODE(&s->timer_heap_node);
-            break;
-        }
-    }
-
+    lts_rbmap_del(heap, node->mapnode.key);
     return;
 }
 
 
-lts_socket_t *lts_timer_heap_min(lts_rb_root_t *root)
+lts_timer_node_t *lts_timer_min(lts_timer_t *heap)
 {
-#if 1
+    lts_rbmap_node_t *node = lts_rbmap_min(heap);
 
-    lts_rb_node_t *p = rb_first(root);
-
-    if (NULL == p) {
+    if (node) {
+        return CONTAINER_OF(lts_rbmap_min(heap), lts_timer_node_t, mapnode);
+    } else {
         return NULL;
     }
-
-    return rb_entry(p, lts_socket_t, timer_heap_node);
-
-#else
-
-    lts_socket_t *s;
-    lts_rb_node_t *p;
-
-    s = NULL;
-    p = root->rb_node;
-    while (p) {
-        if (NULL == p->rb_left) {
-            rb_erase(p, root);
-            s = rb_entry(p, lts_socket_t, timer_heap_node);
-            break;
-        }
-        p = p->rb_left;
-    }
-
-    return s;
-
-#endif
 }
+
 
 
 void lts_update_time(void)
@@ -126,4 +75,4 @@ void lts_update_time(void)
 
 
 int64_t lts_current_time; // 当前时间
-lts_rb_root_t lts_timer_heap; // 时间堆
+lts_timer_t lts_timer_heap = {0, RB_ROOT}; // 时间堆

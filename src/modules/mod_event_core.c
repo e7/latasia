@@ -22,6 +22,7 @@ typedef struct {
 static event_core_ctx_t s_event_core_ctx = {
     0,
 };
+static void lts_timeout(lts_timer_node_t *cstn);
 
 
 void lts_close_conn_orig(int fd, int reset)
@@ -60,9 +61,7 @@ void lts_close_conn(lts_socket_t *cs, int reset)
     (*lts_event_itfc->event_del)(cs);
 
     // 移除定时器
-    if (! RB_EMPTY_NODE(&cs->timer_heap_node)) {
-        lts_timer_heap_del(&lts_timer_heap, cs);
-    }
+    lts_timer_del(&lts_timer_heap, &cs->timer_node);
 
     // 回收内存
     if (cs->conn->pool) {
@@ -155,20 +154,23 @@ static void lts_accept(lts_socket_t *ls)
     cs->conn = c;
     cs->do_read = &lts_recv;
     cs->do_write = &lts_send;
-    cs->do_timeout = &lts_timeout;
     cs->app_ctx = NULL;
 
     // 加入事件监视
     (*lts_event_itfc->event_add)(cs);
 
     // 加入定时器
+    lts_timer_node_init(&cs->timer_node, 0, &lts_timeout);
     if (lts_main_conf.keepalive > 0) {
-        cs->timeout = lts_current_time + lts_main_conf.keepalive * 10;
-        while (-1 == lts_timer_heap_add(&lts_timer_heap, cs)) {
-            ++cs->timeout;
+        int64_t reset = lts_current_time + lts_main_conf.keepalive * 10;
+
+        while (-1 == lts_timer_reset(&lts_timer_heap, &cs->timer_node, reset)) {
+            ++reset;
         }
+
+        ASSERT(! lts_timer_node_empty(&cs->timer_node));
     } else {
-        cs->timeout = 0; // 短连接
+        ASSERT(lts_timer_node_empty(&cs->timer_node)); // 短连接
     }
 
     lts_watch_list_add(cs); // 纳入观察列表
@@ -558,7 +560,7 @@ void lts_send(lts_socket_t *cs)
             cs->ev_mask &= (~EPOLLOUT);
             (*lts_event_itfc->event_mod)(cs);
 
-            if (0 == cs->timeout) {
+            if (lts_timer_node_empty(&cs->timer_node)) {
                 // 短连接
                 lts_close_conn(cs, FALSE);
             }
@@ -569,9 +571,9 @@ void lts_send(lts_socket_t *cs)
 }
 
 
-void lts_timeout(lts_socket_t *cs)
+void lts_timeout(lts_timer_node_t *cstn)
 {
-    cs->timeoutable = 0;
+    lts_socket_t *cs = CONTAINER_OF(cstn, lts_socket_t, timer_node);
     lts_close_conn(cs, FALSE);
 
     return;

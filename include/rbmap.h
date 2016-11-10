@@ -24,6 +24,11 @@ void lts_rbmap_node_init(lts_rbmap_node_t *node, uintptr_t key)
     node->rbnode = RB_NODE;
     RB_CLEAR_NODE(&node->rbnode);
 }
+static inline
+int lts_rbmap_node_empty(lts_rbmap_node_t *node)
+{
+    return RB_EMPTY_NODE(&node->rbnode);
+}
 
 typedef struct {
     ssize_t nsize; // 容器对象计数
@@ -35,4 +40,5 @@ typedef struct {
 extern int lts_rbmap_add(lts_rbmap_t *rbmap, lts_rbmap_node_t *node);
 extern lts_rbmap_node_t *lts_rbmap_del(lts_rbmap_t *rbmap, uintptr_t key);
 extern lts_rbmap_node_t *lts_rbmap_get(lts_rbmap_t *rbmap, uintptr_t key);
+extern lts_rbmap_node_t *lts_rbmap_min(lts_rbmap_t *rbmap);
 #endif // __LATASIA__RBMAP_H__

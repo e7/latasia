@@ -13,7 +13,7 @@ TARGET_LINK_LIBRARIES(test_adv_string mcheck)
 ADD_EXECUTABLE(test_lstack tests/test_lstack.c)
 TARGET_LINK_LIBRARIES(test_lstack mcheck)
 
-ADD_EXECUTABLE(test_rbt_timer rbtree.c rbt_timer.c tests/test_rbt_timer.c)
+ADD_EXECUTABLE(test_rbt_timer rbtree.c rbmap.c rbt_timer.c tests/test_rbt_timer.c)
 TARGET_LINK_LIBRARIES(test_rbt_timer mcheck)
 
 ADD_EXECUTABLE(press_tcp tests/press_tcp.c)

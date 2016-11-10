@@ -85,3 +85,15 @@ lts_rbmap_node_t *lts_rbmap_get(lts_rbmap_t *rbmap, uintptr_t key)
 {
     return __rbmap_search(&rbmap->root, key);
 }
+
+
+lts_rbmap_node_t *lts_rbmap_min(lts_rbmap_t *rbmap)
+{
+    lts_rb_node_t *node = rb_first(&rbmap->root);
+
+    if (node) {
+        return CONTAINER_OF(node, lts_rbmap_node_t, rbnode);
+    } else {
+        return NULL;
+    }
+}
