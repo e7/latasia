@@ -4,6 +4,8 @@
  * */
 
 
+#include <execinfo.h>
+
 #include "latasia.h"
 #include "vsignal.h"
 #include "logger.h"
@@ -13,6 +15,21 @@
 
 static void dump_stack_frames(void)
 {
+    int sfsz;
+    void *sfs[32];
+    char **str_sfs;
+
+    sfsz = backtrace(sfs, ARRAY_COUNT(sfs));
+    str_sfs = backtrace_symbols(sfs, sfsz);
+    if (str_sfs) {
+        for (int i = 0; i < sfsz; ++i) {
+            (void)lts_write_logger(
+                &lts_file_logger, LTS_LOG_EMERGE, "%s\n", str_sfs[i]
+            );
+        }
+        free(str_sfs);
+    }
+
     return;
 }
 
