@@ -195,6 +195,9 @@ int init_core_master(lts_module_t *module)
         lts_processes[i].pid = -1;
     }
 
+    // 初始化时间堆
+    lts_timer_heap = (lts_timer_t){0, RB_ROOT};
+
     return 0;
 }
 

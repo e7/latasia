@@ -75,4 +75,4 @@ void lts_update_time(void)
 
 
 int64_t lts_current_time; // 当前时间
-lts_timer_t lts_timer_heap = {0, RB_ROOT}; // 时间堆
+lts_timer_t lts_timer_heap; // 时间堆
