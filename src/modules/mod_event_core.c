@@ -167,10 +167,6 @@ static void lts_accept(lts_socket_t *ls)
         while (-1 == lts_timer_reset(&lts_timer_heap, &cs->timer_node, reset)) {
             ++reset;
         }
-
-        ASSERT(! lts_timer_node_empty(&cs->timer_node));
-    } else {
-        ASSERT(lts_timer_node_empty(&cs->timer_node)); // 短连接
     }
 
     lts_watch_list_add(cs); // 纳入观察列表
@@ -559,11 +555,6 @@ void lts_send(lts_socket_t *cs)
             cs->writable = 0;
             cs->ev_mask &= (~EPOLLOUT);
             (*lts_event_itfc->event_mod)(cs);
-
-            if (lts_timer_node_empty(&cs->timer_node)) {
-                // 短连接
-                lts_close_conn(cs, FALSE);
-            }
         }
     }
 

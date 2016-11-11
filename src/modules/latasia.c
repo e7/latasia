@@ -409,6 +409,8 @@ int event_loop_single(void)
     }
 
     while (TRUE) {
+        lts_timer_node_t *min;
+
         // 检查channel信号
         if (LTS_CHANNEL_SIGEXIT == lts_global_sm.channel_signal) {
             (void)lts_write_logger(
@@ -435,6 +437,18 @@ int event_loop_single(void)
         }
 
         process_post_list();
+
+        // 超时事件
+        while ((min = lts_timer_min(&lts_timer_heap))) {
+            if (lts_current_time < min->mapnode.key) {
+                break;
+            }
+
+            lts_timer_del(&lts_timer_heap, min);
+            if (min->on_timeout) {
+                (*min->on_timeout)(min);
+            }
+        }
     }
 
     if (0 != rslt) {
