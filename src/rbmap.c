@@ -81,6 +81,28 @@ lts_rbmap_node_t *lts_rbmap_del(lts_rbmap_t *rbmap, uintptr_t key)
 }
 
 
+lts_rbmap_node_t *lts_rbmap_safe_del(lts_rbmap_t *rbmap,
+                                     lts_rbmap_node_t *node)
+{
+    lts_rbmap_node_t *key_node = __rbmap_search(&rbmap->root, node->key);
+
+    if (NULL == key_node) {
+        // 不存在也即删除成功
+        return node;
+    }
+
+    if (key_node == node) {
+        rb_erase(&key_node->rbnode, &rbmap->root);
+        RB_CLEAR_NODE(&key_node->rbnode);
+        --rbmap->nsize;
+
+        return node;
+    }
+
+    return NULL;
+}
+
+
 lts_rbmap_node_t *lts_rbmap_get(lts_rbmap_t *rbmap, uintptr_t key)
 {
     return __rbmap_search(&rbmap->root, key);

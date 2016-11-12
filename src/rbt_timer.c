@@ -21,21 +21,11 @@ int lts_timer_reset(lts_timer_t *heap,
                     lts_timer_node_t *node,
                     uintptr_t timeout)
 {
-    lts_rbmap_node_t *rbnd;
-
-    rbnd = lts_rbmap_get(heap, timeout);
-    if (NULL == rbnd) {
-        node->mapnode.key = timeout;
-        lts_rbmap_add(heap, &node->mapnode);
-        return 0;
-    }
-
-    if (node != CONTAINER_OF(rbnd, lts_timer_node_t, mapnode)) {
+    if (NULL == lts_rbmap_safe_del(heap, &node->mapnode)) { // 删除旧结点
         // 已存在另外节点
         return -1;
     }
 
-    lts_rbmap_del(heap, node->mapnode.key);
     node->mapnode.key = timeout;
     lts_rbmap_add(heap, &node->mapnode);
 
@@ -45,7 +35,7 @@ int lts_timer_reset(lts_timer_t *heap,
 
 int lts_timer_del(lts_timer_t *heap, lts_timer_node_t *node)
 {
-    return lts_rbmap_del(heap, node->mapnode.key) ? TRUE : FALSE;
+    return (NULL != lts_rbmap_safe_del(heap, &node->mapnode));
 }
 
 
