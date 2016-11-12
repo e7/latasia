@@ -22,9 +22,21 @@ int main(void)
     pt1 = CONTAINER_OF(it, test_t, rbm_nd);
     assert(&t1 == pt1);
 
+    test_t t2;
+    lts_rbmap_node_init(&t2.rbm_nd, 2);
+    lts_rbmap_add(&rbm, &t2.rbm_nd);
+
+    test_t t3;
+    lts_rbmap_node_init(&t3.rbm_nd, 3);
+    lts_rbmap_add(&rbm, &t3.rbm_nd);
+
     lts_rbmap_del(&rbm, 1);
     it = lts_rbmap_get(&rbm, 1);
     assert(NULL == it);
+    lts_rbmap_del(&rbm, 2);
+    lts_rbmap_del(&rbm, 3);
+
+    assert(NULL == lts_rbmap_min(&rbm));
 
     return 0;
 }

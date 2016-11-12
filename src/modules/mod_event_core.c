@@ -61,7 +61,9 @@ void lts_close_conn(lts_socket_t *cs, int reset)
     (*lts_event_itfc->event_del)(cs);
 
     // 移除定时器
-    lts_timer_del(&lts_timer_heap, &cs->timer_node);
+    if (lts_main_conf.keepalive > 0) {
+        ASSERT(lts_timer_del(&lts_timer_heap, &cs->timer_node));
+    }
 
     // 回收内存
     if (cs->conn->pool) {

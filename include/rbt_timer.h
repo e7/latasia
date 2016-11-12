@@ -43,7 +43,7 @@ extern int lts_timer_add(lts_timer_t *heap, lts_timer_node_t *node);
 extern int lts_timer_reset(lts_timer_t *heap,
                            lts_timer_node_t *node,
                            uintptr_t timeout); // 用新的超时时间重置定时器
-extern void lts_timer_del(lts_timer_t *heap, lts_timer_node_t *node);
+extern int lts_timer_del(lts_timer_t *heap, lts_timer_node_t *node);
 extern lts_timer_node_t *lts_timer_min(lts_timer_t *heap);
 
 
