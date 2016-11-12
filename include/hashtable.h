@@ -54,7 +54,7 @@ extern lts_hashtable_t
 
 
 // 备选哈希函数
-extern uintptr_t time33(char const *str, size_t len);
+extern uintptr_t time33(void *str, size_t len);
 extern uintptr_t hash_long(uintptr_t val, uintptr_t bits);
 #ifdef __cplusplus
 }

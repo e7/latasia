@@ -76,11 +76,14 @@ extern dlist_t lts_post_list; // post链表，事件延迟处理
 
 extern int64_t lts_current_time;
 
-#define lts_sock_list_add(s)    dlist_add_tail(&lts_sock_list, &s->dlnode)
+#define lts_sock_list_add(s)    do {\
+            dlist_del(&s->dlnode);\
+            dlist_add_tail(&lts_sock_list, &s->dlnode);\
+        } while (0)
 #define lts_addr_list_add(s)    do {\
             dlist_del(&s->dlnode);\
             dlist_add_tail(&lts_addr_list, &s->dlnode);\
-        } while(0)
+        } while (0)
 #define lts_listen_list_add(s)  do {\
             dlist_del(&s->dlnode);\
             dlist_add_tail(&lts_listen_list, &s->dlnode);\
@@ -147,13 +150,6 @@ lts_socket_t *lts_alloc_socket(void)
 static inline
 void lts_free_socket(lts_socket_t *s)
 {
-    s->fd = -1;
-    s->family = -1;
-    s->ev_mask = 0;
-    s->readable = 0;
-    s->writable = 0;
-
-    dlist_del(&s->dlnode);
     lts_sock_list_add(s);
     ++lts_sock_cache_n;
     --lts_sock_inuse_n;
