@@ -21,15 +21,11 @@ int lts_timer_reset(lts_timer_t *heap,
                     lts_timer_node_t *node,
                     uintptr_t timeout)
 {
-    if (NULL == lts_rbmap_safe_del(heap, &node->mapnode)) { // 删除旧结点
-        // 已存在另外节点
-        return -1;
-    }
+    // 删除旧结点，已存在其它节点则忽略
+    (void)lts_rbmap_safe_del(heap, &node->mapnode);
 
     node->mapnode.key = timeout;
-    lts_rbmap_add(heap, &node->mapnode);
-
-    return 0;
+    return lts_rbmap_add(heap, &node->mapnode);
 }
 
 
