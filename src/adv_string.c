@@ -476,10 +476,11 @@ lts_str_t *lts_str_base64_en2(lts_str_t *src, lts_pool_t *pool)
     lts_str_t *rslt = (lts_str_t *)lts_palloc(pool, sizeof(lts_str_t));
     ssize_t encode_len = base64_encode_len(src->len);
 
-    rslt->data = (uint8_t *)lts_palloc(pool, encode_len);
-    rslt->len = encode_len - 1;
+    rslt->data = (uint8_t *)lts_palloc(pool, encode_len + 1);
+    rslt->len = encode_len;
 
     (void)base64_encode((char *)rslt->data, (char const *)src->data, src->len);
+    rslt->data[encode_len] = '\0';
 
     return rslt;
 }
@@ -498,10 +499,11 @@ lts_str_t *lts_str_base64_de2(lts_str_t *src, lts_pool_t *pool)
     lts_str_t *rslt = (lts_str_t *)lts_palloc(pool, sizeof(lts_str_t));
     ssize_t decode_len = base64_decode_len((char const *)src->data);
 
-    rslt->data = (uint8_t *)lts_palloc(pool, decode_len);
-    rslt->len = decode_len - 1;
+    rslt->data = (uint8_t *)lts_palloc(pool, decode_len + 1);
+    rslt->len = decode_len;
 
     (void)base64_decode((char *)rslt->data, (char const *)src->data);
+    rslt->data[decode_len] = '\0';
 
     return rslt;
 }

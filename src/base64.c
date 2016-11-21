@@ -122,7 +122,7 @@ int base64_decode_len(const char *bufcoded)
     nprbytes = (bufin - (const unsigned char *) bufcoded) - 1;
     nbytesdecoded = ((nprbytes + 3) / 4) * 3;
 
-    return nbytesdecoded + 1;
+    return nbytesdecoded;
 }
 
 
@@ -167,7 +167,7 @@ int base64_decode(char *bufplain, const char *bufcoded)
             (unsigned char) (pr2six[bufin[2]] << 6 | pr2six[bufin[3]]);
     }
 
-    *(bufout++) = '\0';
+    // *(bufout++) = '\0';
     nbytesdecoded -= (4 - nprbytes) & 3;
 
     return nbytesdecoded;
@@ -180,7 +180,7 @@ static const char basis_64[] =
 
 int base64_encode_len(int len)
 {
-    return (len > 0) ? ((len + 2) / 3 * 4) + 1 : 0;
+    return (len > 0) ? ((len + 2) / 3 * 4) : 0;
 }
 
 
@@ -212,7 +212,7 @@ int base64_encode(char *encoded, const char *string, int len)
         *p++ = '=';
     }
 
-    *p++ = '\0';
+    // *p++ = '\0';
 
     return p - encoded;
 }
