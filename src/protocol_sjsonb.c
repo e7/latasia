@@ -6,16 +6,28 @@
 #define PROTO_VER               1000
 
 
-typedef struct {
+typedef struct __attribute__ ((packed)) {
     uint32_t magic_no;
     uint32_t proto_ver;
     uint32_t content_ofst; // 内容偏移
     uint32_t content_len; // 内容长度
     uint32_t content_checksum; // 内容校验码
-} sjsonb_header_t __attribute__ ((aligned (1)));
+} sjsonb_header_t;
 #define LEN_HEADER              sizeof(sjsonb_header_t)
 // 最短json串长度
 #define LEN_MIN_CONTENT         2
+
+
+int lts_proto_naked_encode(lts_buffer_t *content, lts_buffer_t *dst)
+{
+    return 0;
+}
+
+
+lts_buffer_t *lts_proto_naked_decode(lts_buffer_t *buf)
+{
+    return NULL;
+}
 
 
 int lts_proto_sjsonb_encode(lts_sjson_t *sjson,

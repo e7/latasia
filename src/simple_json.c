@@ -198,7 +198,7 @@ ssize_t lts_sjson_encode_size(lts_sjson_t *sjson)
             ++sz; // :
             sz += lts_sjson_encode_size(ov);
         } else {
-            return -1;
+            ASSERT(0);
         }
 
         p = rb_next(p);
@@ -328,13 +328,11 @@ int lts_sjson_encode(lts_sjson_t *sjson, lts_str_t *output)
     lts_pool_t *pool = sjson->pool;
 
     data_sz = lts_sjson_encode_size(sjson);
-    if (-1 == data_sz) {
-        return -1;
-    }
 
     // 初始化缓冲区
     data = (uint8_t *)lts_palloc(pool, data_sz + 1);
     if (NULL == data) {
+        errno = LTS_E_NOMEM;
         return -1;
     }
 
