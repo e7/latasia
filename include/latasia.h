@@ -113,6 +113,7 @@ extern lts_module_t lts_app_asyn_backend_module; // 异步后端框架模块
 extern lts_module_t lts_app_echo_module; // echo模块
 extern lts_module_t lts_app_http_core_module; // http core模块
 extern lts_module_t lts_app_sjsonb_module; // sjsonb协议demo模块
+extern lts_module_t lts_app_lua_module; // lua模块
 // }} app模块
 
 extern lts_socket_t *lts_channels[LTS_MAX_PROCESSES];

@@ -239,9 +239,10 @@ lts_module_t *lts_modules[] = {
     &lts_event_core_module,
     &lts_event_epoll_module,
     // &lts_app_asyn_backend_module,
-    &lts_app_echo_module,
+    // &lts_app_echo_module,
     // &lts_app_http_core_module,
     // &lts_app_sjsonb_module,
+    &lts_app_lua_module,
     NULL,
 };
 lts_module_t *lts_module_event_cur;
