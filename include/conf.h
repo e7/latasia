@@ -30,6 +30,7 @@ extern "C" {
 typedef struct lts_conf_s lts_conf_t;
 typedef struct lts_conf_sync_s lts_conf_sync_t;
 typedef struct lts_conf_asyn_s lts_conf_asyn_t;
+typedef struct lts_conf_lua_s lts_conf_lua_t;
 
 
 struct lts_conf_s {
@@ -53,6 +54,10 @@ struct lts_conf_asyn_s {
     uintptr_t port;
 };
 
+struct lts_conf_lua_s {
+    lts_str_t entry;
+};
+
 
 typedef struct {
     lts_str_t name;
@@ -66,6 +71,7 @@ typedef struct {
 extern lts_conf_t lts_main_conf;
 extern lts_conf_sync_t lts_sync_conf;
 extern lts_conf_asyn_t lts_asyn_conf;
+extern lts_conf_lua_t lts_lua_conf;
 
 extern int load_conf_file(lts_file_t *file, uint8_t **addr, off_t *sz);
 

@@ -15,15 +15,60 @@
 
 #define __THIS_FILE__       "src/modules/mod_app_lua.c"
 
+#define CONF_FILE           "conf/mod_app.conf"
+
 
 static lua_State *s_state;
 static struct {
     lts_socket_t *s;
 } s_lua_ctx;
+static int load_lua_config(lts_conf_lua_t *conf, lts_pool_t *pool);
+
+
+// 加载模块配置
+int load_lua_config(lts_conf_lua_t *conf, lts_pool_t *pool)
+{
+    extern lts_conf_item_t *lts_conf_lua_items[];
+
+    off_t sz;
+    uint8_t *addr;
+    int rslt;
+    lts_file_t lts_conf_file = {
+        -1, {
+            (uint8_t *)CONF_FILE, sizeof(CONF_FILE) - 1,
+        },
+    };
+
+    if (-1 == load_conf_file(&lts_conf_file, &addr, &sz)) {
+        return -1;
+    }
+    rslt = parse_conf(addr, sz, lts_conf_lua_items, pool, conf);
+    close_conf_file(&lts_conf_file, addr, sz);
+
+    return rslt;
+}
 
 
 static int init_lua_module(lts_module_t *module)
 {
+    lts_pool_t *pool;
+
+    // 创建模块内存池
+    pool = lts_create_pool(MODULE_POOL_SIZE);
+    if (NULL == pool) {
+        // log
+        return -1;
+    }
+    module->pool = pool;
+
+    // 读取模块配置
+    if (-1 == load_lua_config(&lts_lua_conf, module->pool)) {
+        (void)lts_write_logger(&lts_stderr_logger, LTS_LOG_WARN,
+                               "%s:load lua config failed, using default\n",
+                               STR_LOCATION);
+    }
+
+    // 初始化lua运行环境
     s_state = luaL_newstate();
     if (NULL == s_state) {
         return -1;
@@ -37,6 +82,13 @@ static int init_lua_module(lts_module_t *module)
 static void exit_lua_module(lts_module_t *module)
 {
     lua_close(s_state);
+
+    // 销毁模块内存池
+    if (module->pool) {
+        lts_destroy_pool(module->pool);
+        module->pool = NULL;
+    }
+
     return;
 }
 
@@ -87,7 +139,7 @@ static void lua_service(lts_socket_t *s)
 
     s_lua_ctx.s = s;
 
-    if (luaL_loadfile(s_state, "service.lua")) {
+    if (luaL_loadfile(s_state, (char const *)lts_lua_conf.entry.data)) {
         // LUA_ERRFILE
         fprintf(stderr, "%s\n", lua_tostring(s_state, -1));
         return;
