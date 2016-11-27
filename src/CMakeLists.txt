@@ -2,7 +2,7 @@ ADD_SUBDIRECTORY(modules)
 
 AUX_SOURCE_DIRECTORY(. src_utils)
 ADD_EXECUTABLE(latasia ${src_utils})
-TARGET_LINK_LIBRARIES(latasia z mcheck pthread lts_modules)
+TARGET_LINK_LIBRARIES(latasia z mcheck lts_modules)
 
 ADD_EXECUTABLE(test_charmap tests/test_charmap.c)
 TARGET_LINK_LIBRARIES(test_charmap mcheck)
