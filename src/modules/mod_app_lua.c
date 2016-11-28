@@ -69,6 +69,8 @@ static int init_lua_module(lts_module_t *module)
     }
 
     // 初始化lua运行环境
+    setenv("LUA_PATH", (char const *)lts_lua_conf.search_path.data, TRUE);
+    setenv("LUA_CPATH", (char const *)lts_lua_conf.search_cpath.data, TRUE);
     s_state = luaL_newstate();
     if (NULL == s_state) {
         return -1;

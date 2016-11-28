@@ -55,6 +55,8 @@ struct lts_conf_asyn_s {
 };
 
 struct lts_conf_lua_s {
+    lts_str_t search_path;
+    lts_str_t search_cpath;
     lts_str_t entry;
 };
 
