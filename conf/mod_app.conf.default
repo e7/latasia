@@ -1,5 +1,5 @@
 {
-    "lua_package_path": ";;",
-    "lua_package_cpath": ";;",
+    "lua_package_path": "lua_app/lib/lua/?.lua;;",
+    "lua_package_cpath": "lua_app/lib/c/?.so;;",
     "entry": "lua_app/service.lua",
 }

@@ -69,13 +69,30 @@ static int init_lua_module(lts_module_t *module)
     }
 
     // 初始化lua运行环境
-    setenv("LUA_PATH", (char const *)lts_lua_conf.search_path.data, TRUE);
-    setenv("LUA_CPATH", (char const *)lts_lua_conf.search_cpath.data, TRUE);
+    // setenv("LUA_PATH", (char const *)lts_lua_conf.search_path.data, TRUE);
+    // setenv("LUA_CPATH", (char const *)lts_lua_conf.search_cpath.data, TRUE);
     s_state = luaL_newstate();
     if (NULL == s_state) {
         return -1;
     }
     luaL_openlibs(s_state);
+
+    lua_getglobal(s_state, "package");
+    if (! lua_istable(s_state, -1)) {
+        return -1;
+    }
+
+    lua_pushlstring(
+        s_state, (char const *)lts_lua_conf.search_path.data,
+        lts_lua_conf.search_path.len
+    );
+    lua_setfield(s_state, -2, "path");
+    lua_pushlstring(
+        s_state, (char const *)lts_lua_conf.search_cpath.data,
+        lts_lua_conf.search_cpath.len
+    );
+    lua_setfield(s_state, -2, "cpath");
+    lua_pop(s_state, 1);
 
     return 0;
 }
@@ -146,6 +163,7 @@ static void lua_service(lts_socket_t *s)
         fprintf(stderr, "%s\n", lua_tostring(s_state, -1));
         return;
     }
+
 
     // 注册api
     lua_register(s_state, "lts_context", &set_context_table);
