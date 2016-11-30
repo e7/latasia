@@ -4,9 +4,9 @@
 
 #include <strings.h>
 
-#include "lua/lua.h"
-#include "lua/lualib.h"
-#include "lua/lauxlib.h"
+#include "luajit/lua.h"
+#include "luajit/lualib.h"
+#include "luajit/lauxlib.h"
 
 #include "latasia.h"
 #include "rbtree.h"
