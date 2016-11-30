@@ -181,6 +181,8 @@ static void lua_service(lts_socket_t *s)
         return;
     }
 
+    lts_buffer_clear(rb);
+
     return;
 }
 
