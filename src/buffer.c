@@ -34,7 +34,7 @@ lts_buffer_t *lts_create_buffer(lts_pool_t *pool,
 }
 
 
-int lts_buffer_append(lts_buffer_t *buffer, uint8_t *data, ssize_t n)
+int lts_buffer_append(lts_buffer_t *buffer, uint8_t const *data, ssize_t n)
 {
     if ((buffer->end - buffer->last) < n) { // 可用空间不足
         uint8_t *tmp;

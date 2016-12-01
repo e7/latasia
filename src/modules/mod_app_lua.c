@@ -118,9 +118,19 @@ static void lua_on_connected(lts_socket_t *s)
 }
 
 
+static int api_pop_rbuf(lua_State *s)
+{
+    lts_buffer_t *rb = s_lua_ctx.s->conn->rbuf;
+    lua_pushlstring(s_state, (char const *)rb->seek, rb->last - rb->seek);
+    return 1;
+}
+
+
 static int api_push_sbuf(lua_State *s)
 {
-    uint8_t *data = (uint8_t *)lua_tostring(s, 1);
+    uint8_t const *data;
+    size_t dlen;
+    data = (uint8_t const *)lua_tolstring(s, 1, &dlen);
     lts_buffer_t *sb = s_lua_ctx.s->conn->sbuf;
 
     if (NULL == data) {
@@ -128,33 +138,33 @@ static int api_push_sbuf(lua_State *s)
     }
 
     lua_pop(s, 1);
-    lts_buffer_append(sb, data, strlen((char const *)data));
+    lts_buffer_append(sb, data, dlen);
 
     return 0;
 }
 
 
-static int set_context_table(lua_State *s)
-{
-    int table_idx;
-    lts_buffer_t *rb = s_lua_ctx.s->conn->rbuf;
-
-    lua_newtable(s);
-    table_idx = lua_gettop(s);
-
-    lua_pushlstring(s, (char const *)rb->seek, rb->last - rb->seek);
-    lua_setfield(s, table_idx, "rbuf");
-    lua_pushcfunction(s, &api_push_sbuf);
-    lua_setfield(s, table_idx, "push_sbuf");
-
-    return 1; // lua调该函数时返回值数目
-}
+//static int set_context_table(lua_State *s)
+//{
+//    int table_idx;
+//    lts_buffer_t *rb = s_lua_ctx.s->conn->rbuf;
+//
+//    lua_newtable(s);
+//    table_idx = lua_gettop(s);
+//
+//    lua_pushlstring(s, (char const *)rb->seek, rb->last - rb->seek);
+//    lua_setfield(s, table_idx, "rbuf");
+//    lua_pushcfunction(s, &api_push_sbuf);
+//    lua_setfield(s, table_idx, "push_sbuf");
+//
+//    return 1; // lua调该函数时返回值数目
+//}
 
 
 static void lua_service(lts_socket_t *s)
 {
     lts_buffer_t *rb = s->conn->rbuf;
-    lts_buffer_t *sb = s->conn->sbuf;
+    // lts_buffer_t *sb = s->conn->sbuf;
 
     s_lua_ctx.s = s;
 
@@ -166,7 +176,7 @@ static void lua_service(lts_socket_t *s)
 
 
     // 注册api
-    lua_register(s_state, "lts_context", &set_context_table);
+    // lua_register(s_state, "lts_context", &set_context_table);
 
     // 执行初始化
     if (lua_pcall(s_state, 0, 0, 0)) {
@@ -176,7 +186,14 @@ static void lua_service(lts_socket_t *s)
 
     // 执行main函数
     lua_getglobal(s_state, "main");
-    if (lua_pcall(s_state, 0, 0, 0)) {
+    lua_newtable(s_state);
+    lua_pushstring(s_state, "pop_rbuf");
+    lua_pushcfunction(s_state, &api_pop_rbuf);
+    lua_settable(s_state, -3);
+    lua_pushstring(s_state, "push_sbuf");
+    lua_pushcfunction(s_state, &api_push_sbuf);
+    lua_settable(s_state, -3);
+    if (lua_pcall(s_state, 1, 0, 0)) {
         fprintf(stderr, "call function `main` faile:%s\n", lua_tostring(s_state, -1));
         return;
     }
