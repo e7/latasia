@@ -118,6 +118,27 @@ static void lua_on_connected(lts_socket_t *s)
 }
 
 
+static int api_tcp_socket(lua_State *s)
+{
+    extern lts_event_module_itfc_t *lts_event_itfc;
+    int sockfd;
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (-1 == sockfd) {
+        lua_pushstring(s_state, "create socket failed");
+        lua_pushnil(s_state);
+        return 2;
+    }
+
+    lua_newtable(s_state);
+        lua_pushstring(s_state, "fd");
+        lua_pushinteger(s_state, sockfd);
+    lua_pushnil(s_state);
+
+    return 2;
+}
+
+
 static int api_pop_rbuf(lua_State *s)
 {
     lts_buffer_t *rb = s_lua_ctx.s->conn->rbuf;
@@ -176,7 +197,26 @@ static void lua_service(lts_socket_t *s)
 
 
     // 注册api
-    // lua_register(s_state, "lts_context", &set_context_table);
+    lua_newtable(s_state);
+        // ctx
+        lua_pushstring(s_state, "ctx");
+        lua_newtable(s_state);
+            lua_pushstring(s_state, "pop_rbuf");
+            lua_pushcfunction(s_state, &api_pop_rbuf);
+            lua_settable(s_state, -3);
+            lua_pushstring(s_state, "push_sbuf");
+            lua_pushcfunction(s_state, &api_push_sbuf);
+            lua_settable(s_state, -3);
+        lua_settable(s_state, -3);
+
+        // socket
+        lua_pushstring(s_state, "socket");
+        lua_newtable(s_state);
+            lua_pushstring(s_state, "tcp");
+            lua_pushcfunction(s_state, &api_tcp_socket);
+            lua_settable(s_state, -3);
+        lua_settable(s_state, -3);
+    lua_setglobal(s_state, "lts");
 
     // 执行初始化
     if (lua_pcall(s_state, 0, 0, 0)) {
@@ -186,14 +226,7 @@ static void lua_service(lts_socket_t *s)
 
     // 执行main函数
     lua_getglobal(s_state, "main");
-    lua_newtable(s_state);
-    lua_pushstring(s_state, "pop_rbuf");
-    lua_pushcfunction(s_state, &api_pop_rbuf);
-    lua_settable(s_state, -3);
-    lua_pushstring(s_state, "push_sbuf");
-    lua_pushcfunction(s_state, &api_push_sbuf);
-    lua_settable(s_state, -3);
-    if (lua_pcall(s_state, 1, 0, 0)) {
+    if (lua_pcall(s_state, 0, 0, 0)) {
         fprintf(stderr, "call function `main` faile:%s\n", lua_tostring(s_state, -1));
         return;
     }

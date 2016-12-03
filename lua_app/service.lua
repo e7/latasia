@@ -19,11 +19,14 @@ end
 
 
 function main(ctx)
-    local rbuf = ctx.pop_rbuf()
+    local rbuf = lts.ctx.pop_rbuf()
 
+    print(rbuf)
     local ne, magic_no = find_package(rbuf, 1)
-    if 1 == ne then
+    if nil == magic_no then
         print("no valid package")
+    	lts.ctx.push_sbuf(rbuf)
+        return
     end
 
     local ne, version, ent_ofst, ent_len, checksum
@@ -31,5 +34,5 @@ function main(ctx)
     local ne, data = string.unpack(rbuf, string.format("A%d", ent_len), ne)
     print(data)
 
-    ctx.push_sbuf(rbuf)
+    lts.ctx.push_sbuf(rbuf)
 end
