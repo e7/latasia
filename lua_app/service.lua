@@ -3,7 +3,7 @@ local ffi = require "ffi"
 local pack = require "ltspack"
 
 
-local function find_package(data, seek)
+function find_package(data, seek)
     local ne, magic_no
 
     while true do
@@ -18,9 +18,11 @@ local function find_package(data, seek)
 end
 
 
-function main(ctx)
-    local rbuf = lts.ctx.pop_rbuf()
+function main()
+    local sock, err = lts.socket.tcp()
+    sock.connect("a.b.c")
 
+    local rbuf = lts.ctx.pop_rbuf()
     print(rbuf)
     local ne, magic_no = find_package(rbuf, 1)
     if nil == magic_no then
@@ -36,3 +38,5 @@ function main(ctx)
 
     lts.ctx.push_sbuf(rbuf)
 end
+
+main()
