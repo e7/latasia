@@ -20,7 +20,16 @@ end
 
 function main()
     local sock, err = lts.socket.tcp()
-    sock.connect("a.b.c")
+    if 200 ~= err then
+        print("create socket failed", err)
+        return
+    end
+
+    err = sock:connect("127.0.0.1", 5544)
+    if 200 ~= err then
+        print("connect failed", err)
+        return
+    end
 
     local rbuf = lts.ctx.pop_rbuf()
     print(rbuf)

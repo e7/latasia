@@ -1,6 +1,7 @@
 #include <zlib.h>
 #include <arpa/inet.h>
 #include <dirent.h>
+#include <sys/epoll.h>
 
 #include <strings.h>
 
@@ -8,6 +9,7 @@
 #include "luajit/lualib.h"
 #include "luajit/lauxlib.h"
 
+#include "obj_pool.h"
 #include "latasia.h"
 #include "rbtree.h"
 #include "logger.h"
@@ -22,7 +24,11 @@ static lua_State *s_state;
 static struct {
     lts_socket_t *s;
 } s_lua_ctx;
+static lts_obj_pool_t s_sock_pool;
+
 static int load_lua_config(lts_conf_lua_t *conf, lts_pool_t *pool);
+static void connect_on_write(lts_socket_t *s);
+static void connect_on_error(lts_socket_t *s);
 
 
 // 加载模块配置
@@ -52,6 +58,8 @@ int load_lua_config(lts_conf_lua_t *conf, lts_pool_t *pool)
 static int init_lua_module(lts_module_t *module)
 {
     lts_pool_t *pool;
+    lts_socket_t *cache;
+    ssize_t cache_len;
 
     // 创建模块内存池
     pool = lts_create_pool(MODULE_POOL_SIZE);
@@ -67,6 +75,12 @@ static int init_lua_module(lts_module_t *module)
                                "%s:load lua config failed, using default\n",
                                STR_LOCATION);
     }
+
+    // 创建后端socket对象池
+    cache_len = sizeof(lts_socket_t) * 1;
+    cache = (lts_socket_t *)lts_palloc(pool, cache_len);
+    lts_init_opool(&s_sock_pool, cache, cache_len,
+                   sizeof(lts_socket_t), OFFSET_OF(lts_socket_t, dlnode));
 
     // 初始化lua运行环境
     // setenv("LUA_PATH", (char const *)lts_lua_conf.search_path.data, TRUE);
@@ -118,7 +132,27 @@ static void lua_on_connected(lts_socket_t *s)
 }
 
 
+void connect_on_write(lts_socket_t *s)
+{
+    fprintf(stderr, "connect_on_write\n");
+}
+
+
+void connect_on_error(lts_socket_t *s)
+{
+    fprintf(stderr, "connect_on_error\n");
+}
+
+
 // lts.socket.tcp {{
+enum {
+    E_SUCCESS = 200,
+    E_CREATE_SOCKET = 400,
+    E_OUT_OF_POOL, // 401
+    E_INVALID_ARG, // 402
+    E_CONNECT_FAILED, // 403
+    E_IN_PROGRESS, // 404
+};
 static int api_tcp_socket_connect(lua_State *s);
 static int api_tcp_socket_close(lua_State *s);
 static int api_tcp_socket(lua_State *s);
@@ -126,18 +160,28 @@ static int api_tcp_socket(lua_State *s);
 int api_tcp_socket(lua_State *s)
 {
     int sockfd;
+    lts_socket_t *conn;
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == sockfd) {
         lua_pushnil(s_state);
-        lua_pushstring(s_state, "create socket failed");
+        lua_pushinteger(s_state, E_CREATE_SOCKET);
         return 2;
     }
     lts_set_nonblock(sockfd);
 
+    conn = lts_op_instance(&s_sock_pool);
+    if (NULL == conn) {
+        lua_pushnil(s_state);
+        lua_pushinteger(s_state, E_OUT_OF_POOL);
+        return 2;
+    }
+    lts_init_socket(conn);
+    conn->fd = sockfd;
+
     lua_newtable(s_state);
-        lua_pushstring(s_state, "fd");
-        lua_pushinteger(s_state, sockfd);
+        lua_pushstring(s_state, "_sock");
+        lua_pushlightuserdata(s_state, conn);
         lua_settable(s_state, -3);
 
         lua_pushstring(s_state, "connect");
@@ -147,7 +191,7 @@ int api_tcp_socket(lua_State *s)
         lua_pushstring(s_state, "close");
         lua_pushcfunction(s_state, &api_tcp_socket_close);
         lua_settable(s_state, -3);
-    lua_pushnil(s_state);
+    lua_pushinteger(s_state, E_SUCCESS);
 
     return 2;
 }
@@ -157,12 +201,47 @@ int api_tcp_socket_connect(lua_State *s)
 {
     extern lts_event_module_itfc_t *lts_event_itfc;
 
-    struct sockaddr_in svr;
-    lts_str_t target_addr = lts_string(lua_tostring(s, -1));
-    int target_port = lua_tointeger(s, -2);
-    fprintf(stderr, "%s\n", target_addr.data);
+    int ok;
+    struct sockaddr_in svr = {0};
+    lts_socket_t *conn;
+    //lts_str_t target_addr = lts_string();
 
-    lua_pushnil(s);
+    svr.sin_family = AF_INET;
+    svr.sin_port = htons(luaL_checkint(s, -1));
+    if (! inet_aton(luaL_checkstring(s, -2), &svr.sin_addr)) {
+        lua_pushinteger(s, E_INVALID_ARG);
+        return 1;
+    }
+
+    lua_pop(s, 2); // 释放用户参数
+
+    luaL_checktype(s, -1, LUA_TTABLE);
+    lua_getfield(s, -1, "_sock");
+    conn = (lts_socket_t *)lua_topointer(s, -1);
+    fprintf(stderr, "%p\n", conn);
+
+    ok = connect(conn->fd, (struct sockaddr *)&svr, sizeof(svr));
+    if (-1 == ok) {
+        if (errno != EINPROGRESS) {
+            fprintf(stderr, "connect failed: %d\n", errno);
+            (void)close(conn->fd);
+            lts_op_release(&s_sock_pool, conn);
+
+            lua_pushinteger(s, E_CONNECT_FAILED);
+            return 1;
+        }
+
+        // 事件监视
+        conn->ev_mask = EPOLLOUT | EPOLLET;
+        conn->do_write = &connect_on_write;
+        conn->do_error = &connect_on_error;
+        (*lts_event_itfc->event_add)(conn);
+
+        lua_pushinteger(s, E_IN_PROGRESS);
+        return 1;
+    }
+
+    lua_pushinteger(s, E_SUCCESS);
     return 1;
 }
 

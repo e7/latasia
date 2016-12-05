@@ -125,10 +125,9 @@ static int epoll_process_events(void)
         }
 
         revents = buf_epevs[i].events;
-        if ((revents & (EPOLLERR | EPOLLHUP)
-            && (revents & (EPOLLIN | EPOLLOUT)) == 0))
-        {
-            revents |= (EPOLLIN | EPOLLOUT);
+        if (revents & (EPOLLERR | EPOLLHUP)) {
+            (*cs->do_error)(cs);
+            continue;
         }
 
         if (revents & EPOLLIN) {

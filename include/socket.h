@@ -60,6 +60,7 @@ struct lts_socket_s {
 
     lts_handle_event_pt do_read;
     lts_handle_event_pt do_write;
+    lts_handle_event_pt do_error;
 
     void *app_ctx;
 };
@@ -120,6 +121,7 @@ void lts_init_socket(lts_socket_t *s)
 
     s->do_read = NULL;
     s->do_write = NULL;
+    s->do_error = NULL;
 }
 
 
