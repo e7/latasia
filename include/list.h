@@ -130,8 +130,7 @@ void dlist_add_orig(dlist_t *p_new_node,
 static inline
 int dlist_empty(dlist_t *p_list)
 {
-    return ((p_list->mp_prev == p_list->mp_next)
-                && (p_list == p_list->mp_prev));
+    return ((p_list == p_list->mp_prev) || (p_list == p_list->mp_next));
 }
 
 static inline
