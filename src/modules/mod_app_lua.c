@@ -20,6 +20,8 @@
 #define CONF_FILE           "conf/mod_app.conf"
 
 
+extern lts_event_module_itfc_t *lts_event_itfc;
+
 static lua_State *s_state;
 static struct {
     lts_socket_t *s;
@@ -134,13 +136,28 @@ static void lua_on_connected(lts_socket_t *s)
 
 void connect_on_write(lts_socket_t *s)
 {
-    fprintf(stderr, "connect_on_write\n");
+    s->writable = 0;
+    fprintf(stderr, "connection established\n");
+
+    // 连接已建立
+
+    return;
 }
 
 
 void connect_on_error(lts_socket_t *s)
 {
-    fprintf(stderr, "connect_on_error\n");
+    int tmperr;
+    socklen_t len = sizeof(tmperr);
+
+    (void)getsockopt(s->fd, SOL_SOCKET, SO_ERROR, &tmperr, &len);
+    fprintf(stderr, "connect_on_error: %s\n", lts_errno_desc[tmperr]);
+
+    (*lts_event_itfc->event_del)(s);
+    (void)close(s->fd);
+    lts_op_release(&s_sock_pool, s);
+
+    return;
 }
 
 
@@ -164,6 +181,7 @@ int api_tcp_socket(lua_State *s)
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == sockfd) {
+        fprintf(stderr, "socket() failed: %s\n", lts_errno_desc[errno]);
         lua_pushnil(s_state);
         lua_pushinteger(s_state, E_CREATE_SOCKET);
         return 2;
@@ -172,6 +190,7 @@ int api_tcp_socket(lua_State *s)
 
     conn = lts_op_instance(&s_sock_pool);
     if (NULL == conn) {
+        fprintf(stderr, "out of pool\n");
         lua_pushnil(s_state);
         lua_pushinteger(s_state, E_OUT_OF_POOL);
         return 2;
@@ -199,8 +218,6 @@ int api_tcp_socket(lua_State *s)
 
 int api_tcp_socket_connect(lua_State *s)
 {
-    extern lts_event_module_itfc_t *lts_event_itfc;
-
     int ok;
     struct sockaddr_in svr = {0};
     lts_socket_t *conn;
@@ -248,8 +265,6 @@ int api_tcp_socket_connect(lua_State *s)
 
 int api_tcp_socket_close(lua_State *s)
 {
-    extern lts_event_module_itfc_t *lts_event_itfc;
-
     return 0;
 }
 // }} lts.socket.tcp
