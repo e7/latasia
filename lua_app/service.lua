@@ -19,14 +19,25 @@ end
 
 
 function main()
+    print("main")
     local sock, err = lts.socket.tcp()
+
     if 200 ~= err then
         print("create socket failed", err)
         return
     end
 
-    err = sock:connect("127.0.0.1", 5544)
-    if 200 ~= err then
+    err = sock:connect("127.0.0.1", 3306)
+    if 404 == err then
+        err = coroutine.yield(845)
+        print("over yield")
+    end
+
+    if 200 == err then
+        print("connect success")
+        sock:close()
+        return
+    else
         print("connect failed", err)
         return
     end

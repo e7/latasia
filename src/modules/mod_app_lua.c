@@ -20,9 +20,21 @@
 #define CONF_FILE           "conf/mod_app.conf"
 
 
+enum {
+    E_SUCCESS = 200,
+    E_CREATE_SOCKET = 400,
+    E_OUT_OF_POOL, // 401
+    E_INVALID_ARG, // 402
+    E_CONNECT_FAILED, // 403
+    E_IN_PROGRESS, // 404
+};
+
+
 extern lts_event_module_itfc_t *lts_event_itfc;
 
-static lua_State *s_state;
+static lua_State *s_state, *s_rt_state;
+static uint32_t s_rt_status;
+
 static struct {
     lts_socket_t *s;
 } s_lua_ctx;
@@ -110,6 +122,8 @@ static int init_lua_module(lts_module_t *module)
     lua_setfield(s_state, -2, "cpath");
     lua_pop(s_state, 1);
 
+    s_rt_state = lua_newthread(s_state); // 子routine
+
     return 0;
 }
 
@@ -136,10 +150,16 @@ static void lua_on_connected(lts_socket_t *s)
 
 void connect_on_write(lts_socket_t *s)
 {
-    s->writable = 0;
     fprintf(stderr, "connection established\n");
 
+    s->writable = 0;
+    (*lts_event_itfc->event_del)(s);
+
     // 连接已建立
+    ASSERT(LUA_YIELD == s_rt_status);
+    lua_pushinteger(s_state, E_SUCCESS);
+    fprintf(stderr, "restart routine\n");
+    (void)lua_resume(s_state, 1);
 
     return;
 }
@@ -157,20 +177,21 @@ void connect_on_error(lts_socket_t *s)
     (void)close(s->fd);
     lts_op_release(&s_sock_pool, s);
 
+    // 连接失败
+    ASSERT(LUA_YIELD == s_rt_status);
+    lua_pushinteger(s_state, E_CONNECT_FAILED);
+    fprintf(stderr, "restart routine\n");
+    ASSERT(LUA_TTHREAD == lua_type(s_state, -1));
+    (void)lua_resume(s_state, 1);
+
     return;
 }
 
 
 // lts.socket.tcp {{
-enum {
-    E_SUCCESS = 200,
-    E_CREATE_SOCKET = 400,
-    E_OUT_OF_POOL, // 401
-    E_INVALID_ARG, // 402
-    E_CONNECT_FAILED, // 403
-    E_IN_PROGRESS, // 404
-};
 static int api_tcp_socket_connect(lua_State *s);
+static int api_tcp_socket_send(lua_State *s);
+static int api_tcp_socket_recv(lua_State *s);
 static int api_tcp_socket_close(lua_State *s);
 static int api_tcp_socket(lua_State *s);
 
@@ -223,6 +244,7 @@ int api_tcp_socket_connect(lua_State *s)
     lts_socket_t *conn;
     //lts_str_t target_addr = lts_string();
 
+    fprintf(stderr, "request connect\n");
     svr.sin_family = AF_INET;
     svr.sin_port = htons(luaL_checkint(s, -1));
     if (! inet_aton(luaL_checkstring(s, -2), &svr.sin_addr)) {
@@ -235,7 +257,6 @@ int api_tcp_socket_connect(lua_State *s)
     luaL_checktype(s, -1, LUA_TTABLE);
     lua_getfield(s, -1, "_sock");
     conn = (lts_socket_t *)lua_topointer(s, -1);
-    fprintf(stderr, "%p\n", conn);
 
     ok = connect(conn->fd, (struct sockaddr *)&svr, sizeof(svr));
     if (-1 == ok) {
@@ -265,6 +286,16 @@ int api_tcp_socket_connect(lua_State *s)
 
 int api_tcp_socket_close(lua_State *s)
 {
+    lts_socket_t *conn;
+
+    luaL_checktype(s, -1, LUA_TTABLE);
+    lua_getfield(s, -1, "_sock");
+    conn = (lts_socket_t *)lua_topointer(s, -1);
+
+    (void)(*lts_event_itfc->event_del)(conn);
+    (void)close(conn->fd);
+    lts_op_release(&s_sock_pool, conn);
+
     return 0;
 }
 // }} lts.socket.tcp
@@ -320,12 +351,13 @@ static void lua_service(lts_socket_t *s)
 
     s_lua_ctx.s = s;
 
+    fprintf(stderr, "name: %s\n", luaL_typename(s_state, -1));
+
     if (luaL_loadfile(s_state, (char const *)lts_lua_conf.entry.data)) {
         // LUA_ERRFILE
         fprintf(stderr, "%s\n", lua_tostring(s_state, -1));
         return;
     }
-
 
     // 注册api
     lua_newtable(s_state);
@@ -350,10 +382,9 @@ static void lua_service(lts_socket_t *s)
     lua_setglobal(s_state, "lts");
 
     // 执行
-    if (lua_pcall(s_state, 0, 0, 0)) {
-        fprintf(stderr, "%s\n", lua_tostring(s_state, -1));
-        return;
-    }
+    fprintf(stderr, "stack size: %d\n", lua_gettop(s_state));
+    fprintf(stderr, "restart routine\n");
+    s_rt_status = lua_resume(s_state, 0);
 
     lts_buffer_clear(rb);
 
