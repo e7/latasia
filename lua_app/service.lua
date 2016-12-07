@@ -27,19 +27,21 @@ function main()
         return
     end
 
-    err = sock:connect("127.0.0.1", 3306)
+    err = sock:connect("127.0.0.1", 30976)
 
-    if 200 == err then
-        print("connect success")
-        sock:close()
-        return
-    else
+    if 200 ~= err then
         print("connect failed", err)
         return
     end
 
-    --local rbuf = lts.ctx.pop_rbuf()
-    --print(rbuf)
+    local d = sock:receive(4)
+
+    print("closing")
+    sock:close()
+
+    local rbuf = lts.ctx.pop_rbuf()
+    print(rbuf)
+    lts.ctx.push_sbuf(rbuf)
     --local ne, magic_no = find_package(rbuf, 1)
     --if nil == magic_no then
     --    print("no valid package")
@@ -52,7 +54,6 @@ function main()
     --local ne, data = string.unpack(rbuf, string.format("A%d", ent_len), ne)
     --print(data)
 
-    --lts.ctx.push_sbuf(rbuf)
 end
 
 main()

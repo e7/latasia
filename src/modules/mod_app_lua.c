@@ -39,14 +39,15 @@ static struct {
 static lts_obj_pool_t s_sock_pool;
 
 static int load_lua_config(lts_conf_lua_t *conf, lts_pool_t *pool);
-static void connect_on_write(lts_socket_t *s);
-static void connect_on_error(lts_socket_t *s);
 
 static int api_pop_rbuf(lua_State *s);
 static int api_push_sbuf(lua_State *s);
 static int api_tcp_socket_connect(lua_State *s);
+static void tcp_on_read(lts_socket_t *s);
+static void tcp_on_write(lts_socket_t *s);
+static void tcp_on_error(lts_socket_t *s);
 static int api_tcp_socket_send(lua_State *s);
-static int api_tcp_socket_recv(lua_State *s);
+static int api_tcp_socket_receive(lua_State *s);
 static int api_tcp_socket_close(lua_State *s);
 static int api_tcp_socket(lua_State *s);
 
@@ -176,26 +177,40 @@ static void lua_on_connected(lts_socket_t *s)
 }
 
 
-void connect_on_write(lts_socket_t *s)
+void tcp_on_read(lts_socket_t *s)
+{
+    int bufsz;
+
+    s->readable = 0;
+
+    bufsz = lua_tointeger(s_rt_state, -1);
+    lua_pop(s_rt_state, 1);
+
+    fprintf(stderr, "tcp on read\n");
+    return;
+}
+
+
+void tcp_on_write(lts_socket_t *s)
 {
     s->writable = 0;
-    (*lts_event_itfc->event_del)(s);
 
     // 连接已建立
     lua_pushinteger(s_rt_state, E_SUCCESS);
+    fprintf(stderr, "resume lua(tcp_on_write)\n");
     (void)lua_resume(s_rt_state, 1);
 
     return;
 }
 
 
-void connect_on_error(lts_socket_t *s)
+void tcp_on_error(lts_socket_t *s)
 {
     int tmperr;
     socklen_t len = sizeof(tmperr);
 
     (void)getsockopt(s->fd, SOL_SOCKET, SO_ERROR, &tmperr, &len);
-    fprintf(stderr, "connect_on_error: %s\n", lts_errno_desc[tmperr]);
+    fprintf(stderr, "tcp_on_error: %s\n", lts_errno_desc[tmperr]);
 
     (*lts_event_itfc->event_del)(s);
     (void)close(s->fd);
@@ -203,6 +218,7 @@ void connect_on_error(lts_socket_t *s)
 
     // 连接失败
     lua_pushinteger(s_rt_state, E_FAILED);
+    fprintf(stderr, "resume lua(tcp_on_error)\n");
     (void)lua_resume(s_rt_state, 1);
 
     return;
@@ -246,6 +262,10 @@ int api_tcp_socket(lua_State *s)
         lua_pushstring(s, "close");
         lua_pushcfunction(s, &api_tcp_socket_close);
         lua_settable(s, -3);
+
+        lua_pushstring(s, "receive");
+        lua_pushcfunction(s, &api_tcp_socket_receive);
+        lua_settable(s, -3);
     lua_pushinteger(s, E_SUCCESS);
 
     return 2;
@@ -259,14 +279,12 @@ int api_tcp_socket_connect(lua_State *s)
     lts_socket_t *conn;
     //lts_str_t target_addr = lts_string();
 
-    fprintf(stderr, "request connect\n");
     svr.sin_family = AF_INET;
     svr.sin_port = htons(luaL_checkint(s, -1));
     if (! inet_aton(luaL_checkstring(s, -2), &svr.sin_addr)) {
         lua_pushinteger(s, E_INVALIDARG);
         return 1;
     }
-
     lua_pop(s, 2); // 释放用户参数
 
     luaL_checktype(s, -1, LUA_TTABLE);
@@ -280,22 +298,55 @@ int api_tcp_socket_connect(lua_State *s)
             (void)close(conn->fd);
             lts_op_release(&s_sock_pool, conn);
 
+            lua_pop(s, 1); // 释放self参数
             lua_pushinteger(s, E_FAILED);
             return 1;
         }
 
         // 事件监视
         conn->ev_mask = EPOLLOUT | EPOLLET;
-        conn->do_write = &connect_on_write;
-        conn->do_error = &connect_on_error;
+        conn->do_write = &tcp_on_write;
+        conn->do_error = &tcp_on_error;
         (*lts_event_itfc->event_add)(conn);
 
-        lua_pushinteger(s_rt_state, LUA_YIELD);
-        return lua_yield(s_rt_state, 1);
+        lua_pop(s, 1); // 释放self参数
+
+        return lua_yield(s_rt_state, 0);
     }
 
+    lua_pop(s, 1); // 释放self参数
     lua_pushinteger(s, E_SUCCESS);
     return 1;
+}
+
+
+int api_tcp_socket_send(lua_State *s)
+{
+    return 0;
+}
+
+
+int api_tcp_socket_receive(lua_State *s)
+{
+    int recv_sz;
+    lts_socket_t *conn;
+
+    recv_sz = luaL_checkint(s, -1);
+    lua_pop(s, 1); // 释放用户参数
+
+    luaL_checktype(s, -1, LUA_TTABLE);
+    lua_getfield(s, -1, "_sock");
+    conn = (lts_socket_t *)lua_topointer(s, -1);
+
+    // 开启只读事件监视
+    conn->ev_mask = EPOLLET | EPOLLIN;
+    conn->do_read = &tcp_on_read;
+    (*lts_event_itfc->event_mod)(conn);
+
+    lua_pop(s, 1); // 释放self参数
+
+    lua_pushinteger(s, recv_sz);
+    return lua_yield(s, 1);
 }
 
 
@@ -341,26 +392,10 @@ int api_push_sbuf(lua_State *s)
 
     lua_pop(s, 1);
     lts_buffer_append(sb, data, dlen);
+    lts_soft_event(s_lua_ctx.s, TRUE);
 
     return 0;
 }
-
-
-//static int set_context_table(lua_State *s)
-//{
-//    int table_idx;
-//    lts_buffer_t *rb = s_lua_ctx.s->conn->rbuf;
-//
-//    lua_newtable(s);
-//    table_idx = lua_gettop(s);
-//
-//    lua_pushlstring(s, (char const *)rb->seek, rb->last - rb->seek);
-//    lua_setfield(s, table_idx, "rbuf");
-//    lua_pushcfunction(s, &api_push_sbuf);
-//    lua_setfield(s, table_idx, "push_sbuf");
-//
-//    return 1; // lua调该函数时返回值数目
-//}
 
 
 static void lua_service(lts_socket_t *s)
@@ -375,6 +410,7 @@ static void lua_service(lts_socket_t *s)
         return;
     }
 
+    fprintf(stderr, "resume lua\n");
     (void)lua_resume(s_rt_state, 0);
 
     return;
