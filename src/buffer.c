@@ -81,6 +81,10 @@ void lts_buffer_drop_accessed(lts_buffer_t *buffer)
 {
     ssize_t drop_len = buffer->seek - buffer->start;
 
+    if (0 == drop_len) {
+        return;
+    }
+
     (void)memmove(buffer->start, buffer->seek, drop_len);
     buffer->seek = buffer->start;
     buffer->last = (uint8_t *)(

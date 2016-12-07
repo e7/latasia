@@ -34,7 +34,14 @@ function main()
         return
     end
 
-    local d = sock:receive(4)
+    local d1, err = sock:receive(4)
+    if 200 == err then
+        print("d1", d1)
+    end
+    local d2, err = sock:receive(4)
+    if 200 == err then
+        print("d2", d2)
+    end
 
     print("closing")
     sock:close()
