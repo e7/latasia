@@ -1,8 +1,10 @@
 #! /bin/bash
 
 # extract
-tar xvf LuaJIT-2.0.4.tar.gz
-ln -svf LuaJIT-2.0.4 luajit
+if [[ ! -x luajit ]] ; then
+    tar xvf LuaJIT-2.0.4.tar.gz
+    ln -svf LuaJIT-2.0.4 luajit
+fi
 
 # make
 cd luajit

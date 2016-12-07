@@ -10,5 +10,5 @@ if [[ ! -x ${obj_dir} ]]; then
     mkdir -p ${obj_dir}
 fi
 
-(cd lib; ./make_luajitlib.sh)
+(cd lib; ./make_lualib.sh)
 cd ${obj_dir} && cmake .. && make -j${total_cpu_cores}
