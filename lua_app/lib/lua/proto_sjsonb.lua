@@ -1,18 +1,11 @@
 local ltspack = require "ltspack"
 
 local _M = {_VERSION = '0.01'}
-local mt = {__index = _M}
-
-
-function _M.new(self)
-    return setmetatable({}, mt)
-end
 
 
 function _M.encode(self, proto_type, content)
     local rslt = string.pack(string.format(">IS2I2A%d", #content),
         0xE78F8A9D, 1000, 20, #content, 0, content)
-
     return rslt
 end
 

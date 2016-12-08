@@ -501,6 +501,7 @@ int api_tcp_socket_close(lua_State *s)
         lts_destroy_pool(conn->conn->pool);
         conn->conn = NULL;
     }
+    (void)shutdown(conn->fd, SHUT_WR);
     (void)close(conn->fd);
     lts_op_release(&s_sock_pool, conn);
 

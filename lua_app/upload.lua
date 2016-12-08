@@ -1,22 +1,5 @@
 local cjson = require "cjson"
 local sjsonb = require "proto_sjsonb"
---local ffi = require "ffi"
---local pack = require "ltspack"
---
---
---function find_package(data, seek)
---    local ne, magic_no
---
---    while true do
---        ne, magic_no = string.unpack(data, ">I", seek)
---
---        if ne == seek or 0xE78F8A9D == magic_no then
---            return ne, magic_no
---        end
---
---        seek = seek + 1
---    end
---end
 
 
 function main()
@@ -28,30 +11,23 @@ function main()
         return
     end
 
-    err = sock:connect("127.0.0.1", 30976)
+    err = sock:connect("127.0.0.1", 55555)
 
     if 200 ~= err then
         print("connect failed", err)
         return
     end
 
-    print(sock:send("asdfasf"))
+    local sjs = sjsonb.encode("lijia")
+    print(sjs)
+    print(sock:send(sjs))
     print("send returned")
-    --local d1, err = sock:receive(4)
-    --if 200 == err then
-    --    print("d1", d1)
-    --end
-    --local d2, err = sock:receive(4)
-    --if 200 == err then
-    --    print("d2", d2)
-    --end
-
-    print("closing")
     sock:close()
 
-    local rbuf = lts.ctx.pop_rbuf()
-    print(rbuf)
-    lts.ctx.push_sbuf(rbuf)
+    --local rbuf = lts.ctx.pop_rbuf()
+    --print(rbuf)
+    --lts.ctx.push_sbuf(rbuf)
+
     --local ne, magic_no = find_package(rbuf, 1)
     --if nil == magic_no then
     --    print("no valid package")
