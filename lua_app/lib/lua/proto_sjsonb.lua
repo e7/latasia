@@ -3,7 +3,7 @@ local ltspack = require "ltspack"
 local _M = {_VERSION = '0.01'}
 
 
-function _M.encode(self, proto_type, content)
+function _M.encode(proto_type, content)
     local rslt = string.pack(string.format(">IS2I2A%d", #content),
         0xE78F8A9D, 1000, 20, #content, 0, content)
     return rslt
@@ -11,7 +11,7 @@ end
 
 
 -- 返回内容类型，内容数据，错误信息
-function _M.decode(self, bytebuffer)
+function _M.decode(bytebuffer)
     local find_pack = function (bytebuffer, ofst)
         local ne, magic_no
 

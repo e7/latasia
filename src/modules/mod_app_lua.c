@@ -554,7 +554,9 @@ static void lua_service(lts_socket_t *s)
     }
 
     fprintf(stderr, "resume lua\n");
-    (void)lua_resume(s_rt_state, 0);
+    if (lua_resume(s_rt_state, 0)) {
+        fprintf(stderr, "%s\n", lua_tostring(s_rt_state, -1));
+    }
 
     return;
 }
