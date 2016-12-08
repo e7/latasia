@@ -5,9 +5,15 @@
 
 #include <strings.h>
 
+#ifdef LUAJIT
 #include "luajit/lua.h"
 #include "luajit/lualib.h"
 #include "luajit/lauxlib.h"
+#else
+#include "lua/lua.h"
+#include "lua/lualib.h"
+#include "lua/lauxlib.h"
+#endif
 
 #include "obj_pool.h"
 #include "latasia.h"
