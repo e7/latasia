@@ -27,6 +27,7 @@ static void epoll_event_add(lts_socket_t *s)
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "%s:epoll_ctl_add(%d) failed:%s\n",
                                STR_LOCATION, s->fd, lts_errno_desc[errno]);
+        ASSERT(0);
     }
 
     return;
@@ -44,6 +45,7 @@ static void epoll_event_mod(lts_socket_t *s)
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "%s:epoll_ctl_mod(%d) failed:%s\n",
                                STR_LOCATION, s->fd, lts_errno_desc[errno]);
+        ASSERT(0);
     }
 
     return;
@@ -58,6 +60,7 @@ static void epoll_event_del(lts_socket_t *s)
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_ERROR,
                                "%s:epoll_ctl_del(%d) failed:%s\n",
                                STR_LOCATION, s->fd, lts_errno_desc[errno]);
+        ASSERT(0);
     }
 
     return;

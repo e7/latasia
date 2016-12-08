@@ -218,14 +218,7 @@ void tcp_on_read(lts_socket_t *s)
         // 数据量压栈下次再读
         lua_pushinteger(s_rt_state, bufsz);
     } else {
-        // close connection
         (*lts_event_itfc->event_del)(s);
-        if (s->conn) {
-            lts_destroy_pool(s->conn->pool);
-            s->conn = NULL;
-        }
-        (void)close(s->fd);
-        lts_op_release(&s_sock_pool, s);
 
         lua_pushnil(s_rt_state);
         lua_pushinteger(s_rt_state, E_FAILED);
@@ -238,7 +231,33 @@ void tcp_on_read(lts_socket_t *s)
 
 void tcp_on_write(lts_socket_t *s)
 {
-    s->writable = 0;
+    ssize_t sendsz;
+    lts_buffer_t *sbuf = s->conn->sbuf;
+
+    if (0 == lts_buffer_pending(sbuf)) {
+        // no more sending
+        s->writable = 0;
+        (*lts_event_itfc->event_del)(s);
+
+        lua_pushinteger(s_rt_state, E_SUCCESS);
+        (void)lua_resume(s_rt_state, 1);
+        return;
+    }
+
+    sendsz = send(s->fd, sbuf->seek, lts_buffer_pending(sbuf), 0);
+    if (-1 == sendsz) {
+        if (EAGAIN == errno || EWOULDBLOCK == errno) {
+            s->writable = 0;
+        } else {
+            (*lts_event_itfc->event_del)(s);
+            lua_pushinteger(s_rt_state, E_FAILED);
+            (void)lua_resume(s_rt_state, 1);
+        }
+    } else { // sendsz > 0
+        sbuf->seek += sendsz;
+    }
+
+    return;
 }
 
 
@@ -332,6 +351,10 @@ int api_tcp_socket(lua_State *s)
         lua_pushstring(s, "receive");
         lua_pushcfunction(s, &api_tcp_socket_receive);
         lua_settable(s, -3);
+
+        lua_pushstring(s, "send");
+        lua_pushcfunction(s, &api_tcp_socket_send);
+        lua_settable(s, -3);
     lua_pushinteger(s, E_SUCCESS);
 
     return 2;
@@ -343,7 +366,6 @@ int api_tcp_socket_connect(lua_State *s)
     int ok;
     struct sockaddr_in svr = {0};
     lts_socket_t *conn;
-    //lts_str_t target_addr = lts_string();
 
     svr.sin_family = AF_INET;
     svr.sin_port = htons(luaL_checkint(s, -1));
@@ -354,8 +376,9 @@ int api_tcp_socket_connect(lua_State *s)
     lua_pop(s, 2); // 释放用户参数
 
     luaL_checktype(s, -1, LUA_TTABLE);
-    lua_getfield(s, -1, "_sock");
+    lua_getfield(s, -1, "_sock"); // 压栈
     conn = (lts_socket_t *)lua_topointer(s, -1);
+    lua_pop(s, 1); // 退栈
 
     ok = connect(conn->fd, (struct sockaddr *)&svr, sizeof(svr));
     if (-1 == ok) {
@@ -388,7 +411,40 @@ int api_tcp_socket_connect(lua_State *s)
 
 int api_tcp_socket_send(lua_State *s)
 {
-    return 0;
+    ssize_t datalen;
+    char const *data;
+    lts_socket_t *conn;
+    lts_buffer_t *sbuf;
+
+    // 栈检查
+    data = luaL_checkstring(s, -1);
+    luaL_checktype(s, -2, LUA_TTABLE);
+
+    lua_getfield(s, -2, "_sock"); // 压栈
+    conn = (lts_socket_t *)lua_topointer(s, -1);
+    ASSERT(conn);
+    lua_pop(s, 1); // 退栈
+
+    sbuf = conn->conn->sbuf;
+    datalen = strlen(data); ASSERT(datalen > 0);
+    ASSERT(lts_buffer_empty(sbuf));
+    if (lts_buffer_space(sbuf) < datalen) {
+        // 发送的数据过大
+        lua_pop(s, 2); // 释放所有参数
+
+        lua_pushinteger(s, E_FAILED);
+        return 1;
+    }
+
+    ASSERT(0 == lts_buffer_append(sbuf, (uint8_t *)data, datalen));
+    lua_pop(s, 2); // 释放所有参数
+
+    // 写事件监视
+    conn->ev_mask = EPOLLET | EPOLLOUT;
+    conn->do_read = &tcp_on_write;
+    (*lts_event_itfc->event_add)(conn);
+
+    return lua_yield(s, 0);
 }
 
 
@@ -402,8 +458,9 @@ int api_tcp_socket_receive(lua_State *s)
     lua_pop(s, 1); // 释放用户参数
 
     luaL_checktype(s, -1, LUA_TTABLE);
-    lua_getfield(s, -1, "_sock");
+    lua_getfield(s, -1, "_sock"); // 压栈
     conn = (lts_socket_t *)lua_topointer(s, -1);
+    lua_pop(s, 1); // 退栈
     lua_pop(s, 1); // 释放self参数
 
     // 如果缓冲区足量直接返回
@@ -433,7 +490,7 @@ int api_tcp_socket_close(lua_State *s)
     lua_getfield(s, -1, "_sock");
     conn = (lts_socket_t *)lua_topointer(s, -1);
 
-    (void)(*lts_event_itfc->event_del)(conn);
+    // (void)(*lts_event_itfc->event_del)(conn);
     if (conn->conn) {
         lts_destroy_pool(conn->conn->pool);
         conn->conn = NULL;

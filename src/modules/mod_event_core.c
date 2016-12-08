@@ -514,18 +514,18 @@ void lts_send(lts_socket_t *cs)
 
     buf = cs->conn->sbuf;
 
-    if (lts_buffer_empty(buf)) { // 无数据可发
+    if (0 == lts_buffer_pending(buf)) { // no more sending
         cs->writable = 0;
+
+        // 关闭写事件监视
+        cs->ev_mask &= (~EPOLLOUT);
+        (*lts_event_itfc->event_mod)(cs);
         return;
     }
-
-    if ((uintptr_t)buf->seek >= (uintptr_t)buf->last) {
-        abort();
-    }
+    ASSERT(lts_buffer_pending(buf) > 0);
 
     // 发送数据
-    sent_sz = send(cs->fd, buf->seek,
-                   (uintptr_t)buf->last - (uintptr_t)buf->seek, 0);
+    sent_sz = send(cs->fd, buf->seek, lts_buffer_pending(buf), 0);
 
     if (-1 == sent_sz) {
         if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
@@ -547,17 +547,10 @@ void lts_send(lts_socket_t *cs)
 
     // 数据已发完
     if (buf->seek == buf->last) {
-        lts_buffer_clear(cs->conn->sbuf);
+        lts_buffer_clear(buf);
 
         // 应用模块处理
         (*app_itfc->send_more)(cs);
-
-        // 关闭写事件监视
-        if (lts_buffer_empty(cs->conn->sbuf)) {
-            cs->writable = 0;
-            cs->ev_mask &= (~EPOLLOUT);
-            (*lts_event_itfc->event_mod)(cs);
-        }
     }
 
     return;
