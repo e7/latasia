@@ -140,17 +140,6 @@ static int init_lua_module(lts_module_t *module)
 
     // 注册API
     lua_newtable(s_state);
-        // front
-        lua_pushstring(s_state, "front");
-        lua_newtable(s_state);
-            lua_pushstring(s_state, "pop_rbuf");
-            lua_pushcfunction(s_state, &api_pop_rbuf);
-            lua_settable(s_state, -3);
-            lua_pushstring(s_state, "push_sbuf");
-            lua_pushcfunction(s_state, &api_push_sbuf);
-            lua_settable(s_state, -3);
-        lua_settable(s_state, -3);
-
         // socket
         lua_pushstring(s_state, "socket");
         lua_newtable(s_state);
@@ -174,12 +163,6 @@ static void exit_lua_module(lts_module_t *module)
         module->pool = NULL;
     }
 
-    return;
-}
-
-
-static void mod_on_connected(lts_socket_t *s)
-{
     return;
 }
 
@@ -540,12 +523,31 @@ int api_push_sbuf(lua_State *s)
 }
 
 
-static void mod_service(lts_socket_t *s)
+static void mod_on_connected(lts_socket_t *s)
 {
     s_lua_ctx.s = s;
 
-    // 执行
+    // 创建协程
     s_rt_state = lua_newthread(s_state);
+    lua_getglobal(s_rt_state, "lts");
+        // front
+        lua_pushstring(s_rt_state, "front");
+        lua_newtable(s_rt_state);
+            lua_pushstring(s_rt_state, "pop_rbuf");
+            lua_pushcfunction(s_rt_state, &api_pop_rbuf);
+            lua_settable(s_rt_state, -3);
+            lua_pushstring(s_rt_state, "push_sbuf");
+            lua_pushcfunction(s_rt_state, &api_push_sbuf);
+            lua_settable(s_rt_state, -3);
+        lua_settable(s_rt_state, -3);
+    lua_setglobal(s_rt_state, "lts");
+
+    return;
+}
+
+
+static void mod_service(lts_socket_t *s)
+{
     if (luaL_loadfile(s_rt_state, (char const *)lts_lua_conf.entry.data)) {
         // LUA_ERRFILE
         fprintf(stderr, "%s\n", lua_tostring(s_rt_state, -1));
@@ -568,6 +570,10 @@ static void mod_send_more(lts_socket_t *s)
 
 static void mod_on_closing(lts_socket_t *s)
 {
+    // release coroutine for gc
+    ASSERT(LUA_TTHREAD == lua_type(s_state, -1));
+    lua_pop(s_state, 1);
+
     return;
 }
 
