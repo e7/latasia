@@ -4,8 +4,6 @@ local sjsonb = require "proto_sjsonb"
 
 function main()
     print("main")
-    local sjs = sjsonb.encode("lijia")
-    print(sjs)
     local sock, err = lts.socket.tcp()
 
     if 200 ~= err then
@@ -20,6 +18,8 @@ function main()
         return
     end
 
+    local sjs = sjsonb.encode(0, "lijia")
+    print("encode len:", #sjs)
     print(sock:send(sjs))
     print("send returned")
     sock:close()

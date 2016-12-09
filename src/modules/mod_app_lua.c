@@ -417,13 +417,13 @@ int api_tcp_socket_connect(lua_State *s)
 
 int api_tcp_socket_send(lua_State *s)
 {
-    ssize_t datalen;
+    ssize_t datalen = 0;
     char const *data;
     lts_socket_t *conn;
     lts_buffer_t *sbuf;
 
     // 栈检查
-    data = luaL_checkstring(s, -1);
+    data = luaL_checklstring(s, -1, (size_t *)&datalen);
     luaL_checktype(s, -2, LUA_TTABLE);
 
     lua_getfield(s, -2, "_sock"); // 压栈
@@ -432,7 +432,6 @@ int api_tcp_socket_send(lua_State *s)
     lua_pop(s, 1); // 退栈
 
     sbuf = conn->conn->sbuf;
-    datalen = strlen(data); ASSERT(datalen > 0);
     ASSERT(lts_buffer_empty(sbuf));
     if (lts_buffer_space(sbuf) < datalen) {
         // 发送的数据过大

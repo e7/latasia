@@ -4,8 +4,8 @@ local _M = {_VERSION = '0.01'}
 
 
 function _M.encode(proto_type, content)
-    local rslt = string.pack(string.format(">IS2I2A%d", #content),
-        0xE78F8A9D, 1000, 20, #content, 0, content)
+    local rslt = string.pack(">I2S2I2A",
+        0xE78F8A9D, 1000, proto_type, 20, #content, 0, content)
     return rslt
 end
 
