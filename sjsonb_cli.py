@@ -7,19 +7,27 @@ import struct
 import socket
 
 
-def pack_sjsonb(cargo):
-    str_cargo = json.dumps(cargo, separators=(",", ":"))
-    package = struct.pack(
-        "!2I2H2I{}s".format(len(str_cargo)), 0xe78f8a9d, 1000, 3, 20, len(str_cargo), 0, str_cargo
-    )
+def pack_sjsonb(ent_type, cargo):
+    package = None
+    if 3 == ent_type:
+        str_cargo = json.dumps(cargo, separators=(",", ":"))
+        package = struct.pack(
+            "!2I2H2I{}s".format(len(str_cargo)), 0xe78f8a9d, 1000, ent_type, 20, len(str_cargo), 0, str_cargo
+        )
+    elif 1 == ent_type:
+        package = struct.pack(
+            "!2I2H2I{}s".format(len(cargo)), 0xe78f8a9d, 1000, ent_type, 20, len(cargo), 0, cargo
+        )
+    else:
+        pass
     return package
 
 
 def unpack_sjsonb(package):
-    magic_no, _, ent_offset, ent_sz, _ = struct.unpack("!5I", package[0:20])
+    magic_no, _, ent_type, ent_offset, ent_sz, _ = struct.unpack("!2I2H2I", package[0:20])
     str_cargo = package[ent_offset : ent_offset + ent_sz]
     cargo = json.loads(str_cargo)
-    return cargo
+    return ent_type, cargo
 
 
 if __name__ == "__main__":
@@ -30,7 +38,10 @@ if __name__ == "__main__":
         print e
         sys.exit(1)
 
-    cli.send(pack_sjsonb({"interface":"getusername",}))
+    data = "who am i? you sure you wanna know? I am the spider man!\n"
+    cli.send(pack_sjsonb(3, {"interface":"start", "deviceid":"123", "time":"20160101010101", "length":"100"}))
+    cli.send(pack_sjsonb(1, data))
+    cli.send(pack_sjsonb(1, data))
     buf = cli.recv(4096)
     print(buf)
     print unpack_sjsonb(buf)

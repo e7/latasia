@@ -10,8 +10,8 @@ function _M.encode(proto_type, content)
 end
 
 
--- 返回内容类型，内容数据，错误信息
-function _M.decode(bytebuffer)
+-- 返回未决数据偏移，内容类型，内容数据，错误信息
+function _M.decode(bytebuffer, ofst)
     local find_pack = function (bytebuffer, ofst)
         local ne, magic_no
 
@@ -28,18 +28,22 @@ function _M.decode(bytebuffer)
     -- 寻找有效标识
     local ne, magic_no = find_pack(bytebuffer, 1)
     if nil == magic_no then
-        return 0, nil, "unknown data"
+        return 1, 0, nil, "unknown data"
     end
 
-    local ne, version, ent_type, ent_ofst, ent_len, checksum =
+    local next_ofst, version, ent_type, ent_ofst, ent_len, checksum =
         string.unpack(bytebuffer, ">IS2I2", ne)
+    if ne == next_ofst then
+        return ne, 0, nil, "no enough data"
+    end
+
     -- 各种参数校验
     if 0 then
     end
 
     local ne, data = string.unpack(bytebuffer,
                                    string.format("A%d", ent_len), ne)
-    return ent_type, data, nil
+    return ne, ent_type, data, nil
 
 end
 

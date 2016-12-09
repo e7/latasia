@@ -16,8 +16,13 @@
 extern "C" {
 #endif
 
-extern int lts_proto_naked_encode(lts_buffer_t *content, lts_buffer_t *dst);
-extern lts_buffer_t *lts_proto_naked_decode(lts_buffer_t *buf);
+extern ssize_t lts_proto_naked_encode_size(lts_buffer_t *content);
+extern int lts_proto_naked_encode(
+    lts_buffer_t *content, uint16_t proto_type, lts_buffer_t *dst
+);
+extern lts_buffer_t *lts_proto_naked_decode(
+    lts_buffer_t *buf, uint16_t *proto_type
+);
 
 extern int lts_proto_sjsonb_encode(lts_sjson_t *sjson,
                                    lts_buffer_t *buf, lts_pool_t *pool);

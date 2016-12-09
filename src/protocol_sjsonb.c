@@ -9,7 +9,8 @@
 typedef struct __attribute__ ((packed)) {
     uint32_t magic_no;
     uint32_t proto_ver;
-    uint32_t content_ofst; // 内容偏移
+    uint16_t content_type; // 内容类型
+    uint16_t content_ofst; // 内容偏移
     uint32_t content_len; // 内容长度
     uint32_t content_checksum; // 内容校验码
 } sjsonb_header_t;
@@ -18,13 +19,36 @@ typedef struct __attribute__ ((packed)) {
 #define LEN_MIN_CONTENT         2
 
 
-int lts_proto_naked_encode(lts_buffer_t *content, lts_buffer_t *dst)
+ssize_t lts_proto_naked_encode_size(lts_buffer_t *content)
 {
+    return sizeof(sjsonb_header_t) + 0 + lts_buffer_pending(content);
+}
+
+
+int lts_proto_naked_encode(
+    lts_buffer_t *content, uint16_t proto_type, lts_buffer_t *dst
+)
+{
+    sjsonb_header_t header;
+    uint16_t content_ofst = (uint16_t)(sizeof(sjsonb_header_t) + 0);
+
+    if (lts_buffer_space(dst) < lts_proto_naked_encode_size(content)) {
+        return -1;
+    }
+
+    // 包头初始化
+    header.magic_no = htonl(MAGIC_NO);
+    header.proto_ver = htonl(PROTO_VER);
+    header.content_type = htons(proto_type);
+    header.content_ofst = htons(content_ofst);
+    header.content_len = htonl(lts_buffer_pending(content));
+    header.content_checksum = htonl(0);
+
     return 0;
 }
 
 
-lts_buffer_t *lts_proto_naked_decode(lts_buffer_t *buf)
+lts_buffer_t *lts_proto_naked_decode(lts_buffer_t *buf, uint16_t *proto_type)
 {
     return NULL;
 }
@@ -35,7 +59,7 @@ int lts_proto_sjsonb_encode(lts_sjson_t *sjson,
 {
     lts_str_t str_sjson = lts_null_string;
     sjsonb_header_t header;
-    ssize_t content_ofst = sizeof(sjsonb_header_t) + 0; // 暂无扩展区
+    uint16_t content_ofst = (uint16_t)(sizeof(sjsonb_header_t) + 0);
     ssize_t encode_len, pack_len;
 
     encode_len = lts_sjson_encode_size(sjson); // json编码所需长度
@@ -49,7 +73,8 @@ int lts_proto_sjsonb_encode(lts_sjson_t *sjson,
     // 包头初始化
     header.magic_no = htonl(MAGIC_NO);
     header.proto_ver = htonl(PROTO_VER);
-    header.content_ofst = htonl(content_ofst);
+    header.content_type = htons(3);
+    header.content_ofst = htons(content_ofst);
     header.content_len = htonl(encode_len);
     header.content_checksum = htonl(0);
 
@@ -112,7 +137,8 @@ lts_sjson_t *lts_proto_sjsonb_decode(lts_buffer_t *buf, lts_pool_t *pool)
         // 转换为本地字节序
         header.magic_no = ntohl(header_be->magic_no);
         header.proto_ver= ntohl(header_be->proto_ver);
-        header.content_ofst = ntohl(header_be->content_ofst);
+        header.content_type = ntohs(header_be->content_type);
+        header.content_ofst = ntohs(header_be->content_ofst);
         header.content_len = ntohl(header_be->content_len);
         header.content_checksum = ntohl(header_be->content_checksum);
 

@@ -46,7 +46,6 @@ function main()
     --    print("d2", d2)
     --end
 
-    print("closing")
     sock:close()
 
     local rbuf = lts.front.pop_rbuf()
