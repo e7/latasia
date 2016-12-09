@@ -10,8 +10,8 @@ function string.split(self, sep)
 end
 
 
-function main(ctx)
-    local rbuf = ctx.pop_rbuf()
+function main(front)
+    local rbuf = front.pop_rbuf()
 
     local hs, he = string.find(rbuf, "\r\n\r\n");
     local header = string.sub(rbuf, 1, hs - 1)

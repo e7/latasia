@@ -3,35 +3,31 @@ local sjsonb = require "proto_sjsonb"
 
 
 function main()
-    print("main")
-    local sock, err = lts.socket.tcp()
-
-    if 200 ~= err then
-        print("create socket failed", err)
+    local rbuf = lts.front.pop_rbuf()
+    local proto_type, data, err = sjsonb.decode(rbuf)
+    if err then
+        -- just drop it
         return
     end
 
-    err = sock:connect("127.0.0.1", 55555)
-
-    if 200 ~= err then
-        print("connect failed", err)
+    print(proto_type)
+    if 1 == proto_type then
+        return
+    elseif 3 == proto_type then
+        local obj = cjson.decode(data)
+        return
+    else
+        -- just drop it
         return
     end
 
-    local sjs = sjsonb.encode(0, "lijia")
-    print("encode len:", #sjs)
-    print(sock:send(sjs))
-    print("send returned")
-    sock:close()
-
-    --local rbuf = lts.ctx.pop_rbuf()
     --print(rbuf)
-    --lts.ctx.push_sbuf(rbuf)
+    --lts.front.push_sbuf(rbuf)
 
     --local ne, magic_no = find_package(rbuf, 1)
     --if nil == magic_no then
     --    print("no valid package")
-    --	lts.ctx.push_sbuf(rbuf)
+    --	lts.front.push_sbuf(rbuf)
     --    return
     --end
 

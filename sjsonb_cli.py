@@ -10,7 +10,7 @@ import socket
 def pack_sjsonb(cargo):
     str_cargo = json.dumps(cargo, separators=(",", ":"))
     package = struct.pack(
-        "!5I{}s".format(len(str_cargo)), 0xE78f8A9D, 1000, 20, len(str_cargo), 0, str_cargo
+        "!2I2H2I{}s".format(len(str_cargo)), 0xe78f8a9d, 1000, 3, 20, len(str_cargo), 0, str_cargo
     )
     return package
 
@@ -32,4 +32,5 @@ if __name__ == "__main__":
 
     cli.send(pack_sjsonb({"interface":"getusername",}))
     buf = cli.recv(4096)
+    print(buf)
     print unpack_sjsonb(buf)

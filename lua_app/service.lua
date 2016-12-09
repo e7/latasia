@@ -49,13 +49,13 @@ function main()
     print("closing")
     sock:close()
 
-    local rbuf = lts.ctx.pop_rbuf()
+    local rbuf = lts.front.pop_rbuf()
     print(rbuf)
-    lts.ctx.push_sbuf(rbuf)
+    lts.front.push_sbuf(rbuf)
     --local ne, magic_no = find_package(rbuf, 1)
     --if nil == magic_no then
     --    print("no valid package")
-    --	lts.ctx.push_sbuf(rbuf)
+    --	lts.front.push_sbuf(rbuf)
     --    return
     --end
 

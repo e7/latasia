@@ -140,8 +140,8 @@ static int init_lua_module(lts_module_t *module)
 
     // 注册API
     lua_newtable(s_state);
-        // ctx
-        lua_pushstring(s_state, "ctx");
+        // front
+        lua_pushstring(s_state, "front");
         lua_newtable(s_state);
             lua_pushstring(s_state, "pop_rbuf");
             lua_pushcfunction(s_state, &api_pop_rbuf);
@@ -178,7 +178,7 @@ static void exit_lua_module(lts_module_t *module)
 }
 
 
-static void lua_on_connected(lts_socket_t *s)
+static void mod_on_connected(lts_socket_t *s)
 {
     return;
 }
@@ -540,7 +540,7 @@ int api_push_sbuf(lua_State *s)
 }
 
 
-static void lua_service(lts_socket_t *s)
+static void mod_service(lts_socket_t *s)
 {
     s_lua_ctx.s = s;
 
@@ -552,7 +552,6 @@ static void lua_service(lts_socket_t *s)
         return;
     }
 
-    fprintf(stderr, "resume lua\n");
     if (lua_resume(s_rt_state, 0)) {
         fprintf(stderr, "%s\n", lua_tostring(s_rt_state, -1));
     }
@@ -561,17 +560,23 @@ static void lua_service(lts_socket_t *s)
 }
 
 
-static void lua_send_more(lts_socket_t *s)
+static void mod_send_more(lts_socket_t *s)
+{
+    return;
+}
+
+
+static void mod_on_closing(lts_socket_t *s)
 {
     return;
 }
 
 
 static lts_app_module_itfc_t lua_itfc = {
-    &lua_on_connected,
-    &lua_service,
-    &lua_send_more,
-    NULL,
+    &mod_on_connected,
+    &mod_service,
+    &mod_send_more,
+    &mod_on_closing,
 };
 
 lts_module_t lts_app_lua_module = {
