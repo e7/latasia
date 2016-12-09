@@ -39,8 +39,10 @@ extern lts_event_module_itfc_t *lts_event_itfc;
 
 static lua_State *s_state, *s_rt_state;
 
-static struct {
-    lts_socket_t *s;
+static struct lua_ctx_t {
+    lts_socket_t *conn;
+    lua_State *rt_state;
+    uint32_t status; // 运行状态，每个yield状态必须在对应的resume点唤醒
 } s_lua_ctx;
 static lts_obj_pool_t s_sock_pool;
 
@@ -184,6 +186,7 @@ void tcp_on_read(lts_socket_t *s)
         fprintf(stderr, "lua: receive too large\n");
         lua_pushnil(s_rt_state);
         lua_pushinteger(s_rt_state, E_FAILED);
+    fprintf(stderr, "wakeup:187\n");
         (void)lua_resume(s_rt_state, 2);
     }
 
@@ -198,6 +201,7 @@ void tcp_on_read(lts_socket_t *s)
         lua_pushinteger(s_rt_state, E_SUCCESS);
         rbuf->seek += bufsz;
 
+    fprintf(stderr, "wakeup:202\n");
         (void)lua_resume(s_rt_state, 2);
     } else if (
         (recvsz > 0)
@@ -211,6 +215,7 @@ void tcp_on_read(lts_socket_t *s)
 
         lua_pushnil(s_rt_state);
         lua_pushinteger(s_rt_state, E_FAILED);
+    fprintf(stderr, "wakeup:216\n");
         (void)lua_resume(s_rt_state, 2);
     }
 
@@ -229,6 +234,7 @@ void tcp_on_write(lts_socket_t *s)
         (*lts_event_itfc->event_del)(s);
 
         lua_pushinteger(s_rt_state, E_SUCCESS);
+    fprintf(stderr, "wakeup:235\n");
         (void)lua_resume(s_rt_state, 1);
         return;
     }
@@ -240,6 +246,7 @@ void tcp_on_write(lts_socket_t *s)
         } else {
             (*lts_event_itfc->event_del)(s);
             lua_pushinteger(s_rt_state, E_FAILED);
+    fprintf(stderr, "wakeup:247\n");
             (void)lua_resume(s_rt_state, 1);
         }
     } else { // sendsz > 0
@@ -267,6 +274,7 @@ void tcp_on_connected(lts_socket_t *s)
 
     // 唤醒
     lua_pushinteger(s_rt_state, E_SUCCESS);
+    fprintf(stderr, "wakeup:275\n");
     (void)lua_resume(s_rt_state, 1);
 
     return;
@@ -292,7 +300,7 @@ void tcp_on_error(lts_socket_t *s)
 
     // 连接失败
     lua_pushinteger(s_rt_state, E_FAILED);
-    fprintf(stderr, "resume lua(tcp_on_error)\n");
+    fprintf(stderr, "wakeup:301\n");
     (void)lua_resume(s_rt_state, 1);
 
     return;
@@ -494,11 +502,22 @@ int api_tcp_socket_close(lua_State *s)
 
 int api_pop_rbuf(lua_State *s)
 {
-    lts_buffer_t *rb;
+    int popsz;
+    lts_buffer_t *rb = s_lua_ctx.conn->conn->rbuf;
 
-    rb = s_lua_ctx.s->conn->rbuf;
-    lua_pushlstring(s, (char const *)rb->seek, rb->last - rb->seek);
-    lts_buffer_clear(rb); // 清空读缓冲
+    popsz = luaL_checkint(s, -1);
+    lua_pop(s, 1);
+
+    if (popsz > 0) {
+        if (lts_buffer_pending(rb) < popsz) {
+            return lua_yield(s, 0);
+        } else {
+            lua_pushlstring(s, (char const *)rb->seek, popsz);
+            rb->seek += popsz;
+        }
+    } else {
+        return luaL_error(s, "invalid pop size:%d\n", popsz);
+    }
 
     return 1;
 }
@@ -509,7 +528,7 @@ int api_push_sbuf(lua_State *s)
     uint8_t const *data;
     size_t dlen;
     data = (uint8_t const *)lua_tolstring(s, 1, &dlen);
-    lts_buffer_t *sb = s_lua_ctx.s->conn->sbuf;
+    lts_buffer_t *sb = s_lua_ctx.conn->conn->sbuf;
 
     if (NULL == data) {
         return 0;
@@ -517,7 +536,7 @@ int api_push_sbuf(lua_State *s)
 
     lua_pop(s, 1);
     lts_buffer_append(sb, data, dlen);
-    lts_soft_event(s_lua_ctx.s, TRUE);
+    lts_soft_event(s_lua_ctx.conn, TRUE);
 
     return 0;
 }
@@ -525,7 +544,7 @@ int api_push_sbuf(lua_State *s)
 
 static void mod_on_connected(lts_socket_t *s)
 {
-    s_lua_ctx.s = s;
+    s_lua_ctx.conn = s;
 
     // 创建协程
     s_rt_state = lua_newthread(s_state);
@@ -554,6 +573,7 @@ static void mod_service(lts_socket_t *s)
         return;
     }
 
+    fprintf(stderr, "wakeup:574\n");
     if (lua_resume(s_rt_state, 0)) {
         fprintf(stderr, "%s\n", lua_tostring(s_rt_state, -1));
     }
