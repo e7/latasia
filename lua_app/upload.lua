@@ -16,11 +16,14 @@ function handle_request(content_type, data)
     local rsp = {}
     local basedir, path = nil, nil
     if 1 == content_type then
+        print("recv data")
         if nil == lts.front.fd then
             -- just drop it
+            print("drop data")
             return
         end
 
+        print("write data")
         lts.front.fd:write(data)
         local curlen = lts.front["curlen"] + #data
         lts.front["curlen"] = curlen
@@ -38,6 +41,7 @@ function handle_request(content_type, data)
         if lts.front["time"] then
             if nil ~= lts.front.fd then
                 -- 上一次传输未完成，删除文件
+                print("del file")
                 basedir = prefix .. "/" .. obj["deviceid"]
                 path = basedir .. "/" .. obj["time"]
                 lts.front.fd:close()
@@ -72,10 +76,25 @@ end
 
 
 function main()
-    local content_type = lts.front.req_type
-    local data = lts.front.req_body
+    print("main")
 
-    handle_request(content_type, data)
+    local mn = ""
+    while true do
+        mn = lts.front.pop_rbuf(1)
+        if 0xE7 == string.byte(mn, 1) then
+            mn = lts.front.pop_rbuf(1)
+            if 0x8F == string.byte(mn, 1) then
+                mn = lts.front.pop_rbuf(1)
+                if 0x8A == string.byte(mn, 1) then
+                    mn = lts.front.pop_rbuf(1)
+                    if 0x9D == string.byte(mn, 1) then
+                        break
+                    end
+                end
+            end
+        end
+    end
+    print("found")
     return
 end
 
