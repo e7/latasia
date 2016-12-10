@@ -9,25 +9,20 @@
 
 
 #include "buffer.h"
-#include "simple_json.h"
+#include "adv_string.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern ssize_t lts_proto_naked_encode_size(lts_buffer_t *content);
-extern int lts_proto_naked_encode(
-    lts_buffer_t *content, uint16_t proto_type, lts_buffer_t *dst
+extern ssize_t lts_proto_sjsonb_encode_size(lts_str_t *content);
+extern void lts_proto_sjsonb_encode(
+    lts_str_t *content, uint16_t content_type, lts_buffer_t *dst
 );
-extern lts_buffer_t *lts_proto_naked_decode(
-    lts_buffer_t *buf, uint16_t *proto_type
+extern int lts_proto_sjsonb_decode(
+    lts_buffer_t *buf, uint16_t *content_type, lts_str_t *content
 );
-
-extern int lts_proto_sjsonb_encode(lts_sjson_t *sjson,
-                                   lts_buffer_t *buf, lts_pool_t *pool);
-extern
-lts_sjson_t *lts_proto_sjsonb_decode(lts_buffer_t *buf, lts_pool_t *pool);
 
 #ifdef __cplusplus
 }

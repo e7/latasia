@@ -84,14 +84,15 @@ struct lts_event_module_itfc_s {
 // app模块接口
 struct lts_app_module_itfc_s {
     void (*on_connected)(lts_socket_t *);
-    void (*service)(lts_socket_t *);
-    void (*send_more)(lts_socket_t *);
+    void (*on_received)(lts_socket_t *);
+    void (*on_sent)(lts_socket_t *);
     void (*on_closing)(lts_socket_t *);
 };
 
 
-extern void lts_recv(lts_socket_t *cs);
-extern void lts_send(lts_socket_t *cs);
+extern void lts_evt_recv(lts_socket_t *cs);
+extern void lts_evt_send(lts_socket_t *cs);
+extern void lts_evt_error(lts_socket_t *cs);
 extern void lts_close_conn_orig(int fd, int reset);
 extern void lts_close_conn(lts_socket_t *cs, int reset);
 
@@ -112,7 +113,6 @@ extern lts_module_t lts_event_epoll_module; // epoll事件模块
 extern lts_module_t lts_app_asyn_backend_module; // 异步后端框架模块
 extern lts_module_t lts_app_echo_module; // echo模块
 extern lts_module_t lts_app_http_core_module; // http core模块
-extern lts_module_t lts_app_sjsonb_module; // sjsonb协议demo模块
 extern lts_module_t lts_app_lua_module; // lua模块
 // }} app模块
 

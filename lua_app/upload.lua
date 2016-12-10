@@ -12,27 +12,6 @@ function length_of_file(filename)
 end
 
 
-function valid_pack()
-    while true do
-        local mn = lts.front.pop_rbuf(1)
-        if string.byte(mn, 1) == 0xE7 then
-            mn = lts.front.pop_rbuf(1)
-            if string.byte(mn, 1) == 0x8F then
-                mn = lts.front.pop_rbuf(1)
-                if string.byte(mn, 1) == 0x8A then
-                    mn = lts.front.pop_rbuf(1)
-                    if string.byte(mn, 1) == 0x9D then
-                        return true
-                    end
-                end
-            end
-        end
-    end
-
-    return false
-end -- end of function valid_pack
-
-
     --local rsp = {}
     --local basedir, path = nil, nil
     --if 1 == proto_type then
@@ -92,14 +71,9 @@ end -- end of function valid_pack
 
 
 function main()
-    while valid_pack() do
-        local hd = lts.front.pop_rbuf(16)
-        local _, version, ent_type, ent_ofst, ent_len, checksum =
-            string.unpack(hd, ">IS2I2", 1)
-        print("version:" .. version)
-        local data = lts.front.pop_rbuf(ent_len)
-        print("data:" .. data)
-    end
+    print(lts.front.req_type)
+    print(lts.front.req_body)
+    lts.front.push_sbuf("safahglkasdlfjalsasgasldfjlaskdf")
     return
 end
 

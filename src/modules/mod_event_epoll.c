@@ -129,7 +129,7 @@ static int epoll_process_events(void)
 
         revents = buf_epevs[i].events;
         if (revents & (EPOLLERR | EPOLLHUP)) {
-            (*cs->do_error)(cs);
+            if (cs->do_error) {(*cs->do_error)(cs);}
             continue;
         }
 

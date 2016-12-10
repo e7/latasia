@@ -58,6 +58,8 @@ void lts_close_conn(lts_socket_t *cs, int reset)
     }
 
     // 移除事件监视
+    cs->readable = 0;
+    cs->writable = 0;
     (*lts_event_itfc->event_del)(cs);
 
     // 移除定时器
@@ -152,10 +154,11 @@ static void lts_accept(lts_socket_t *ls)
     cs->fd = cmnct_fd;
     cs->peer_addr = (struct sockaddr *)lts_palloc(cpool, LTS_SOCKADDRLEN);
     memcpy(cs->peer_addr, clt, LTS_SOCKADDRLEN);
-    cs->ev_mask = (EPOLLET | EPOLLIN);
+    cs->ev_mask = (EPOLLET | EPOLLIN | EPOLLOUT);
     cs->conn = c;
-    cs->do_read = &lts_recv;
-    cs->do_write = &lts_send;
+    cs->do_read = &lts_evt_recv;
+    cs->do_write = &lts_evt_send;
+    cs->do_error = &lts_evt_error;
     cs->app_ctx = NULL;
 
     // 加入事件监视
@@ -440,7 +443,7 @@ static void exit_event_core_master(lts_module_t *mod)
 
 
 // 接收数据到连接缓冲
-void lts_recv(lts_socket_t *cs)
+void lts_evt_recv(lts_socket_t *cs)
 {
     ssize_t recv_sz;
     lts_buffer_t *buf;
@@ -454,9 +457,11 @@ void lts_recv(lts_socket_t *cs)
         lts_buffer_drop_accessed(buf); // 试图腾出缓冲
     }
     if (lts_buffer_full(buf)) {
+        // 应用模块繁忙
         (void)lts_write_logger(&lts_file_logger, LTS_LOG_WARN,
                                "%s:recv buffer is full\n", STR_LOCATION);
-        abort(); // 要求应用模块一定要处理缓冲
+        cs->readable = 0;
+        return;
     }
 
     recv_sz = recv(cs->fd, buf->last,
@@ -466,15 +471,8 @@ void lts_recv(lts_socket_t *cs)
             // 本次数据读完
             cs->readable = 0;
 
-            // 应用模块处理
-            (*app_itfc->service)(cs);
-
-            if ((! lts_buffer_empty(cs->conn->sbuf))
-                && (! (cs->ev_mask & EPOLLOUT))) {
-                // 开启写事件监视
-                cs->ev_mask |= EPOLLOUT;
-                (*lts_event_itfc->event_mod)(cs);
-            }
+            // 通知应用模块处理
+            (*app_itfc->on_received)(cs);
         } else {
             int lvl;
 
@@ -504,7 +502,7 @@ void lts_recv(lts_socket_t *cs)
 }
 
 
-void lts_send(lts_socket_t *cs)
+void lts_evt_send(lts_socket_t *cs)
 {
     ssize_t sent_sz;
     lts_buffer_t *buf;
@@ -516,10 +514,6 @@ void lts_send(lts_socket_t *cs)
 
     if (0 == lts_buffer_pending(buf)) { // no more sending
         cs->writable = 0;
-
-        // 关闭写事件监视
-        cs->ev_mask &= (~EPOLLOUT);
-        (*lts_event_itfc->event_mod)(cs);
         return;
     }
     ASSERT(lts_buffer_pending(buf) > 0);
@@ -544,14 +538,25 @@ void lts_send(lts_socket_t *cs)
     }
 
     buf->seek += sent_sz;
+    (*app_itfc->on_sent)(cs); // 通知应用层可写
 
-    // 数据已发完
-    if (buf->seek == buf->last) {
-        lts_buffer_clear(buf);
+    return;
+}
 
-        // 应用模块处理
-        (*app_itfc->send_more)(cs);
-    }
+
+void lts_evt_error(lts_socket_t *cs)
+{
+    int tmperr;
+    socklen_t len = sizeof(tmperr);
+
+    (void)getsockopt(cs->fd, SOL_SOCKET, SO_ERROR, &tmperr, &len);
+    (void)lts_write_logger(
+        &lts_file_logger, LTS_LOG_ERROR, "%s:socket[%d] error:%s\n",
+        STR_LOCATION, cs->fd, lts_errno_desc[tmperr]
+    );
+
+    // 直接重置连接
+    lts_close_conn(cs, TRUE);
 
     return;
 }
