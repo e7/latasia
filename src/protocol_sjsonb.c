@@ -21,13 +21,13 @@ typedef struct __attribute__ ((packed)) {
 #define LEN_MIN_CONTENT         2
 
 
-ssize_t lts_proto_naked_encode_size(lts_str_t *content)
+ssize_t lts_proto_sjsonb_encode_size(lts_str_t *content)
 {
     return sizeof(sjsonb_header_t) + 0 + content->len;
 }
 
 
-void lts_proto_naked_encode(
+void lts_proto_sjsonb_encode(
     lts_str_t *content, uint16_t content_type, lts_buffer_t *dst
 )
 {
@@ -49,7 +49,7 @@ void lts_proto_naked_encode(
 }
 
 
-int lts_proto_naked_decode(
+int lts_proto_sjsonb_decode(
     lts_buffer_t *buf, uint16_t *content_type, lts_str_t *content
 )
 {

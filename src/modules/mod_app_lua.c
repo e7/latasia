@@ -35,8 +35,13 @@ enum {
     E_INPROGRESS, // 403
 };
 
+enum {
+    Y_NOTHING = 0,
+    Y_FRONT_SENT,
+};
+
 typedef struct {
-    uint32_t yielded;
+    uint32_t yield_for;
     lua_State *rt_state;
     lts_socket_t *conn;
 } lua_ctx_t;
@@ -506,12 +511,27 @@ int api_push_sbuf(lua_State *s)
 
     data = (uint8_t const *)luaL_checklstring(s, 1, &dlen);
     sb = curr_ctx->conn->conn->sbuf;
+    if (dlen > sb->limit) {
+        lua_pop(s, 1);
+        lua_pushstring(s, "too large to sent");
+        return 1;
+    }
+
+    if (lts_buffer_space(sb) < dlen) {
+        lts_buffer_drop_accessed(sb);
+    }
+    if (lts_buffer_space(sb) < dlen) {
+        // 缓冲不足，只能等待on_sent通知
+        curr_ctx->yield_for = Y_FRONT_SENT;
+        return lua_yield(s, 0);
+    }
     lts_buffer_append(sb, data, dlen);
     lua_pop(s, 1);
 
     lts_soft_event(curr_ctx->conn, TRUE);
 
-    return 0;
+    lua_pushnil(s);
+    return 1;
 }
 
 
@@ -522,7 +542,7 @@ static void mod_on_connected(lts_socket_t *s)
     // 初始化context
     s->app_ctx = lts_palloc(s->conn->pool, sizeof(lua_ctx_t));
     curr_ctx = (lua_ctx_t *)s->app_ctx;
-    curr_ctx->yielded = FALSE;
+    curr_ctx->yield_for = Y_NOTHING;
     curr_ctx->rt_state = lua_newthread(s_state);
     curr_ctx->conn = s;
 
@@ -533,8 +553,7 @@ static void mod_on_connected(lts_socket_t *s)
         lua_pushstring(L, "front");
         lua_newtable(L);
             lua_pushstring(L, "push_sbuf");
-            lua_pushlightuserdata(L, s);
-            lua_pushcclosure(L, &api_push_sbuf, 1); // 闭包
+            lua_pushcclosure(L, &api_push_sbuf, 0);
             lua_settable(L, -3);
         lua_settable(L, -3);
     lua_setglobal(L, "lts");
@@ -555,14 +574,14 @@ static void mod_on_received(lts_socket_t *s)
     L = curr_ctx->rt_state;
 
     while (TRUE) {
-        if (curr_ctx->yielded) {
+        if (Y_NOTHING != curr_ctx->yield_for) {
             // 该连接的上次请求尚未处理完成
             fprintf(stderr, "busy now, try again later\n");
             break;
         }
 
         // 解析请求
-        if (-1 == lts_proto_naked_decode(rbuf, &content_type, &content)) {
+        if (-1 == lts_proto_sjsonb_decode(rbuf, &content_type, &content)) {
             break;
         }
 
@@ -596,8 +615,33 @@ static void mod_on_received(lts_socket_t *s)
 
 static void mod_on_sent(lts_socket_t *s)
 {
+    lua_State *L;
+
     curr_ctx = (lua_ctx_t *)s->app_ctx;
     ASSERT(curr_ctx);
+    L = curr_ctx->rt_state;
+
+    if (Y_FRONT_SENT == curr_ctx->yield_for) {
+        uint8_t const *data;
+        size_t dlen;
+        lts_buffer_t *sbuf = curr_ctx->conn->conn->sbuf;
+
+        data = (uint8_t const *)luaL_checklstring(L, 1, &dlen);
+        if (lts_buffer_space(sbuf) < dlen) {
+            lts_buffer_drop_accessed(sbuf);
+        }
+        if (lts_buffer_space(sbuf) < dlen) {
+            // keep block
+            return;
+        }
+
+        (void)lts_buffer_append(sbuf, data, dlen);
+        lua_pop(L, 1);
+
+        curr_ctx->yield_for = Y_NOTHING;
+        lua_pushnil(L); (void)lua_resume(L, 0);
+    }
+
     return;
 }
 
