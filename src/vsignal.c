@@ -91,7 +91,7 @@ static lts_signal_t lts_signals_slave[] = {
     {SIGINT, "SIGINT", SIG_IGN},
     {SIGTERM, "SIGTERM", SIG_IGN},
     {SIGCHLD, "SIGCHLD", &sig_chld_handler},
-    {SIGPIPE, "SIGPIPE", SIG_IGN},
+    {SIGPIPE, "SIGPIPE", &sig_pipe_handler},
     {SIGALRM, "SIGALRM", &sig_alrm_handler},
     {SIGSEGV, "SIGSEGV", &sig_segv_handler},
     {0, NULL, NULL},

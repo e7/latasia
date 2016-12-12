@@ -81,6 +81,7 @@ static int epoll_process_events(void)
 
     (void)sigfillset(&sig_mask);
     (void)sigdelset(&sig_mask, SIGALRM); // 允许时钟信号
+    (void)sigdelset(&sig_mask, SIGPIPE);
     min = lts_timer_min(&lts_timer_heap);
     if (! dlist_empty(&lts_post_list)) {
         timeout = 0;

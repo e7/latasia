@@ -470,9 +470,6 @@ void lts_evt_recv(lts_socket_t *cs)
         if ((LTS_E_AGAIN == errno) || (LTS_E_WOULDBLOCK == errno)) {
             // 本次数据读完
             cs->readable = 0;
-
-            // 通知应用模块处理
-            (*app_itfc->on_received)(cs);
         } else {
             int lvl;
 
@@ -496,6 +493,9 @@ void lts_evt_recv(lts_socket_t *cs)
         return;
     } else {
         buf->last += recv_sz;
+
+        // 通知应用模块处理
+        (*app_itfc->on_received)(cs);
     }
 
     return;

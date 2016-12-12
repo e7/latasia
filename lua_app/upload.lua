@@ -16,21 +16,18 @@ function handle_request(content_type, data)
     local rsp = {}
     local basedir, path = nil, nil
     if 1 == content_type then
-        print("recv data")
         if nil == lts.front.fd then
             -- just drop it
-            print("drop data")
             return
         end
 
-        print("write data")
         lts.front.fd:write(data)
         local curlen = lts.front["curlen"] + #data
         lts.front["curlen"] = curlen
         if curlen >= lts.front["length"] then
-            rsp = {error_no="200", error_msg="success"}
             lts.front.fd:close()
             lts.front["fd"] = nil
+            rsp = {error_no="200", error_msg="success"}
             lts.front.push_sbuf(sjsonb.encode(3, cjson.encode(rsp)))
         end
         return
@@ -75,18 +72,16 @@ function handle_request(content_type, data)
 end
 
 
-function main()
-    print("main")
-
+function waiting_reqeust()
     local mn = ""
     while true do
-        mn = lts.front.pop_rbuf(1)
+        mn = lts.front.pop_rbuf(1, false)
         if 0xE7 == string.byte(mn, 1) then
-            mn = lts.front.pop_rbuf(1)
+            mn = lts.front.pop_rbuf(1, false)
             if 0x8F == string.byte(mn, 1) then
-                mn = lts.front.pop_rbuf(1)
+                mn = lts.front.pop_rbuf(1, false)
                 if 0x8A == string.byte(mn, 1) then
-                    mn = lts.front.pop_rbuf(1)
+                    mn = lts.front.pop_rbuf(1, false)
                     if 0x9D == string.byte(mn, 1) then
                         break
                     end
@@ -94,8 +89,25 @@ function main()
             end
         end
     end
-    print("found")
-    return
+
+    local hd = lts.front.pop_rbuf(16, true) -- peek header
+    local _, version, ent_type, ent_ofst, ent_len, checksum =
+        string.unpack(hd, ">IS2I2", ne)
+
+    if 1000 == version and ent_ofst >= 20 and ent_ofst <= 64 then
+        lts.front.pop_rbuf(16, false)
+        local data = lts.front.pop_rbuf(ent_len, false)
+        return ent_type, data
+    end
 end
+
+
+function main()
+    while true do
+        local ent_type, ent_data = waiting_reqeust()
+        handle_request(ent_type, ent_data)
+    end
+end
+
 
 main()

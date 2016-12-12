@@ -40,11 +40,10 @@ if __name__ == "__main__":
         sys.exit(1)
 
     data = "who am i? you sure you wanna know? I am the spider man!\n"
-    cli.send("a")
-    time.sleep(5)
-    cli.send(pack_sjsonb(3, {"interface":"start", "deviceid":"123", "time":"20160101010101", "length":"100"}))
-    #cli.send(pack_sjsonb(1, data))
-    #cli.send(pack_sjsonb(1, data))
+    cli.send(pack_sjsonb(3, {"interface":"start", "deviceid":"123", "time":"20160101010101", "length":"{}".format(2 * len(data))}))
+    cli.send(pack_sjsonb(1, data))
+    cli.send(pack_sjsonb(1, data))
     buf = cli.recv(4096)
-    print(buf)
+    cli.shutdown(1)
+    cli.close()
     print unpack_sjsonb(buf)

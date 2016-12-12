@@ -510,9 +510,13 @@ int api_tcp_socket_connect(lua_State *s)
 int api_pop_rbuf(lua_State *s)
 {
     lts_buffer_t *rbuf = curr_ctx->front->conn->rbuf;
-    int needsz = luaL_checkint(s, -1);
+    int needsz, peek;
     lua_State *L = curr_ctx->rt_state;
 
+    luaL_checktype(s, -1, LUA_TBOOLEAN );
+    peek = lua_toboolean(s, -1);
+
+    needsz = luaL_checkint(s, -2);
     if (needsz < 1) {
         lua_pushstring(L, "invalid size\n");
         lua_error(L);
@@ -525,7 +529,10 @@ int api_pop_rbuf(lua_State *s)
     }
 
     lua_pushlstring(curr_ctx->rt_state, (char const *)rbuf->seek, needsz);
-    rbuf->seek += needsz;
+    if (! peek) {
+        rbuf->seek += needsz;
+    }
+
     return 1;
 }
 
@@ -617,16 +624,21 @@ static void mod_on_received(lts_socket_t *s)
         }
     } else if (Y_FRONT_RECEIVE == curr_ctx->yield_for) {
         lts_buffer_t *rbuf = s->conn->rbuf;
-        int needsz = luaL_checkint(L, -1);
+        int needsz, peek;
 
+        luaL_checktype(L, -1, LUA_TBOOLEAN);
+        peek = lua_toboolean(L, -1);
+        needsz = luaL_checkint(L, -2);
         if (lts_buffer_pending(rbuf) < needsz) {
             return;
         }
+        lua_pop(L, 2); // 释放参数
 
-        lua_pop(L, 1); // 释放参数
         curr_ctx->yield_for = Y_NOTHING;
         lua_pushlstring(L, (char const *)rbuf->seek, needsz);
-        rbuf->seek += needsz;
+        if (! peek) {
+            rbuf->seek += needsz;
+        }
         (void)lua_resume(L, 1);
     } else {
     }
