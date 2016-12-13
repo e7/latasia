@@ -14,48 +14,61 @@ end
 
 function handle_request(content_type, data)
     local rsp = {}
-    local basedir, path = nil, nil
+    local homedir, path = nil, nil
     if 1 == content_type then
-        if nil == lts.front.fd then
+        if not lts.front.transfer or not lts.front.transfer.fd then
             -- just drop it
             return
         end
 
-        lts.front.fd:write(data)
-        local curlen = lts.front["curlen"] + #data
-        lts.front["curlen"] = curlen
-        if curlen >= lts.front["length"] then
-            lts.front.fd:close()
-            lts.front["fd"] = nil
+        lts.front.transfer.fd:write(data)
+        local curlen = tonumber(lts.front.transfer.offset) + #data
+        if curlen < tonumber(lts.front.transfer.length) then
+            lts.front.transfer.offset = curlen
+        else
+            lts.front.transfer.fd:close()
+            lts.front["transfer"] = nil
             rsp = {error_no="200", error_msg="success"}
             lts.front.push_sbuf(sjsonb.encode(3, cjson.encode(rsp)))
         end
         return
     elseif 3 == content_type then
-        -- 客户端请求开始一个新的上传
         local obj = cjson.decode(data)
 
-        if lts.front["time"] then
-            if nil ~= lts.front.fd then
-                -- 上一次传输未完成，删除文件
-                print("del file")
-                basedir = prefix .. "/" .. obj["deviceid"]
-                path = basedir .. "/" .. obj["time"]
-                lts.front.fd:close()
-                os.execute("rm -f " .. path)
-            end
+        -- 参数检查
+        if "start" ~= obj.interface then
+            rsp = {error_no="400", error_msg="unsupport request"}
+            lts.front.push_sbuf(sjsonb.encode(3, cjson.encode(rsp)))
+            return
         end
-        lts.front["deviceid"] = obj["devicedid"]
-        lts.front["time"] = obj["time"]
-        lts.front["length"] = tonumber(obj["length"])
-        lts.front["curlen"] = 0
+
+        if not obj.deviceid or not obj.time or not obj.length then
+            rsp = {error_no="401", error_msg="missing argument"}
+            lts.front.push_sbuf(sjsonb.encode(3, cjson.encode(rsp)))
+            return
+        end
+
+        if nil ~= lts.front.transfer then
+            -- 上一个文件未完成
+            rsp = {error_no="400", error_msg="unsupport request"}
+            lts.front.push_sbuf(sjsonb.encode(3, cjson.encode(rsp)))
+            return
+        end
+
+        lts.front["transfer"] = {
+            deviceid=obj.devicedid, time=obj.time, length=obj.length, offset="0"
+        }
 
         -- 创建目录及文件
-        basedir = prefix .. "/" .. obj["deviceid"]
-        path = basedir .. "/" .. obj["time"]
+        local date = string.sub(obj.time, 1, 8)
+        local basedir = prefix .. "/" .. obj.deviceid
         lfs.mkdir(basedir)
-        lts.front["fd"] = io.open(path, "ab")
-        if nil == lts.front.fd then
+
+        homedir = basedir .. "/" .. date
+        path = homedir .. "/" .. obj.time
+        lfs.mkdir(homedir)
+        lts.front.transfer["fd"] = io.open(path, "ab")
+        if nil == lts.front.transfer.fd then
             rsp = {error_no="500", error_msg="server failed"}
             lts.front.push_sbuf(sjsonb.encode(3, cjson.encode(rsp)))
             return
