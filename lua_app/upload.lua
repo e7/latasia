@@ -111,7 +111,9 @@ function waiting_reqeust()
     local _, version, ent_type, ent_ofst, ent_len, checksum =
         string.unpack(hd, ">IS2I2", ne)
 
-    if 1000 == version and ent_ofst >= 20 and ent_ofst <= 64 then
+    if 1000 == version
+        and ent_ofst >= 20 and ent_ofst <= 64
+        and ent_len > 0 and ent_len < 12000 then
         lts.front.pop_rbuf(16, false)
         local data = lts.front.pop_rbuf(ent_len, false)
         return ent_type, data
