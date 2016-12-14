@@ -27,8 +27,11 @@ function handle_request(content_type, data)
             lts.front.transfer.offset = curlen
         else
             lts.front.transfer.fd:close()
+            rsp = {
+                error_no="201", error_msg="success",
+                time=lts.front.transfer.time
+            }
             lts.front["transfer"] = nil
-            rsp = {error_no="200", error_msg="success"}
             lts.front.push_sbuf(sjsonb.encode(3, cjson.encode(rsp)))
         end
         return
