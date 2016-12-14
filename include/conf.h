@@ -21,8 +21,9 @@ extern "C" {
 #define MAX_CONF_SIZE           65535
 #define ENABLE_IPV6             FALSE
 #define MODULE_POOL_SIZE        (1024 * 1024)
-#define CONN_POOL_SIZE          (1024 * 8)
-#define CONN_BUFFER_SIZE        (1024 * 4)
+#define CONN_POOL_SIZE          (1024 * 32)
+#define RBUF_SIZE               (1024 * 12)
+#define SBUF_SIZE               (1024 * 4)
 #define MAX_CONNECTIONS         1024
 // }} configuration
 

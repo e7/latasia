@@ -80,6 +80,7 @@ function handle_request(content_type, data)
         return
     else
         -- just drop it
+        print("unknown content type")
         return
     end
 end

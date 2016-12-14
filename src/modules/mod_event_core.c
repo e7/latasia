@@ -147,8 +147,8 @@ static void lts_accept(lts_socket_t *ls)
         return;
     }
     c->pool = cpool; // 新连接的内存池
-    c->rbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
-    c->sbuf = lts_create_buffer(cpool, CONN_BUFFER_SIZE, CONN_BUFFER_SIZE);
+    c->rbuf = lts_create_buffer(cpool, RBUF_SIZE, RBUF_SIZE);
+    c->sbuf = lts_create_buffer(cpool, SBUF_SIZE, SBUF_SIZE);
 
     cs = lts_alloc_socket();
     cs->fd = cmnct_fd;
