@@ -26,6 +26,7 @@ function handle_request(content_type, data)
         if lastlen < tonumber(lts.front.transfer.length) then
             lts.front.transfer.curlen = lastlen
         else
+            print("upload finished")
             lts.front.transfer.fd:close()
             rsp = {
                 error_no="201", error_msg="end",
@@ -77,7 +78,9 @@ function handle_request(content_type, data)
             return
         end
 
-        rsp = {error_no="200", error_msg="success", offset=tostring(length_of_file(path))}
+        local last_file_len = length_of_file(path)
+        lts.front.transfer["curlen"] = tostring(last_file_len)
+        rsp = {error_no="200", error_msg="success", offset=tostring(last_file_len)}
         lts.front.push_sbuf(sjsonb.encode(3, cjson.encode(rsp)))
 
         return
