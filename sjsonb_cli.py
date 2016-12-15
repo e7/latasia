@@ -35,6 +35,7 @@ if __name__ == "__main__":
     cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         cli.connect(("127.0.0.1", 4321))
+        #cli.connect(("120.76.155.45", 4321))
     except socket.error as e:
         print e
         sys.exit(1)

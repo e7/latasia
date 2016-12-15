@@ -22,13 +22,13 @@ function handle_request(content_type, data)
         end
 
         lts.front.transfer.fd:write(data)
-        local curlen = tonumber(lts.front.transfer.offset) + #data
-        if curlen < tonumber(lts.front.transfer.length) then
-            lts.front.transfer.offset = curlen
+        local lastlen = tonumber(lts.front.transfer.curlen) + #data
+        if lastlen < tonumber(lts.front.transfer.length) then
+            lts.front.transfer.curlen = lastlen
         else
             lts.front.transfer.fd:close()
             rsp = {
-                error_no="201", error_msg="success",
+                error_no="201", error_msg="end",
                 time=lts.front.transfer.time
             }
             lts.front["transfer"] = nil
@@ -59,7 +59,7 @@ function handle_request(content_type, data)
         end
 
         lts.front["transfer"] = {
-            deviceid=obj.devicedid, time=obj.time, length=obj.length, offset="0"
+            deviceid=obj.devicedid, time=obj.time, length=obj.length, curlen="0"
         }
 
         -- 创建目录及文件
@@ -68,7 +68,7 @@ function handle_request(content_type, data)
         lfs.mkdir(basedir)
 
         homedir = basedir .. "/" .. date
-        path = homedir .. "/" .. obj.time
+        path = homedir .. "/" .. obj.time .. ".mp4"
         lfs.mkdir(homedir)
         lts.front.transfer["fd"] = io.open(path, "ab")
         if nil == lts.front.transfer.fd then
@@ -123,6 +123,11 @@ end
 
 function main()
     while true do
+        if lts.front.closed then
+            print("connection closed by peer")
+            break
+        end
+
         local ent_type, ent_data = waiting_reqeust()
         handle_request(ent_type, ent_data)
     end

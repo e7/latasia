@@ -587,6 +587,9 @@ static void mod_on_connected(lts_socket_t *s)
         // front
         lua_pushstring(L, "front");
         lua_newtable(L);
+            lua_pushstring(L, "closed");
+            lua_pushboolean(L, FALSE);
+            lua_settable(L, -3);
             lua_pushstring(L, "pop_rbuf");
             lua_pushcclosure(L, &api_pop_rbuf, 0);
             lua_settable(L, -3);
@@ -682,12 +685,17 @@ static void mod_on_sent(lts_socket_t *s)
 
 static void mod_on_closing(lts_socket_t *s)
 {
+    lua_State *L;
+
     curr_ctx = (lua_ctx_t *)s->app_ctx;
     ASSERT(curr_ctx);
+    L = curr_ctx->rt_state;
 
-    // release coroutine for gc
-    ASSERT(LUA_TTHREAD == lua_type(s_state, -1));
-    lua_pop(s_state, 1);
+    lua_getglobal(L, "lts");
+        lua_pushstring(L, "closed");
+        lua_pushboolean(L, TRUE);
+        lua_settable(L, -3);
+    lua_setglobal(L, "lts");
 
     return;
 }
