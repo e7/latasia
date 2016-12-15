@@ -25,9 +25,13 @@ function handle_request(content_type, data)
         local lastlen = tonumber(lts.front.transfer.curlen) + #data
         if lastlen < tonumber(lts.front.transfer.length) then
             lts.front.transfer.curlen = lastlen
+            if lts.front.closed then
+                lts.front.transfer.fd:close()
+                lts.front["transfer"] = nil
+            end
         else
-            print("upload finished")
             lts.front.transfer.fd:close()
+
             rsp = {
                 error_no="201", error_msg="end",
                 time=lts.front.transfer.time
@@ -126,10 +130,10 @@ end
 
 function main()
     while true do
-        if lts.front.closed then
-            print("connection closed by peer")
-            break
-        end
+        --if lts.front.closed then
+        --    print("connection closed")
+        --    break
+        --end
 
         local ent_type, ent_data = waiting_reqeust()
         handle_request(ent_type, ent_data)
