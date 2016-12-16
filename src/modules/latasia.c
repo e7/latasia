@@ -393,6 +393,15 @@ void process_post_list(void)
         }
     }
 
+    // 新请求通知应用层
+    if (app_itfc->on_service) {
+        while (! dlist_empty(&lts_task_list)) {
+            dlist_t *tmp = dlist_get_head(&lts_task_list);
+            dlist_del(tmp);
+            (*app_itfc->on_service)(tmp);
+        }
+    }
+
     return;
 }
 

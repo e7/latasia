@@ -22,7 +22,7 @@ typedef struct {
 static event_core_ctx_t s_event_core_ctx = {
     0,
 };
-static void lts_timeout(lts_timer_node_t *cstn);
+static void lts_evt_timeout(lts_timer_node_t *cstn);
 
 
 void lts_close_conn_orig(int fd, int reset)
@@ -165,7 +165,7 @@ static void lts_accept(lts_socket_t *ls)
     (*lts_event_itfc->event_add)(cs);
 
     // 加入定时器
-    lts_timer_node_init(&cs->timer_node, 0, &lts_timeout);
+    lts_timer_node_init(&cs->timer_node, 0, &lts_evt_timeout);
     if (lts_main_conf.keepalive > 0) {
         int64_t reset = lts_current_time + lts_main_conf.keepalive * 10;
 
@@ -562,7 +562,7 @@ void lts_evt_error(lts_socket_t *cs)
 }
 
 
-void lts_timeout(lts_timer_node_t *cstn)
+void lts_evt_timeout(lts_timer_node_t *cstn)
 {
     lts_socket_t *cs = CONTAINER_OF(cstn, lts_socket_t, timer_node);
     lts_close_conn(cs, FALSE);

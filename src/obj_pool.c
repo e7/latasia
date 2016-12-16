@@ -12,7 +12,6 @@ void lts_init_opool(
 
     pool->offset = offset;
     dlist_init(&pool->freelist);
-    dlist_init(&pool->inuselist);
     pool->left_boundary = cache;
     pool->right_boundary = obj + len - 1;
 
@@ -34,7 +33,6 @@ void *lts_op_instance(lts_obj_pool_t *pool)
 
     rslt = dlist_get_head(&pool->freelist);
     dlist_del(rslt);
-    dlist_add_tail(&pool->inuselist, rslt);
 
     return (uint8_t *)rslt - pool->offset;
 }

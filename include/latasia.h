@@ -85,6 +85,7 @@ struct lts_event_module_itfc_s {
 struct lts_app_module_itfc_s {
     void (*on_connected)(lts_socket_t *);
     void (*on_received)(lts_socket_t *);
+    void (*on_service)(dlist_t *);
     void (*on_sent)(lts_socket_t *);
     void (*on_closing)(lts_socket_t *);
 };

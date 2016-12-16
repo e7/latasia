@@ -25,6 +25,7 @@
 #define __THIS_FILE__       "src/modules/mod_app_lua.c"
 
 #define CONF_FILE           "conf/mod_app.conf"
+#define NTASK_RSC           4
 
 
 enum {
@@ -37,12 +38,19 @@ enum {
 
 enum {
     Y_NOTHING = 0,
-    Y_FRONT_RECEIVE,
     Y_FRONT_SENT,
     Y_BACK_CONNECT,
     Y_BACK_RECEIVE,
     Y_BACK_SEND,
 };
+
+
+typedef struct {
+    uint16_t contype;
+    lts_str_t content;
+    dlist_t node; // 任务链节点
+    lts_socket_t *cs;
+} task_t;
 
 typedef struct {
     uint32_t yield_for;
@@ -61,7 +69,6 @@ static lts_obj_pool_t s_sock_pool;
 
 static int load_lua_config(lts_conf_lua_t *conf, lts_pool_t *pool);
 
-static int api_pop_rbuf(lua_State *s);
 static int api_push_sbuf(lua_State *s);
 static int api_tcp_socket_connect(lua_State *s);
 static void tcp_on_connected(lts_socket_t *s);
@@ -508,36 +515,6 @@ int api_tcp_socket_connect(lua_State *s)
 // }} lts.socket.tcp
 
 
-int api_pop_rbuf(lua_State *s)
-{
-    lts_buffer_t *rbuf = curr_ctx->front->conn->rbuf;
-    int needsz, peek;
-    lua_State *L = curr_ctx->rt_state;
-
-    luaL_checktype(s, -1, LUA_TBOOLEAN );
-    peek = lua_toboolean(s, -1);
-
-    needsz = luaL_checkint(s, -2);
-    if (needsz < 1) {
-        lua_pushstring(L, "invalid size\n");
-        lua_error(L);
-        return 0;
-    }
-
-    if (lts_buffer_pending(rbuf) < needsz) {
-        curr_ctx->yield_for = Y_FRONT_RECEIVE;
-        return lua_yield(curr_ctx->rt_state, 0);
-    }
-
-    lua_pushlstring(curr_ctx->rt_state, (char const *)rbuf->seek, needsz);
-    if (! peek) {
-        rbuf->seek += needsz;
-    }
-
-    return 1;
-}
-
-
 int api_push_sbuf(lua_State *s)
 {
     uint8_t const *data;
@@ -573,6 +550,14 @@ int api_push_sbuf(lua_State *s)
 static void mod_on_connected(lts_socket_t *s)
 {
     lua_State *L;
+    void *rsc_buf;
+    ssize_t task_rsc_sz = sizeof(task_t) * NTASK_RSC;
+
+    // 分配任务资源池
+    rsc_buf = lts_palloc(s->conn->pool, task_rsc_sz);
+    ASSERT(rsc_buf);
+    lts_init_opool(&s->task_rsc, rsc_buf, task_rsc_sz,
+                   sizeof(task_t), OFFSET_OF(task_t, node));
 
     // 初始化context
     s->app_ctx = lts_palloc(s->conn->pool, sizeof(lua_ctx_t));
@@ -591,9 +576,6 @@ static void mod_on_connected(lts_socket_t *s)
             lua_pushstring(L, "closed");
             lua_pushboolean(L, FALSE);
             lua_settable(L, -3);
-            lua_pushstring(L, "pop_rbuf");
-            lua_pushcclosure(L, &api_pop_rbuf, 0);
-            lua_settable(L, -3);
             lua_pushstring(L, "push_sbuf");
             lua_pushcclosure(L, &api_push_sbuf, 0);
             lua_settable(L, -3);
@@ -606,46 +588,66 @@ static void mod_on_connected(lts_socket_t *s)
 
 static void mod_on_received(lts_socket_t *s)
 {
-    lua_State *L;
+    task_t *tsk;
+    uint16_t contype;
+    lts_str_t content = lts_null_string;
 
-    curr_ctx = (lua_ctx_t *)s->app_ctx;
+    // 解码
+    while ((tsk = lts_op_instance(&s->task_rsc))) {
+        if (-1 == lts_proto_sjsonb_decode(s->conn->rbuf, &contype, &content)) {
+            lts_op_release(&s->task_rsc, tsk);
+            break;
+        }
+
+        // 追加任务
+        tsk->contype = contype;
+        lts_str_share(&tsk->content, &content);
+        tsk->cs = s;
+        dlist_add_tail(&lts_task_list, &tsk->node);
+    }
+
+    return;
+}
+
+
+static void mod_on_service(dlist_t *nd)
+{
+    int r;
+    lua_State *L;
+    task_t *tsk = CONTAINER_OF(nd, task_t, node);
+    lts_socket_t *cs = tsk->cs;
+
+    curr_ctx = (lua_ctx_t *)cs->app_ctx;
     ASSERT(curr_ctx);
     L = curr_ctx->rt_state;
 
-    if (Y_NOTHING == curr_ctx->yield_for) {
-        int r;
+    ASSERT(tsk > 0);
 
-        if (luaL_loadfile(L, (char const *)lts_lua_conf.entry.data)) {
-            // LUA_ERRFILE
-            fprintf(stderr, "load file failed:%s\n", lua_tostring(L, -1));
-            return;
-        }
+    lua_getglobal(L, "lts");
+        lua_getfield(L, -1, "front");
+            lua_pushstring(L, "contype");
+            lua_pushinteger(L, tsk->contype);
+            lua_settable(L, -3);
+            lua_pushstring(L, "content");
+            lua_pushlstring(L, (char const *)tsk->content.data, tsk->content.len);
+            lua_settable(L, -3);
+        lua_setfield(L, -2, "front");
+    lua_setglobal(L, "lts");
 
-        r = lua_resume(L, 0);
-
-        if (r && (LUA_YIELD != r)) {
-            fprintf(stderr, "resume failed: %s\n", lua_tostring(L, -1));
-        }
-    } else if (Y_FRONT_RECEIVE == curr_ctx->yield_for) {
-        lts_buffer_t *rbuf = s->conn->rbuf;
-        int needsz, peek;
-
-        luaL_checktype(L, -1, LUA_TBOOLEAN);
-        peek = lua_toboolean(L, -1);
-        needsz = luaL_checkint(L, -2);
-        if (lts_buffer_pending(rbuf) < needsz) {
-            return;
-        }
-        lua_pop(L, 2); // 释放参数
-
-        curr_ctx->yield_for = Y_NOTHING;
-        lua_pushlstring(L, (char const *)rbuf->seek, needsz);
-        if (! peek) {
-            rbuf->seek += needsz;
-        }
-        (void)lua_resume(L, 1);
-    } else {
+    // run coroutine
+    if (luaL_loadfile(L, (char const *)lts_lua_conf.entry.data)) {
+        // LUA_ERRFILE
+        lts_op_release(&cs->task_rsc, tsk); // 记得归还
+        fprintf(stderr, "load file failed:%s\n", lua_tostring(L, -1));
+        return;
     }
+
+    r = lua_resume(L, 0);
+
+    if (r && (LUA_YIELD != r)) {
+        fprintf(stderr, "resume failed: %s\n", lua_tostring(L, -1));
+    }
+    lts_op_release(&cs->task_rsc, tsk); // 记得归还
 
     return;
 }
@@ -660,6 +662,7 @@ static void mod_on_sent(lts_socket_t *s)
     L = curr_ctx->rt_state;
 
     if (Y_FRONT_SENT == curr_ctx->yield_for) {
+        int r;
         uint8_t const *data;
         size_t dlen;
         lts_buffer_t *sbuf = curr_ctx->front->conn->sbuf;
@@ -677,7 +680,11 @@ static void mod_on_sent(lts_socket_t *s)
         lua_pop(L, 1);
 
         curr_ctx->yield_for = Y_NOTHING;
-        lua_pushnil(L); (void)lua_resume(L, 0);
+        lua_pushnil(L);
+        r = lua_resume(L, 0);
+        if (r && (LUA_YIELD != r)) {
+            fprintf(stderr, "resume failed: %s\n", lua_tostring(L, -1));
+        }
     }
 
     return;
@@ -693,9 +700,11 @@ static void mod_on_closing(lts_socket_t *s)
     L = curr_ctx->rt_state;
 
     lua_getglobal(L, "lts");
-        lua_pushstring(L, "closed");
-        lua_pushboolean(L, TRUE);
-        lua_settable(L, -3);
+        lua_getfield(L, -1, "front");
+            lua_pushstring(L, "closed");
+            lua_pushboolean(L, TRUE);
+            lua_settable(L, -3);
+        lua_setfield(L, -2, "front");
     lua_setglobal(L, "lts");
 
     return;
@@ -705,6 +714,7 @@ static void mod_on_closing(lts_socket_t *s)
 static lts_app_module_itfc_t lua_itfc = {
     &mod_on_connected,
     &mod_on_received,
+    &mod_on_service,
     &mod_on_sent,
     &mod_on_closing,
 };

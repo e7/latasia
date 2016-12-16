@@ -16,6 +16,7 @@
 #include "rbt_timer.h"
 #include "buffer.h"
 #include "mem_pool.h"
+#include "obj_pool.h"
 
 
 #ifdef __cplusplus
@@ -54,6 +55,7 @@ struct lts_socket_s {
 
     int64_t born_time;
     lts_conn_t *conn;
+    lts_obj_pool_t task_rsc; // 任务资源池
     dlist_t dlnode;
 
     struct lts_timer_node_s timer_node;
@@ -74,6 +76,7 @@ extern lts_socket_t **lts_listen_array; // 监听socket数组
 
 extern dlist_t lts_watch_list; // 观察链表，与post链互为补链
 extern dlist_t lts_post_list; // post链表，事件延迟处理
+DECLARE_DLIST(lts_task_list);
 
 extern int64_t lts_current_time;
 

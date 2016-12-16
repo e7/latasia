@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     cli.send(pack_sjsonb(1, data))
     cli.send(pack_sjsonb(1, data))
-    sys.exit(1)
+    # sys.exit(1)
     buf = cli.recv(4096)
     cli.shutdown(1)
     cli.close()

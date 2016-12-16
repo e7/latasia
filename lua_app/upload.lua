@@ -129,15 +129,7 @@ end
 
 
 function main()
-    while true do
-        --if lts.front.closed then
-        --    print("connection closed")
-        --    break
-        --end
-
-        local ent_type, ent_data = waiting_reqeust()
-        handle_request(ent_type, ent_data)
-    end
+    handle_request(lts.front.contype, lts.front.content)
 end
 
 
