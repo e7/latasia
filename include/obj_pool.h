@@ -12,7 +12,6 @@ extern "C" {
 typedef struct lts_obj_pool_s {
     int offset; // 链表节点偏移
     dlist_t freelist;
-    dlist_t inuselist;
 
     // just for security
     void *left_boundary;
