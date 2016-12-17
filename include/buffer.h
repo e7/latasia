@@ -38,12 +38,12 @@ static inline int lts_buffer_full(lts_buffer_t *buffer)
     return buffer->last == buffer->end;
 }
 
-static inline int lts_buffer_space(lts_buffer_t *buffer)
+static inline ssize_t lts_buffer_space(lts_buffer_t *buffer)
 {
     return buffer->end - buffer->last;
 }
 
-static inline int lts_buffer_pending(lts_buffer_t *buffer)
+static inline ssize_t lts_buffer_pending(lts_buffer_t *buffer)
 {
     return buffer->last - buffer->seek;
 }

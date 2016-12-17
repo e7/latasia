@@ -100,6 +100,7 @@ function main()
     -- handle_request(lts.front.contype, lts.front.content)
     local sock = lts.socket.tcp()
     sock:connect("127.0.0.1", 30976)
+    print(sock:send("1234567"))
     print(sock:receive(4))
     sock:close()
 end

@@ -197,8 +197,6 @@ void tcp_on_read(lts_socket_t *s)
     lts_buffer_t *rbuf = s->conn->rbuf;
 
     s->readable = 0;
-    curr_ctx = (lua_ctx_t *)s->app_ctx;
-    ASSERT(curr_ctx);
     L = curr_ctx->rt_state;
 
     ASSERT(Y_BACK_RECEIVE == curr_ctx->yield_for);
@@ -248,35 +246,34 @@ void tcp_on_read(lts_socket_t *s)
 
 void tcp_on_write(lts_socket_t *s)
 {
-//    ssize_t sendsz;
-//    lts_buffer_t *sbuf = s->conn->sbuf;
-//
+    ssize_t sendsz;
+    lts_buffer_t *sbuf = s->conn->sbuf;
+
     ASSERT(Y_BACK_SEND == curr_ctx->yield_for); // 只可能send阻塞时被调
-//    if (0 == lts_buffer_pending(sbuf)) {
-//        // no more sending
-//        s->writable = 0;
-//        (*lts_event_itfc->event_del)(s);
-//
-//        lua_pushinteger(s_rt_state, E_SUCCESS);
-//    fprintf(stderr, "wakeup:235\n");
-//        (void)lua_resume(s_rt_state, 1);
-//        return;
-//    }
-//
-//    sendsz = send(s->fd, sbuf->seek, lts_buffer_pending(sbuf), 0);
-//    if (-1 == sendsz) {
-//        if (EAGAIN == errno || EWOULDBLOCK == errno) {
-//            s->writable = 0;
-//        } else {
-//            (*lts_event_itfc->event_del)(s);
-//            lua_pushinteger(s_rt_state, E_FAILED);
-//    fprintf(stderr, "wakeup:247\n");
-//            (void)lua_resume(s_rt_state, 1);
-//        }
-//    } else { // sendsz > 0
-//        sbuf->seek += sendsz;
-//    }
-//
+    if (0 == lts_buffer_pending(sbuf)) {
+        // no more sending
+        s->writable = 0;
+        (*lts_event_itfc->event_del)(s);
+
+        curr_ctx->yield_for = Y_NOTHING;
+        lua_pushinteger(curr_ctx->rt_state, E_SUCCESS);
+        (void)lua_resume(curr_ctx->rt_state, 1);
+        return;
+    }
+
+    sendsz = send(s->fd, sbuf->seek, lts_buffer_pending(sbuf), 0);
+    if (-1 == sendsz) {
+        if (EAGAIN == errno || EWOULDBLOCK == errno) {
+            s->writable = 0;
+        } else {
+            (*lts_event_itfc->event_del)(s);
+            lua_pushinteger(curr_ctx->rt_state, E_FAILED);
+            (void)lua_resume(curr_ctx->rt_state, 1);
+        }
+    } else { // sendsz > 0
+        sbuf->seek += sendsz;
+    }
+
     return;
 }
 
@@ -358,7 +355,6 @@ int api_tcp_socket(lua_State *s)
     }
     lts_init_socket(conn);
     conn->fd = sockfd;
-    conn->app_ctx = curr_ctx; // 初始化上下文
 
     lua_newtable(s);
         lua_pushstring(s, "connect");
@@ -376,9 +372,10 @@ int api_tcp_socket(lua_State *s)
         lua_pushcclosure(s, &api_tcp_socket_receive, 1);
         lua_settable(s, -3);
 
-        //lua_pushstring(s, "send");
-        //lua_pushcclosure(s, &api_tcp_socket_send, 0);
-        //lua_settable(s, -3);
+        lua_pushstring(s, "send");
+        lua_pushlightuserdata(s, conn);
+        lua_pushcclosure(s, &api_tcp_socket_send, 1);
+        lua_settable(s, -3);
     lua_pushinteger(s, E_SUCCESS);
 
     return 2;
@@ -430,42 +427,37 @@ int api_tcp_socket_connect(lua_State *s)
 }
 
 
-//int api_tcp_socket_send(lua_State *s)
-//{
-//    ssize_t datalen = 0;
-//    char const *data;
-//    lts_socket_t *conn;
-//    lts_buffer_t *sbuf;
-//
-//    // 栈检查
-//    data = luaL_checklstring(s, -1, (size_t *)&datalen);
-//    luaL_checktype(s, -2, LUA_TTABLE);
-//
-//    lua_getfield(s, -2, "_sock"); // 压栈
-//    conn = (lts_socket_t *)lua_topointer(s, -1);
-//    ASSERT(conn);
-//    lua_pop(s, 1); // 退栈
-//
-//    sbuf = conn->conn->sbuf;
-//    ASSERT(lts_buffer_empty(sbuf));
-//    if (lts_buffer_space(sbuf) < datalen) {
-//        // 发送的数据过大
-//        lua_pop(s, 2); // 释放所有参数
-//
-//        lua_pushinteger(s, E_FAILED);
-//        return 1;
-//    }
-//
-//    ASSERT(0 == lts_buffer_append(sbuf, (uint8_t *)data, datalen));
-//    lua_pop(s, 2); // 释放所有参数
-//
-//    // 写事件监视
-//    conn->ev_mask = EPOLLET | EPOLLOUT;
-//    conn->do_read = &tcp_on_write;
-//    (*lts_event_itfc->event_add)(conn);
-//
-//    return lua_yield(s, 0);
-//}
+int api_tcp_socket_send(lua_State *s)
+{
+    size_t datalen = 0;
+    char const *data;
+    lts_socket_t *conn;
+    lts_buffer_t *sbuf;
+
+    luaL_checktype(s, lua_upvalueindex(1), LUA_TLIGHTUSERDATA);
+    conn = (lts_socket_t *)lua_topointer(s, lua_upvalueindex(1));
+    sbuf = conn->conn->sbuf;
+
+    data = luaL_checklstring(s, -1, &datalen);
+    if (lts_buffer_space(sbuf) < datalen) {
+        // 发送的数据过大
+        lua_pop(s, 2); // 释放所有参数
+
+        lua_pushinteger(s, E_FAILED);
+        return 1;
+    }
+
+    curr_ctx->yield_for = Y_BACK_SEND;
+    ASSERT(0 == lts_buffer_append(sbuf, (uint8_t *)data, datalen));
+    lua_pop(s, 2); // 释放所有参数
+
+    // 写事件监视
+    conn->ev_mask = EPOLLET | EPOLLOUT;
+    conn->do_read = &tcp_on_write;
+    (*lts_event_itfc->event_add)(conn);
+
+    return lua_yield(s, 0);
+}
 
 
 int api_tcp_socket_receive(lua_State *s)
