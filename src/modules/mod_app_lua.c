@@ -56,7 +56,6 @@ typedef struct {
     uint32_t yield_for;
     lua_State *rt_state;
     lts_socket_t *front; // 前端连接
-    lts_socket_t *back; // 后端连接
 } lua_ctx_t;
 
 
@@ -356,16 +355,17 @@ int api_tcp_socket(lua_State *s)
     }
     lts_init_socket(conn);
     conn->fd = sockfd;
-    curr_ctx->back = conn;
 
     lua_newtable(s);
         lua_pushstring(s, "connect");
-        lua_pushcclosure(s, &api_tcp_socket_connect, 0);
+        lua_pushlightuserdata(s, conn);
+        lua_pushcclosure(s, &api_tcp_socket_connect, 1);
         lua_settable(s, -3);
 
-        //lua_pushstring(s, "close");
-        //lua_pushcclosure(s, &api_tcp_socket_close, 0);
-        //lua_settable(s, -3);
+        lua_pushstring(s, "close");
+        lua_pushlightuserdata(s, conn);
+        lua_pushcclosure(s, &api_tcp_socket_close, 1);
+        lua_settable(s, -3);
 
         //lua_pushstring(s, "receive");
         //lua_pushcclosure(s, &api_tcp_socket_receive, 0);
@@ -384,8 +384,10 @@ int api_tcp_socket_connect(lua_State *s)
 {
     int ok;
     struct sockaddr_in svr = {0};
-    lts_socket_t *conn = curr_ctx->back;
+    lts_socket_t *conn;
 
+    luaL_checktype(s, lua_upvalueindex(1), LUA_TLIGHTUSERDATA);
+    conn = lua_topointer(s, lua_upvalueindex(1));
     svr.sin_family = AF_INET;
     svr.sin_port = htons(luaL_checkint(s, -1));
     if (! inet_aton(luaL_checkstring(s, -2), &svr.sin_addr)) {
@@ -491,27 +493,25 @@ int api_tcp_socket_connect(lua_State *s)
 //    lua_pushinteger(s, need_sz);
 //    return lua_yield(s, 1);
 //}
-//
-//
-//int api_tcp_socket_close(lua_State *s)
-//{
-//    lts_socket_t *conn;
-//
-//    luaL_checktype(s, -1, LUA_TTABLE);
-//    lua_getfield(s, -1, "_sock");
-//    conn = (lts_socket_t *)lua_topointer(s, -1);
-//
-//    // (void)(*lts_event_itfc->event_del)(conn);
-//    if (conn->conn) {
-//        lts_destroy_pool(conn->conn->pool);
-//        conn->conn = NULL;
-//    }
-//    (void)shutdown(conn->fd, SHUT_WR);
-//    (void)close(conn->fd);
-//    lts_op_release(&s_sock_pool, conn);
-//
-//    return 0;
-//}
+
+
+int api_tcp_socket_close(lua_State *s)
+{
+    lts_socket_t *conn;
+
+    luaL_checktype(s, lua_upvalueindex(1), LUA_TLIGHTUSERDATA);
+    conn = lua_topointer(s, lua_upvalueindex(1));
+
+    if (conn->conn) {
+        lts_destroy_pool(conn->conn->pool);
+        conn->conn = NULL;
+    }
+    (void)shutdown(conn->fd, SHUT_WR);
+    (void)close(conn->fd);
+    lts_op_release(&s_sock_pool, conn);
+
+    return 0;
+}
 // }} lts.socket.tcp
 
 
@@ -565,7 +565,6 @@ static void mod_on_connected(lts_socket_t *s)
     curr_ctx->yield_for = Y_NOTHING;
     curr_ctx->rt_state = lua_newthread(s_state);
     curr_ctx->front = s;
-    curr_ctx->back = NULL;
 
     // 创建协程
     L = curr_ctx->rt_state;

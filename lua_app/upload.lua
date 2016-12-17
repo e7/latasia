@@ -96,40 +96,11 @@ function handle_request(content_type, data)
 end
 
 
-function waiting_reqeust()
-    local mn = ""
-    while true do
-        mn = lts.front.pop_rbuf(1, false)
-        if 0xE7 == string.byte(mn, 1) then
-            mn = lts.front.pop_rbuf(1, false)
-            if 0x8F == string.byte(mn, 1) then
-                mn = lts.front.pop_rbuf(1, false)
-                if 0x8A == string.byte(mn, 1) then
-                    mn = lts.front.pop_rbuf(1, false)
-                    if 0x9D == string.byte(mn, 1) then
-                        break
-                    end
-                end
-            end
-        end
-    end
-
-    local hd = lts.front.pop_rbuf(16, true) -- peek header
-    local _, version, ent_type, ent_ofst, ent_len, checksum =
-        string.unpack(hd, ">IS2I2", ne)
-
-    if 1000 == version
-        and ent_ofst >= 20 and ent_ofst <= 64
-        and ent_len > 0 and ent_len < 12000 then
-        lts.front.pop_rbuf(16, false)
-        local data = lts.front.pop_rbuf(ent_len, false)
-        return ent_type, data
-    end
-end
-
-
 function main()
-    handle_request(lts.front.contype, lts.front.content)
+    -- handle_request(lts.front.contype, lts.front.content)
+    local sock = lts.socket.tcp()
+    sock:connect("127.0.0.1", 9000)
+    sock:close()
 end
 
 
