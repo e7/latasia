@@ -17,7 +17,7 @@ size_t lts_sock_inuse_n;
 lts_socket_t **lts_listen_array; // 监听socket数组
 dlist_t lts_watch_list;
 dlist_t lts_post_list;
-DEFINE_DLIST(lts_task_list); // 请求列表
+dlist_t lts_task_list = DLIST_NODE(lts_task_list); // 请求列表
 
 
 char *lts_inet_ntoa(struct in_addr in)
