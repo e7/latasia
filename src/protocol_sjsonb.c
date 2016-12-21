@@ -1,11 +1,11 @@
 #include <arpa/inet.h>
 
+#include "conf.h"
 #include "protocol_sjsonb.h"
 
 // 魔数要求各字节无重复，以便于快速搜索
 #define MAGIC_NO                0xE78F8A9DU
 #define PROTO_VER               1000
-#define MAX_CONT_LEN            4096
 
 
 typedef struct __attribute__ ((packed)) {
@@ -19,6 +19,10 @@ typedef struct __attribute__ ((packed)) {
 #define LEN_HEADER              sizeof(sjsonb_header_t)
 // 最短json串长度
 #define LEN_MIN_CONTENT         2
+// 最大扩展区长度
+#define MAX_EXTRA_LEN           64
+// 最大载荷长度
+#define MAX_CONT_LEN            (RBUF_SIZE - LEN_HEADER - MAX_EXTRA_LEN)
 
 
 ssize_t lts_proto_sjsonb_encode_size(lts_str_t *content)
@@ -70,7 +74,7 @@ int lts_proto_sjsonb_decode(
 
         // 转换为本地字节序
         header.magic_no = MAGIC_NO;
-        header.proto_ver= ntohl(header_be->proto_ver);
+        header.proto_ver = ntohl(header_be->proto_ver);
         header.content_type = ntohs(header_be->content_type);
         header.content_ofst = ntohs(header_be->content_ofst);
         header.content_len = ntohl(header_be->content_len);
@@ -81,7 +85,8 @@ int lts_proto_sjsonb_decode(
             continue;
         }
 
-        if (header.content_ofst < sizeof(header) || header.content_ofst > 64) {
+        if (header.content_ofst < sizeof(header)
+            || header.content_ofst > MAX_EXTRA_LEN) {
             buf->seek += sizeof(uint32_t);
             continue;
         }
