@@ -516,11 +516,11 @@ int api_tcp_socket_close(lua_State *s)
 
 int api_push_sbuf(lua_State *s)
 {
-    uint8_t const *data;
+    uint8_t *data;
     size_t dlen;
     lts_buffer_t *sb;
 
-    data = (uint8_t const *)luaL_checklstring(s, -1, &dlen);
+    data = (uint8_t *)luaL_checklstring(s, -1, &dlen);
     sb = curr_ctx->front->conn->sbuf;
     if (dlen > sb->limit) {
         lua_pop(s, 1);
@@ -539,7 +539,7 @@ int api_push_sbuf(lua_State *s)
     lts_buffer_append(sb, data, dlen);
     lua_pop(s, 1);
 
-    lts_soft_event(curr_ctx->front, TRUE);
+    lts_soft_event(curr_ctx->front, LTS_SOFT_WRITE);
 
     lua_pushnil(s);
     return 1;
@@ -661,11 +661,11 @@ static void mod_on_sent(lts_socket_t *s)
 
     if (Y_FRONT_SENT == curr_ctx->yield_for) {
         int r;
-        uint8_t const *data;
+        uint8_t *data;
         size_t dlen;
         lts_buffer_t *sbuf = curr_ctx->front->conn->sbuf;
 
-        data = (uint8_t const *)luaL_checklstring(L, 1, &dlen);
+        data = (uint8_t *)luaL_checklstring(L, 1, &dlen);
         if (lts_buffer_space(sbuf) < dlen) {
             lts_buffer_drop_accessed(sbuf);
         }

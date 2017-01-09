@@ -259,7 +259,7 @@ static void asyn_backend_on_connected(lts_socket_t *s)
 }
 
 
-static void asyn_backend_service(lts_socket_t *s)
+static void asyn_backend_on_received(lts_socket_t *s)
 {
     ssize_t sent_sz;
     ssize_t sending_sz; // 推送的数据长度
@@ -316,7 +316,19 @@ static void asyn_backend_service(lts_socket_t *s)
 }
 
 
-static void asyn_backend_send_more(lts_socket_t *s)
+static void asyn_backend_service(dlist_t *nd)
+{
+    return;
+}
+
+
+static void asyn_backend_on_sendable(lts_socket_t *s)
+{
+    return;
+}
+
+
+static void asyn_backend_on_closed(lts_socket_t *s)
 {
     return;
 }
@@ -324,9 +336,10 @@ static void asyn_backend_send_more(lts_socket_t *s)
 
 static lts_app_module_itfc_t asyn_backend_itfc = {
     &asyn_backend_on_connected,
+    &asyn_backend_on_received,
     &asyn_backend_service,
-    &asyn_backend_send_more,
-    NULL,
+    &asyn_backend_on_sendable,
+    &asyn_backend_on_closed,
 };
 
 lts_module_t lts_app_asyn_backend_module = {

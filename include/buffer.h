@@ -59,7 +59,7 @@ extern lts_buffer_t *lts_create_buffer(lts_pool_t *pool,
 
 // 追加数据
 extern int lts_buffer_append(
-    lts_buffer_t *buffer, uint8_t const *data, ssize_t n
+    lts_buffer_t *buffer, void *data, ssize_t n
 );
 
 // 丢弃seek之前的数据

@@ -30,7 +30,7 @@ static void echo_on_connected(lts_socket_t *s)
 }
 
 
-static void echo_service(lts_socket_t *s)
+static void echo_on_received(lts_socket_t *s)
 {
     lts_buffer_t *rb = s->conn->rbuf;
     lts_buffer_t *sb = s->conn->sbuf;
@@ -42,11 +42,25 @@ static void echo_service(lts_socket_t *s)
     s->conn->rbuf = sb;
     s->conn->sbuf = rb;
 
+    lts_soft_event(s, LTS_SOFT_WRITE);
+
     return;
 }
 
 
-static void echo_send_more(lts_socket_t *s)
+static void echo_service(dlist_t *nd)
+{
+    return;
+}
+
+
+static void echo_on_sendable(lts_socket_t *s)
+{
+    return;
+}
+
+
+static void echo_on_closed(lts_socket_t *s)
 {
     return;
 }
@@ -54,9 +68,10 @@ static void echo_send_more(lts_socket_t *s)
 
 static lts_app_module_itfc_t echo_itfc = {
     &echo_on_connected,
+    &echo_on_received,
     &echo_service,
-    &echo_send_more,
-    NULL,
+    &echo_on_sendable,
+    &echo_on_closed,
 };
 
 lts_module_t lts_app_echo_module = {

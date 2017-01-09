@@ -538,7 +538,7 @@ void lts_evt_send(lts_socket_t *cs)
     }
 
     buf->seek += sent_sz;
-    (*app_itfc->on_sent)(cs); // 通知应用层可写
+    (*app_itfc->on_sendable)(cs); // 通知应用层可写
 
     return;
 }

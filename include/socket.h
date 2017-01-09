@@ -164,15 +164,26 @@ void lts_free_socket(lts_socket_t *s)
 
 
 // 软事件，强行触发其它连接的事件
+enum {
+    LTS_SOFT_READ = (1U << 0),
+    LTS_SOFT_WRITE = (1U << 1),
+};
 static inline
-int lts_soft_event(lts_socket_t *other, int writable)
+int lts_soft_event(lts_socket_t *other, uint32_t flag)
 {
     if (NULL == other->conn) {
         return -1;
     }
 
-    other->writable = writable;
-    lts_post_list_add(other);
+    if (flag & LTS_SOFT_READ) {
+        other->readable = TRUE;
+    }
+    if (flag & LTS_SOFT_WRITE) {
+        other->writable = TRUE;
+    }
+    if (flag) {
+        lts_post_list_add(other);
+    }
 
     return 0;
 }
