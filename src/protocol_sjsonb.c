@@ -47,8 +47,8 @@ void lts_proto_sjsonb_encode(
     header.content_checksum = htonl(0);
 
     // 假定调用者分配了足够的缓冲
-    (void)lts_buffer_append(dst, (uint8_t *)&header, sizeof(header));
-    (void)lts_buffer_append(dst, content->data, content->len);
+    ASSERT(0 == lts_buffer_append(dst, (uint8_t *)&header, sizeof(header)));
+    ASSERT(0 == lts_buffer_append(dst, content->data, content->len));
     return;
 }
 

@@ -536,7 +536,7 @@ int api_push_sbuf(lua_State *s)
         curr_ctx->yield_for = Y_FRONT_SENT;
         return lua_yield(s, 0);
     }
-    lts_buffer_append(sb, data, dlen);
+    ASSERT(0 == lts_buffer_append(sb, data, dlen));
     lua_pop(s, 1);
 
     lts_soft_event(curr_ctx->front, LTS_SOFT_WRITE);
@@ -674,7 +674,7 @@ static void mod_on_sent(lts_socket_t *s)
             return;
         }
 
-        (void)lts_buffer_append(sbuf, data, dlen);
+        ASSERT(0 == lts_buffer_append(sbuf, data, dlen));
         lua_pop(L, 1);
 
         curr_ctx->yield_for = Y_NOTHING;

@@ -282,15 +282,15 @@ static void asyn_backend_on_received(lts_socket_t *s)
         return;
     }
 
-    (void)lts_buffer_append(
+    ASSERT(0 == lts_buffer_append(
         s_ctx.push_buf, (uint8_t *)&s->born_time, sizeof(int64_t)
-    );
-    (void)lts_buffer_append(
+    ));
+    ASSERT(0 == lts_buffer_append(
         s_ctx.push_buf, (uint8_t *)&s, sizeof(lts_socket_t *)
-    );
-    (void)lts_buffer_append(
+    ));
+    ASSERT(0 == lts_buffer_append(
         s_ctx.push_buf, rb->seek, (uintptr_t)rb->last - (uintptr_t)rb->seek
-    );
+    ));
     lts_buffer_clear(rb); // 清空接收缓冲
 
     // 向后端推送数据
