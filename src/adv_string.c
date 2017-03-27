@@ -418,6 +418,7 @@ lts_str_t *lts_str_sprintf(lts_pool_t *pool, char const *format, ...)
 }
 
 
+// 分割字符串
 lts_str_t **lts_str_split(lts_str_t *src, uint8_t c, lts_pool_t *pool)
 {
     int cur, count;
@@ -441,15 +442,16 @@ lts_str_t **lts_str_split(lts_str_t *src, uint8_t c, lts_pool_t *pool)
     cur = 0;
     for (ssize_t j = 0; j < src->len; ++j) {
         if (c != src->data[j]) {
+            ssize_t trip_point = j;
+
             rslt[cur] = (lts_str_t *)lts_palloc(pool, sizeof(lts_str_t));
             rslt[cur]->data = &src->data[j];
-            rslt[cur]->len = 1;
 
             // 计算单项长度
-            while ((j < src->len) && (c != src->data[j + 1])) {
+            while ((j < src->len) && (c != src->data[j])) {
                 ++j;
-                ++rslt[cur]->len;
             }
+            rslt[cur]->len = j - trip_point;
 
             ++cur;
 
