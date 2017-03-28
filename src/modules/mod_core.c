@@ -59,42 +59,42 @@ int daemonize(const char *wd)
     case 0:
         break;
     default:
-        exit(0);
+        _exit(0);
     }
 
     if (-1 == setsid()) {
-        exit(0);
+        _exit(0);
     }
 
     if (wd) {
         if (-1 == chdir(wd)) {
-            exit(0);
+            _exit(0);
         }
     }
 
     if (-1 == close(STDIN_FILENO)) {
-        exit(0);
+        _exit(0);
     }
     if (-1 == close(STDOUT_FILENO)) {
-        exit(0);
+        _exit(0);
     }
     if (-1 == close(STDERR_FILENO)) {
-        exit(0);
+        _exit(0);
     }
 
     int fd = open("/dev/null", O_RDWR, 0);
     if (-1 == fd) {
-        exit(0);
+        _exit(0);
     }
 
     if(-1 == dup2(fd, STDIN_FILENO)) {
-        exit(0);
+        _exit(0);
     }
     if(-1 == dup2(fd, STDOUT_FILENO)) {
-        exit(0);
+        _exit(0);
     }
     if(-1 == dup2(fd, STDERR_FILENO)) {
-        exit(0);
+        _exit(0);
     }
 
     return 0;

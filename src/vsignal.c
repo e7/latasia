@@ -79,7 +79,6 @@ static void sig_segv_handler(int s)
 static void sig_abrt_handler(int s)
 {
     dump_stack_frames();
-    _exit(100 + s);
     return;
 }
 
