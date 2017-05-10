@@ -23,6 +23,9 @@
 
 #include "build.h"
 
+// 使用较低版本的memcpy函数以解决低版本glibc的兼容性问题
+__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
+
 
 #ifdef __cplusplus
 extern "C" {
