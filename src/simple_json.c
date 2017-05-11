@@ -246,7 +246,7 @@ static void __lts_sjson_encode(lts_sjson_t *sjson,
 
             // key
             output->data[(*offset)++] = '"';
-            (void)memcpy(&output->data[(*offset)], node->key.data, node->key.len);
+            (void)memmove(&output->data[(*offset)], node->key.data, node->key.len);
             (*offset) += node->key.len;
             output->data[(*offset)++] = '"';
 
@@ -254,7 +254,7 @@ static void __lts_sjson_encode(lts_sjson_t *sjson,
 
             // val
             output->data[(*offset)++] = '"';
-            (void)memcpy(&output->data[(*offset)], kv->val.data, kv->val.len);
+            (void)memmove(&output->data[(*offset)], kv->val.data, kv->val.len);
             (*offset) += kv->val.len;
             output->data[(*offset)++] = '"';
         } else if (LIST_VALUE == node->node_type) {
@@ -265,7 +265,7 @@ static void __lts_sjson_encode(lts_sjson_t *sjson,
 
             // key
             output->data[(*offset)++] = '"';
-            (void)memcpy(&output->data[(*offset)], node->key.data, node->key.len);
+            (void)memmove(&output->data[(*offset)], node->key.data, node->key.len);
             (*offset) += node->key.len;
             output->data[(*offset)++] = '"';
 
@@ -281,7 +281,7 @@ static void __lts_sjson_encode(lts_sjson_t *sjson,
                 );
 
                 output->data[(*offset)++] = '"';
-                (void)memcpy(&output->data[(*offset)], ln->val.data, ln->val.len);
+                (void)memmove(&output->data[(*offset)], ln->val.data, ln->val.len);
                 (*offset) += ln->val.len;
                 output->data[(*offset)++] = '"';
 
@@ -297,7 +297,7 @@ static void __lts_sjson_encode(lts_sjson_t *sjson,
 
             // key
             output->data[(*offset)++] = '"';
-            (void)memcpy(&output->data[(*offset)], node->key.data, node->key.len);
+            (void)memmove(&output->data[(*offset)], node->key.data, node->key.len);
             (*offset) += node->key.len;
             output->data[(*offset)++] = '"';
 

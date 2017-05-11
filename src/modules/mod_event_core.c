@@ -153,7 +153,7 @@ static void lts_accept(lts_socket_t *ls)
     cs = lts_alloc_socket();
     cs->fd = cmnct_fd;
     cs->peer_addr = (struct sockaddr *)lts_palloc(cpool, LTS_SOCKADDRLEN);
-    memcpy(cs->peer_addr, clt, LTS_SOCKADDRLEN);
+    memmove(cs->peer_addr, clt, LTS_SOCKADDRLEN);
     cs->ev_mask = (EPOLLET | EPOLLIN | EPOLLOUT);
     cs->conn = c;
     cs->do_read = &lts_evt_recv;

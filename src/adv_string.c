@@ -401,7 +401,7 @@ lts_str_t *lts_str_clone(lts_str_t *s, lts_pool_t *pool)
 
     rslt = (lts_str_t *)lts_palloc(pool, sizeof(lts_str_t));
     str_mem = (uint8_t *)lts_palloc(pool, s->len + 1);
-    memcpy(str_mem, s->data, s->len);
+    memmove(str_mem, s->data, s->len);
     str_mem[s->len] = 0x00;
 
     rslt->data = str_mem;

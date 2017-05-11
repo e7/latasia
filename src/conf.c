@@ -261,7 +261,7 @@ parse_conf(lts_conf_t *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
             if (0 == *end) {
                 if (*start) {
                     kv = (uint8_t *)alloca(kv_len + 1);
-                    (void)memcpy(kv, start, kv_len);
+                    (void)memmove(kv, start, kv_len);
                     kv[kv_len] = 0;
 
                     (void)lts_write_logger(
@@ -277,7 +277,7 @@ parse_conf(lts_conf_t *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
 
             if ('#' == *end) {
                 kv = (uint8_t *)alloca(kv_len + 1);
-                (void)memcpy(kv, start, kv_len);
+                (void)memmove(kv, start, kv_len);
                 kv[kv_len] = 0;
 
                 (void)lts_write_logger(
@@ -290,7 +290,7 @@ parse_conf(lts_conf_t *conf, uint8_t *addr, off_t sz, lts_pool_t *pool)
 
             if (';' == *end) {
                 kv = (uint8_t *)alloca(kv_len + 1);
-                (void)memcpy(kv, start, kv_len);
+                (void)memmove(kv, start, kv_len);
                 kv[kv_len] = 0;
                 for (seprator = 0; ('=' != kv[seprator]); ++seprator) {
                     if (0 == kv[seprator]) { // 无效配置

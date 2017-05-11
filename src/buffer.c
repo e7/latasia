@@ -60,7 +60,7 @@ int lts_buffer_append(lts_buffer_t *buffer, void *data, ssize_t n)
         }
 
         // append
-        (void)memcpy(tmp, buffer->start, ctx_size);
+        (void)memmove(tmp, buffer->start, ctx_size);
 
         buffer->start = tmp;
         buffer->seek = tmp + (buffer->seek - buffer->start);
@@ -68,7 +68,7 @@ int lts_buffer_append(lts_buffer_t *buffer, void *data, ssize_t n)
         buffer->end = tmp + new_size;
     }
 
-    (void)memcpy(buffer->last, seg, n);
+    (void)memmove(buffer->last, seg, n);
     buffer->last += n;
 
     return 0;

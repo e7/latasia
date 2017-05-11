@@ -34,7 +34,7 @@ cb_daemon_match(void *c, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
 
     // 缓冲value
     item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
-    (void)memcpy(item_buf, v->data, v->len);
+    (void)memmove(item_buf, v->data, v->len);
     item_buf[v->len] = 0;
 
     conf->daemon = atoi((char const *)item_buf);
@@ -54,7 +54,7 @@ cb_port_match(void *c, lts_str_t *k, lts_str_t *v, lts_pool_t *pool)
 
     // 缓冲value
     port_buf  = (uint8_t *)lts_palloc(pool, port_buf_size);
-    (void)memcpy(port_buf, v->data, v->len);
+    (void)memmove(port_buf, v->data, v->len);
     port_buf[v->len] = 0;
 
     // 检查端口合法性
@@ -83,7 +83,7 @@ static void cb_pid_file_match(void *c,
 
     // 缓冲value
     pid_file_buf  = (uint8_t *)lts_palloc(pool, pid_file_buf_size);
-    (void)memcpy(pid_file_buf, v->data, v->len);
+    (void)memmove(pid_file_buf, v->data, v->len);
     pid_file_buf[v->len] = 0;
 
     // 更新配置
@@ -105,7 +105,7 @@ static void cb_log_file_match(void *c,
 
     // 缓冲value
     log_file_buf  = (uint8_t *)lts_palloc(pool, log_file_buf_size);
-    (void)memcpy(log_file_buf, v->data, v->len);
+    (void)memmove(log_file_buf, v->data, v->len);
     log_file_buf[v->len] = 0;
 
     // 更新配置
@@ -128,7 +128,7 @@ static void cb_workers_match(void *c,
 
     // 缓冲value
     port_buf  = (uint8_t *)lts_palloc(pool, port_buf_size);
-    (void)memcpy(port_buf, v->data, v->len);
+    (void)memmove(port_buf, v->data, v->len);
     port_buf[v->len] = 0;
 
     // 更新配置
@@ -155,7 +155,7 @@ static void cb_keepalive_match(void *c,
 
     // 缓冲value
     item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
-    (void)memcpy(item_buf, v->data, v->len);
+    (void)memmove(item_buf, v->data, v->len);
     item_buf[v->len] = 0;
 
     // 更新配置
@@ -182,7 +182,7 @@ static void cb_max_connections_match(void *c,
 
     // 缓冲value
     item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
-    (void)memcpy(item_buf, v->data, v->len);
+    (void)memmove(item_buf, v->data, v->len);
     item_buf[v->len] = 0;
 
     // 更新配置
@@ -208,7 +208,7 @@ static void cb_app_mod_conf_match(void *c,
 
     // 缓冲value
     item_buf  = (uint8_t *)lts_palloc(pool, item_buf_size);
-    (void)memcpy(item_buf, v->data, v->len);
+    (void)memmove(item_buf, v->data, v->len);
     item_buf[v->len] = 0;
 
     // 更新配置

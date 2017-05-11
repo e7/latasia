@@ -23,7 +23,7 @@ int lts_file_open(lts_file_t *file, int flags,
     char *name;
 
     name = (char *)malloc(file->name.len + 1);
-    (void)memcpy(name, file->name.data, file->name.len);
+    (void)memmove(name, file->name.data, file->name.len);
     name[file->name.len] = 0;
 
     file->fd = open(name, flags, mode);
