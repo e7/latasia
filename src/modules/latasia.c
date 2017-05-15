@@ -239,9 +239,8 @@ lts_module_t *lts_modules[] = {
     &lts_event_core_module,
     &lts_event_epoll_module,
     // &lts_app_asyn_backend_module,
-    &lts_app_echo_module,
-    // &lts_app_http_core_module,
-    // &lts_app_lua_module,
+    // &lts_app_echo_module,
+    &lts_app_lua_module,
     NULL,
 };
 lts_module_t *lts_module_event_cur;
@@ -395,11 +394,18 @@ void process_post_list(void)
 
     // 新请求通知应用层
     if (app_itfc->on_service) {
+        DEFINE_DLIST(tmp_tsk_list);
+
         while (! dlist_empty(&lts_task_list)) {
             dlist_t *tmp = dlist_get_head(&lts_task_list);
             dlist_del(tmp);
-            (*app_itfc->on_service)(tmp);
+            if (-1 == (*app_itfc->on_service)(tmp)) {
+                dlist_add_tail(&tmp_tsk_list, tmp);
+            }
         }
+
+        // 合并未能处理的任务，期待下次能够处理
+        dlist_merge(&lts_task_list, &tmp_tsk_list);
     }
 
     return;

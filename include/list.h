@@ -93,7 +93,7 @@ typedef list_t lstack_t;
 #define lstack_pop(stack)           list_rm_node(stack, *stack)
 
 
-// 双链表
+// 双链表，头结点不能包含数据
 typedef struct s_dlist_t dlist_t;
 struct s_dlist_t {
     dlist_t *mp_next;

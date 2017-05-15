@@ -608,7 +608,7 @@ static void mod_on_received(lts_socket_t *s)
 }
 
 
-static void mod_on_service(dlist_t *nd)
+static int mod_on_service(dlist_t *nd)
 {
     int r;
     lua_State *L;
@@ -637,7 +637,7 @@ static void mod_on_service(dlist_t *nd)
         // LUA_ERRFILE
         lts_op_release(&cs->task_rsc, tsk); // 记得归还
         fprintf(stderr, "load file failed:%s\n", lua_tostring(L, -1));
-        return;
+        return -1;
     }
 
     r = lua_resume(L, 0);
@@ -647,7 +647,7 @@ static void mod_on_service(dlist_t *nd)
     }
     lts_op_release(&cs->task_rsc, tsk); // 记得归还
 
-    return;
+    return 0;
 }
 
 

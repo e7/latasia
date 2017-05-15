@@ -48,9 +48,9 @@ static void echo_on_received(lts_socket_t *s)
 }
 
 
-static void echo_service(dlist_t *nd)
+static int echo_service(dlist_t *nd)
 {
-    return;
+    return 0;
 }
 
 
