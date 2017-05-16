@@ -8,6 +8,7 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR})
 
 SET(CMAKE_C_FLAGS "-Wall -ggdb -O0 -pipe -std=gnu99 -rdynamic")
+SET(CMAKE_C_FLAGS "-Wl,--wrap=memcpy")
 #SET(CMAKE_C_FLAGS "-W -Wall -Wextra -pedantic -ggdb -O0 -pipe -std=c99 -rdynamic")
 # add_definitions(-Wall -Wextra)
 add_definitions(-D_GNU_SOURCE -DPROJECT_ROOT=${PROJECT_SOURCE_DIR} -DADV_STRING_ENHANCE)
